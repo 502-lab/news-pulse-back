@@ -69,7 +69,35 @@ tasks:
     desc: "DB 초기화 (로컬 전용)"
     cmd: ./gradlew flywayClean
 
+  # ───── Docker (로컬 인프라) ─────
+
+  infra:up:
+    desc: "로컬 인프라 시작 (PostgreSQL + Redis)"
+    cmd: docker compose up -d
+
+  infra:down:
+    desc: "로컬 인프라 중지"
+    cmd: docker compose down
+
+  infra:reset:
+    desc: "로컬 인프라 초기화 (볼륨 삭제 포함)"
+    cmd: docker compose down -v
+
+  infra:logs:
+    desc: "로컬 인프라 로그 확인"
+    cmd: docker compose logs -f
+
+  infra:ps:
+    desc: "로컬 인프라 컨테이너 상태 확인"
+    cmd: docker compose ps
+
   # ───── 자주 쓰는 조합 ─────
+
+  up:
+    desc: "인프라 시작 + 개발 서버 실행"
+    cmds:
+      - task: infra:up
+      - task: dev
 
   check:
     desc: "린트 + 전체 테스트 (커밋 전 권장)"
