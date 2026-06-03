@@ -1,0 +1,82 @@
+version: '3'
+
+# ─────────────────────────────────────────
+# News Curator AI — Backend Taskfile
+# ─────────────────────────────────────────
+
+tasks:
+
+  # ───── 공통 (모든 레포 동일) ─────
+
+  spec:update:
+    desc: "spec 서브모듈 최신화"
+    cmd: git submodule update --remote specs
+
+  spec:validate:
+    desc: "openapi.yaml 유효성 검사"
+    cmd: npx @stoplight/spectral-cli lint specs/api-contract/openapi.yaml
+
+  claude:check:
+    desc: "CLAUDE.md 존재 여부 확인"
+    cmd: find . -name "CLAUDE.md" | sort
+
+  # ───── Backend 전용 ─────
+
+  api:gen:
+    desc: "Swagger 어노테이션 → openapi.yaml 추출 후 spec 서브모듈에 반영"
+    cmds:
+      - ./gradlew generateOpenApiDocs
+      - cp build/openapi.yaml specs/api-contract/openapi.yaml
+      - echo "✅ openapi.yaml 추출 완료. specs/ 확인 후 커밋하세요."
+
+  dev:
+    desc: "개발 서버 시작 (local 프로파일)"
+    cmd: ./gradlew bootRun --args='--spring.profiles.active=local'
+
+  build:
+    desc: "프로덕션 빌드"
+    cmd: ./gradlew build
+
+  build:skip-test:
+    desc: "테스트 생략하고 빌드"
+    cmd: ./gradlew build -x test
+
+  lint:
+    desc: "코드 포맷 검사 (Spotless)"
+    cmd: ./gradlew spotlessCheck
+
+  lint:fix:
+    desc: "코드 포맷 자동 수정 (Spotless)"
+    cmd: ./gradlew spotlessApply
+
+  test:
+    desc: "전체 테스트 실행"
+    cmd: ./gradlew test
+
+  test:unit:
+    desc: "단위 테스트만 실행"
+    cmd: ./gradlew test --tests "com.newscurator.service.*"
+
+  test:api:
+    desc: "Controller 테스트만 실행"
+    cmd: ./gradlew test --tests "com.newscurator.controller.*"
+
+  db:migrate:
+    desc: "DB 마이그레이션 실행 (Flyway)"
+    cmd: ./gradlew flywayMigrate
+
+  db:clean:
+    desc: "DB 초기화 (로컬 전용)"
+    cmd: ./gradlew flywayClean
+
+  # ───── 자주 쓰는 조합 ─────
+
+  check:
+    desc: "린트 + 전체 테스트 (커밋 전 권장)"
+    deps: [lint, test]
+
+  ready:
+    desc: "spec 최신화 + 전체 검사 (개발 시작 전 권장)"
+    cmds:
+      - task: spec:update
+      - task: check

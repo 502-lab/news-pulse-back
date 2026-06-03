@@ -1,5 +1,10 @@
 # News Curator AI — Backend Claude Context
 
+## 도구 버전
+
+- Claude Code: 1.0.3 (.claude-version 참조)
+- 반드시 동일 버전 사용할 것. 버전 변경 시 이 파일도 함께 수정.
+
 ## 프로젝트 개요
 
 AI 뉴스 큐레이터 앱의 Backend 파트.

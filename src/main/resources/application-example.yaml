@@ -1,0 +1,26 @@
+# application-local.yaml 파일을 만들어 이 값들을 채워넣으세요.
+# application-local.yaml은 .gitignore에 의해 커밋되지 않습니다.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/newscurator
+    username: YOUR_DB_USERNAME
+    password: YOUR_DB_PASSWORD
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+news-curator:
+  newsapi:
+    key: YOUR_NEWSAPI_KEY
+    base-url: https://newsapi.org/v2
+    fetch-interval: "0 */6 * * *"
+  gemini:
+    api-key: YOUR_GEMINI_API_KEY
+    model: gemini-2.0-flash
+  deepl:
+    api-key: YOUR_DEEPL_API_KEY
+  jwt:
+    secret: YOUR_JWT_SECRET_KEY_AT_LEAST_256_BITS
+    expiration-ms: 86400000
