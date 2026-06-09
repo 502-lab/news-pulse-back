@@ -26,14 +26,15 @@
 - [ ] T006 [P] JPA Entity ArticleSource.java 생성 (is_merge 필드, UNIQUE(article_id, source_id)) in `src/main/java/com/newscurator/domain/ArticleSource.java`
 - [ ] T007 [P] JPA Entity Summary.java 생성 (depth, status=SummarySlotStatus, content nullable, generated_at nullable, last_attempt_at nullable, retry_count=0 — DEEP 슬롯 백오프 추적 전용, BALANCED/BRIEF는 NULL/0 유지) in `src/main/java/com/newscurator/domain/Summary.java`
 - [ ] T008 [P] JPA Entity SourceDailyUsage.java 생성 (복합 PK: source_id + usage_date, call_count) in `src/main/java/com/newscurator/domain/SourceDailyUsage.java`
-- [ ] T009 Repository 인터페이스 5개 생성: ArticleRepository, SourceRepository, ArticleSourceRepository, SummaryRepository, SourceDailyUsageRepository (기본 CRUD + 커스텀 쿼리 메서드 시그니처 정의) in `src/main/java/com/newscurator/repository/`
+- [ ] T009 Repository 인터페이스 5개 생성: ArticleRepository(lockAndClaimPending 포함 — SELECT … FOR UPDATE SKIP LOCKED 네이티브 쿼리 시그니처 정의, T032에서 호출), SourceRepository, ArticleSourceRepository, SummaryRepository, SourceDailyUsageRepository (기본 CRUD + 커스텀 쿼리 메서드 시그니처 정의) in `src/main/java/com/newscurator/repository/`
 - [ ] T010 [P] @ConfigurationProperties 4개 생성: CollectionProperties(interval-ms, batch-size), RetentionProperties(days, grace-period-days), FeedProperties(default-page-size, max-page-size), AiProperties(retry-limit, delay-between-calls-ms, deep-retry.cooldown-minutes=60, deep-retry.limit=5) in `src/main/java/com/newscurator/config/`
 - [ ] T011 [P] application.yaml(공통 기본값) + application-example.yaml(시크릿 치환 템플릿) 작성 in `src/main/resources/`
 - [ ] T012 [P] GlobalExceptionHandler(@RestControllerAdvice), ErrorResponse record, ArticleNotFoundException, AiProviderException 생성 in `src/main/java/com/newscurator/exception/`
 - [ ] T013 [P] UrlNormalizer 구현: 7단계 정규화(스킴 통일, 트래킹 파라미터 제거, 끝 슬래시 제거 등) in `src/main/java/com/newscurator/util/UrlNormalizer.java`
 - [ ] T014 [P] UrlNormalizerTest 단위 테스트: 트래킹 파라미터 제거, http→https 정규화, 끝 슬래시 제거, CHK014(brief 트런케이션 200자 기준은 AiProcessingService에서 처리) in `src/test/java/com/newscurator/util/UrlNormalizerTest.java`
-- [ ] T015 [P] ArticleRepositoryTest (@DataJpaTest + Testcontainers PostgreSQL): normalized_url unique 제약, feed partial index, PENDING queue index, cursor 정렬 검증 in `src/test/java/com/newscurator/repository/ArticleRepositoryTest.java`
-- [ ] T055 [P] SummaryService 생성: truncateForBrief(String balancedContent): String (~200자, CHK014 기준 상수화), DEEP 슬롯 쿨다운 체크(last_attempt_at + cooldown-minutes 경과 여부), retry_count 한도 검사. T032(AiProcessingService)·T044(ArticleDetailService)가 이 클래스를 호출함 in `src/main/java/com/newscurator/service/SummaryService.java`
+- [ ] T015 [P] ArticleRepositoryTest (@DataJpaTest + Testcontainers PostgreSQL): normalized_url unique 제약, feed partial index, PENDING queue index, cursor 정렬 검증, lockAndClaimPending 동시 클레임 검증(2 스레드 동시 호출 시 각각 다른 기사 클레임) in `src/test/java/com/newscurator/repository/ArticleRepositoryTest.java`
+- [ ] T056 [P] SummaryServiceTest (JUnit 5): truncateForBrief(200자 경계·null·200자 미만 입력), isDeepRetryAllowed(쿨다운 미경과 → false, retry_count ≥ deep-retry.limit → false, 정상 허용 → true) in `src/test/java/com/newscurator/service/SummaryServiceTest.java`
+- [ ] T055 [P] SummaryService 생성 (T056 단위 테스트 선행): truncateForBrief(String balancedContent): String (~200자, CHK014 기준 상수화), DEEP 슬롯 쿨다운 체크(last_attempt_at + cooldown-minutes 경과 여부), retry_count 한도 검사. T032(AiProcessingService)·T044(ArticleDetailService)가 이 클래스를 호출함 in `src/main/java/com/newscurator/service/SummaryService.java`
 
 **Checkpoint A**: Flyway 마이그레이션 실행 후 테이블 5개 생성 확인, 모든 Entity 컴파일 통과, UrlNormalizerTest 통과
 
@@ -82,7 +83,7 @@
 
 - [ ] T030 [P] [US2] AiProvider 인터페이스 정의: classify(title, content): Category, summarize(title, content, SummaryDepth): String in `src/main/java/com/newscurator/client/ai/AiProvider.java`
 - [ ] T031 [US2] GeminiAiProvider 구현: Gemini Flash API RestClient 호출, 응답 파싱·검증, enum 외 카테고리 → OTHER 폴백 + WARN 로그(category_raw_value 포함), timeout + delay-between-calls-ms 적용 in `src/main/java/com/newscurator/client/ai/GeminiAiProvider.java`
-- [ ] T032 [US2] AiProcessingService 구현: PENDING 배치를 `SELECT ... FOR UPDATE SKIP LOCKED`(ArticleRepository.lockAndClaimPending)로 row-level claim → 다중 인스턴스 safe(research #13). 분류(classify → category_status=COMPLETED; 실패 → retry_count++, retry_limit 초과 시 영구 FAILED), balanced 요약 생성(summary_status 독립 관리, CHK002), SummaryService.truncateForBrief()로 BRIEF 즉시 생성(CHK014), DEEP 슬롯 NOT_GENERATED 초기화. AI daily cap 없음: research #9 결론(960콜/일 ≪ 2,000 RPM) — HTTP 429 시 GeminiAiProvider에서 backoff 처리로 충분 in `src/main/java/com/newscurator/service/AiProcessingService.java`
+- [ ] T032 [US2] AiProcessingService 구현: PENDING 배치를 `SELECT ... FOR UPDATE SKIP LOCKED`(ArticleRepository.lockAndClaimPending — T009에서 시그니처 정의, T015에서 동시 클레임 검증)로 row-level claim → 다중 인스턴스 safe(research #13). 분류(classify → category_status=COMPLETED; 실패 → retry_count++, retry_limit 초과 시 영구 FAILED), balanced 요약 생성(summary_status 독립 관리, CHK002), SummaryService.truncateForBrief()로 BRIEF 즉시 생성(CHK014), DEEP 슬롯 NOT_GENERATED 초기화. AI daily cap 없음: research #9 결론(960콜/일 ≪ 2,000 RPM) — HTTP 429 시 GeminiAiProvider에서 backoff 처리로 충분 in `src/main/java/com/newscurator/service/AiProcessingService.java`
 - [ ] T033 [US2] AiProcessingScheduler 구현: @Scheduled fixedDelayString=${app.scheduler.ai.interval-ms}, MDC runId, AiProcessingService 위임, 시작/종료/실패 구조적 로그(FR-016). 단일 EC2 인스턴스 전제(research #13) — fixedDelay로 JVM 내 중첩 없음, ShedLock 어노테이션 주석 준비(@SchedulerLock, scale-out 시 활성화) in `src/main/java/com/newscurator/scheduler/AiProcessingScheduler.java`
 - [ ] T034 [P] [US2] ExpiryService 구현: 1단계(feed_visible=false: expires_at < NOW() AND user_saved=false), 2단계(물리 삭제: feed_visible=false AND updated_at < NOW()-7days AND user_saved=false), user_saved=true 기사 보존 처리(FR-018, FR-019) in `src/main/java/com/newscurator/service/ExpiryService.java`
 - [ ] T035 [P] [US2] ExpiryScheduler 구현: @Scheduled cron 일 1회(새벽), ExpiryService 위임, 처리 건수 로그 in `src/main/java/com/newscurator/scheduler/ExpiryScheduler.java`
@@ -101,7 +102,7 @@
 
 - [ ] T036 [P] [US3] ArticleFeedServiceTest (JUnit 5 + Mockito): 커서 decode/encode, category 필터, 0건 응답(data=[], nextCursor=null, hasMore=false, CHK030), size clamp(최대 100), FAILED→OTHER 매핑, feed_visible=true AND category_status∈{COMPLETED,FAILED} 조건 검증 in `src/test/java/com/newscurator/service/ArticleFeedServiceTest.java`
 - [ ] T037 [P] [US3] ArticleDetailServiceTest (JUnit 5 + Mockito): DEEP NOT_GENERATED → AI 호출 후 COMPLETED, DEEP AI 오류 → status=FAILED + 200 응답(CHK022), DEEP FAILED → 다음 요청 재시도(FAILED→PENDING 전이, CHK022 data-model 정합), CHK025(커서가 만료 기사 가리킬 때 graceful 처리 주석 확인) in `src/test/java/com/newscurator/service/ArticleDetailServiceTest.java`
-- [ ] T038 [P] [US3] ArticleFeedControllerTest (@WebMvcTest): 200 정상 목록, 200 빈 목록(CHK030), 400 VALIDATION_ERROR(category=INVALID_VALUE, CHK028), size 초과→clamp 200. (401/403 인증 테스트는 @Disabled + "인증 구현 spec 002 이후 활성화") in `src/test/java/com/newscurator/controller/ArticleFeedControllerTest.java`
+- [ ] T038 [P] [US3] ArticleFeedControllerTest (@WebMvcTest): 200 정상 목록, 200 빈 목록(CHK030), 400 VALIDATION_ERROR(category=INVALID_VALUE, CHK028), size 초과 → 100으로 clamp 후 200 응답. (401/403 인증 테스트는 @Disabled + "인증 구현 spec 002 이후 활성화") in `src/test/java/com/newscurator/controller/ArticleFeedControllerTest.java`
 - [ ] T039 [P] [US3] ArticleDetailControllerTest (@WebMvcTest): 200 모든 슬롯 포함, 200 deep FAILED(content=null + status=FAILED), 404 ARTICLE_NOT_FOUND in `src/test/java/com/newscurator/controller/ArticleDetailControllerTest.java`
 
 ### 구현
@@ -146,6 +147,8 @@
 - [ ] T052 E2E 통합 테스트 (@SpringBootTest + Testcontainers): 수집→AI처리→피드 API 전체 흐름. 기사 수집 → PENDING → AI처리 → COMPLETED → GET /api/v1/articles 응답에 포함 확인 in `src/test/java/com/newscurator/integration/PipelineE2ETest.java`
 - [ ] T053 [P] MDC runId 구조적 로깅 적용: CollectionScheduler + AiProcessingScheduler에 UUID runId를 MDC에 등록, 각 스케줄러 실행 단위 추적 가능하게(FR-016) in `src/main/java/com/newscurator/scheduler/`
 - [ ] T054 [P] application-example.yaml 최종 검토: 모든 외부 API 키(GEMINI_API_KEY, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, DB 접속 정보) 치환 토큰 포함, application.yaml에 시크릿 미포함 확인 in `src/main/resources/application-example.yaml`
+
+> *(선택) SC-009(P95 1초)·SC-010(10,000건/일)은 운영 SLO·설계 헤드룸 — 빌드 게이트 아님. 배포 후 부하 테스트로 측정. quickstart.md의 k6 스모크 시나리오 참조.*
 
 ---
 
@@ -216,9 +219,9 @@ T022 NaverSourceAdapter
 
 ### 통계
 
-- **총 태스크**: 55개
-- **US별**: Phase A 16개, Phase B 10개, Phase C 10개, Phase D 10개, Phase E 6개, Phase F 3개
-- **테스트 우선 태스크**: T014-T015, T016-T019, T026-T029, T036-T039, T046-T047, T052 = 16개
+- **총 태스크**: 56개
+- **US별**: Phase A 17개, Phase B 10개, Phase C 10개, Phase D 10개, Phase E 6개, Phase F 3개
+- **테스트 우선 태스크**: T014-T015, T016-T019, T026-T029, T036-T039, T046-T047, T052, T056 = 17개
 - **병렬 가능 [P] 태스크**: 34개
 
 ---

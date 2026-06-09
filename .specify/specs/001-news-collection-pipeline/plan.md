@@ -38,7 +38,7 @@
 
 **Performance Goals**:
 - 피드 조회 서버측 P95 < 1초 (100~200 concurrent users)
-- AI 처리: 500건/일 × 2 AI 호출 ≈ 1,000 Gemini calls/일 (Gemini Flash 유료 tier)
+- AI 처리: ~960콜/일 (batch 10 × 96회/일 × 2호출, ≤ 1,000/일 무료 한도) (Gemini Flash)
 
 **Constraints**:
 - Redis 미도입 (t3.medium 메모리 제약, 인덱스로 충분)
@@ -61,14 +61,18 @@
 | III. 일관된 응답 포맷 | ✅ PASS | `ErrorResponse(code, message, timestamp)`. @RestControllerAdvice. |
 | IV. 테스트 없는 비즈니스 로직 금지 | ✅ PASS | Service 단위 테스트, Repository @DataJpaTest, Controller @WebMvcTest. |
 | V. 스키마 변경은 마이그레이션으로만 | ✅ PASS | Flyway V1__, V2__. Hibernate ddl-auto=validate. |
-| VI. 보안 기본값·시크릿 외부화 | ✅ PASS | 인증은 spec 002(범위 밖). 관리자 경로 분리(/admin/). 시크릿은 환경변수. |
+| VI. 보안 기본값·시크릿 외부화 | ⚠ DEFERRED | 인증은 spec 002 구현 전까지 미구현. admin 경로 분리(/admin/). 시크릿은 환경변수. 예외 사유 → Complexity Tracking 참조. |
 | VII. 멱등성·중복 방지 | ✅ PASS | URL dedup + INSERT ON CONFLICT. AI 처리 DB 상태 기반 멱등. |
 | 추가: 시간대 관리 | ✅ PASS | 모든 시각 UTC 저장. published_at / first_collected_at 구분. |
 | 추가: API 버저닝 | ✅ PASS | /api/v1 버저닝 적용. |
 | 추가: 외부 API 복원력 | ✅ PASS | timeout + 재시도 + backoff. 출처별 장애 격리. |
 | 추가: 구조적 로깅 | ✅ PASS | SLF4J + Logback JSON. 시크릿 로그 제외. 스케줄러 runId 추적. |
 
-**Complexity Tracking**: 위반 없음.
+**Complexity Tracking**:
+
+**Principle VI 예외** — 인증은 spec 002 구현 전까지 미구현. 그 사이 admin 엔드포인트(`/admin/*`)는 애플리케이션 레벨 인증 없이 노출되며, 운영 배포 시 리버스 프록시(Nginx) 레벨의 임시 보호(HTTP Basic Auth 또는 IP 허용목록)로 가린다. spec 002(인증) 완료를 정식 해소 조건으로 둔다.  
+**배포 조건**: admin은 Nginx 보호 적용 또는 미노출 상태에서만 노출한다.  
+*(Nginx 설정 파일 작성은 이 spec-kit 산출물 범위 밖 — 서버 운영 절차로 처리)*
 
 ---
 
@@ -146,6 +150,7 @@ src/main/java/com/newscurator/
 │   ├── CollectionService.java            ← URL 정규화, dedup, 병합 처리
 │   ├── AiProcessingService.java          ← PENDING 큐 폴링, 분류·요약
 │   ├── PipelineStatsService.java         ← 관리자 통계 집계
+│   ├── SummaryService.java               ← truncateForBrief, isDeepRetryAllowed
 │   └── ExpiryService.java               ← 만료 기사 2단계 처리
 ├── scheduler/
 │   ├── CollectionScheduler.java          ← @Scheduled fixedDelay
