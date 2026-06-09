@@ -160,7 +160,8 @@ src/main/java/com/newscurator/
 │   ├── ArticleRepository.java
 │   ├── SourceRepository.java
 │   ├── ArticleSourceRepository.java
-│   └── SummaryRepository.java
+│   ├── SummaryRepository.java
+│   └── SourceDailyUsageRepository.java
 ├── domain/
 │   ├── Article.java
 │   ├── Source.java

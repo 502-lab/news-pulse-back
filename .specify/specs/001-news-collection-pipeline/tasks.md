@@ -36,7 +36,7 @@
 - [ ] T056 [P] SummaryServiceTest (JUnit 5): truncateForBrief(200자 경계·null·200자 미만 입력), isDeepRetryAllowed(쿨다운 미경과 → false, retry_count ≥ deep-retry.limit → false, 정상 허용 → true) in `src/test/java/com/newscurator/service/SummaryServiceTest.java`
 - [ ] T055 [P] SummaryService 생성 (T056 단위 테스트 선행): truncateForBrief(String balancedContent): String (~200자, CHK014 기준 상수화), DEEP 슬롯 쿨다운 체크(last_attempt_at + cooldown-minutes 경과 여부), retry_count 한도 검사. T032(AiProcessingService)·T044(ArticleDetailService)가 이 클래스를 호출함 in `src/main/java/com/newscurator/service/SummaryService.java`
 
-**Checkpoint A**: Flyway 마이그레이션 실행 후 테이블 5개 생성 확인, 모든 Entity 컴파일 통과, UrlNormalizerTest 통과
+**Checkpoint A**: Flyway 마이그레이션 실행 후 테이블 5개 생성 확인, 모든 Entity 컴파일 통과, UrlNormalizerTest 통과, SummaryServiceTest 통과
 
 ---
 

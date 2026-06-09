@@ -134,7 +134,7 @@ category_status=COMPLETED·summary_status=COMPLETED가 되고 balanced 요약이
 
 **Independent Test**: 관리자 권한 토큰으로 대시보드 API를 호출하여
 오늘 수집 건수·요약 완료율·병합 처리 건수가 실제 저장된 데이터와 일치하는지 확인한다.
-일반 사용자 권한으로 호출 시 접근 거부됨을 확인한다.
+일반 사용자 권한으로 호출 시 접근 거부됨을 확인한다. *(인증 구현 spec 002 이후 달성 가능, 001 범위 밖)*
 
 **Acceptance Scenarios**:
 
