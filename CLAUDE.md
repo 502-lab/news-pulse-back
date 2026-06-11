@@ -72,6 +72,19 @@ openapi.yaml 변경 시 반드시 news-curator-spec 레포에 반영.
 - 공통 응답 형식: ApiResponse<T> 래퍼 사용
 - 에러 응답: RFC 7807 Problem Details 형식
 - @RestControllerAdvice로 예외 중앙 처리
+
+### Swagger 문서화 (새 API 추가/변경 시 필수)
+
+- Controller 클래스: @Tag(name, description) 필수
+- 각 엔드포인트 메서드: @Operation(summary, description) 필수
+  - summary: 한 줄 요약
+  - description: 동작 방식, 제약 조건, 주의사항 포함
+- 각 엔드포인트: @ApiResponses로 가능한 HTTP 상태코드 전부 명시 (200 외 4xx도 포함)
+- @RequestParam / @PathVariable: @Parameter(description) 필수
+- Request/Response DTO(record): @Schema(description) 필수
+  - 클래스 레벨: @Schema(description) 로 DTO 전체 설명
+  - 각 필드: @Schema(description)로 필드 설명, 값 범위·단위·null 가능 여부 명시
+  - 가능한 경우 example 값 추가
 - 페이지네이션 응답은 Spring Page<T> 래퍼 사용
 
 ### 외부 API 클라이언트
@@ -105,6 +118,18 @@ openapi.yaml 변경 시 반드시 news-curator-spec 레포에 반영.
 - System.out.println 커밋 금지, log.info/debug 사용
 - API 키, 비밀번호 로그 출력 절대 금지
 
+## 변경 이력 관리
+
+- 코드 수정·파일 생성·버그 수정 등 **모든 작업 완료 시** `CHANGELOG.html`에 항목을 추가할 것
+- 날짜 그룹(`<div class="date-group">`) 하위에 `<div class="entry">` 블록으로 기록
+- 각 항목에 반드시 포함할 내용:
+  - category 태그: `tag-bugfix` / `tag-feature` / `tag-config` / `tag-db` / `tag-test` / `tag-docs` / `tag-hotfix`
+  - 심각도(bugfix류): `sev-critical` / `sev-high` / `sev-medium` / `sev-low`
+  - 문제(발견 경위), 근본 원인, 수정 내용, **결정 이유(왜 이 방법을 선택했는지 — 대안 대비 근거)**, 영향 파일
+- 같은 날짜 그룹이 없으면 새 `<div class="date-group">` 블록을 최상단에 추가
+- stats bar의 항목 수도 함께 갱신할 것
+- **민감 정보 절대 포함 금지**: API 키, 비밀번호, DB 접속 정보, 토큰, 개인정보(이메일 등)는 기록하지 않을 것. URL 예시도 자격증명이 포함된 형태 사용 금지
+
 ## AI 지침
 
 - 구현 전 /specs/features/ 해당 스펙 파일 먼저 확인할 것
@@ -118,6 +143,13 @@ openapi.yaml 변경 시 반드시 news-curator-spec 레포에 반영.
   - Repository: @DataJpaTest 사용
   - Controller: @WebMvcTest 사용
   - 외부 API 클라이언트: Mock 처리 필수
+
+## 구현·검증 규칙
+
+- implement/검증 시 항상 Docker를 띄우고 통합·E2E 테스트를 실제 실행한다. 통합 테스트를 skip한 채 "통과"로 보고하지 않는다. skip이 불가피하면 그 사실을 명시 보고한다.
+- 테스트를 @Disabled·assertion 약화·예외 삼킴으로 통과시키지 않는다. 불가피하면 사유를 적고 승인을 요청한다.
+- 자율로 코드/설정/테스트를 수정했으면 변경 요약과 함께 "근본 수정 vs 증상 가리기"를 스스로 분류해 보고하고, 승인 없이 green만 만들지 않는다.
+- 외부 실제 연동(Gemini·네이버·RSS) 검증 여부를 보고하고, 안 했으면 "런타임/배포 시 검증"으로 명시한다.
 
 ## 디렉토리 구조
 
@@ -151,6 +183,9 @@ src/
 specs/ ← news-curator-spec submodule (수정 금지)
 
 <!-- SPECKIT START -->
+
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
+at `.specify/specs/001-news-collection-pipeline/plan.md`.
+
 <!-- SPECKIT END -->

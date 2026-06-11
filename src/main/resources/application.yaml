@@ -25,3 +25,25 @@ management:
     web:
       exposure:
         include: health,info
+
+app:
+  scheduler:
+    enabled: true
+    collection:
+      interval-ms: 900000         # 15분
+      batch-size: 50
+    ai:
+      interval-ms: 60000          # 1분
+  ai:
+    batch-size: 5
+    retry-limit: 3
+    delay-between-calls-ms: 4500   # free tier 15 RPM 기준 ≈13 RPM, 여유 확보
+    deep-retry:
+      cooldown-minutes: 60
+      limit: 5
+  feed:
+    default-page-size: 20
+    max-page-size: 100
+  retention:
+    days: 90
+    grace-period-days: 7

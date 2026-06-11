@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>news-pulse-back — 변경 이력</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --text: #e2e4f0;
+      --muted: #7c82a0;
+      --accent: #6c8cff;
+
+      --tag-bugfix:   #ff6b6b;
+      --tag-feature:  #4ecdc4;
+      --tag-config:   #a78bfa;
+      --tag-test:     #45b7d1;
+      --tag-db:       #f7b731;
+      --tag-docs:     #7bed9f;
+      --tag-hotfix:   #ff4757;
+
+      --sev-critical: #ff4757;
+      --sev-high:     #ffa502;
+      --sev-medium:   #eccc68;
+      --sev-low:      #7bed9f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Pretendard', 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 32px 40px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+    .header h1 { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+    .header h1 span { color: var(--accent); }
+    .header p { color: var(--muted); margin-top: 4px; font-size: 13px; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all .15s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .search {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      outline: none;
+      width: 220px;
+    }
+    .search:focus { border-color: var(--accent); }
+    .search::placeholder { color: var(--muted); }
+
+    .stats {
+      display: flex;
+      gap: 24px;
+      padding: 14px 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .stat { text-align: center; }
+    .stat-num { font-size: 20px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    .main { display: flex; min-height: calc(100vh - 140px); }
+
+    .sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      padding: 24px 16px;
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 140px;
+      height: calc(100vh - 140px);
+      overflow-y: auto;
+    }
+    .sidebar h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+    .toc-item {
+      display: block;
+      padding: 5px 8px;
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-decoration: none;
+      transition: all .1s;
+      margin-bottom: 2px;
+    }
+    .toc-item:hover { background: var(--surface2); color: var(--text); }
+    .toc-date { font-weight: 600; font-size: 11px; color: var(--text); margin-top: 12px; margin-bottom: 4px; padding: 0 8px; }
+
+    .content { flex: 1; padding: 32px 40px; max-width: 900px; }
+
+    .date-group { margin-bottom: 48px; }
+    .date-heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .date-heading h2 { font-size: 18px; font-weight: 700; color: #fff; }
+    .date-heading .date-bar { flex: 1; height: 1px; background: var(--border); }
+    .date-heading .commit-count {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .entry {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      transition: border-color .15s;
+    }
+    .entry:hover { border-color: #3e4470; }
+
+    .entry-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .entry-left { flex: 1; }
+
+    .entry-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .entry-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+    }
+    .commit-hash {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .session-badge {
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 1px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .chevron {
+      color: var(--muted);
+      font-size: 12px;
+      transition: transform .2s;
+      margin-top: 2px;
+    }
+    .entry.open .chevron { transform: rotate(180deg); }
+
+    .tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tag-bugfix   { background: rgba(255,107,107,.15); color: var(--tag-bugfix); }
+    .tag-feature  { background: rgba(78,205,196,.15);  color: var(--tag-feature); }
+    .tag-config   { background: rgba(167,139,250,.15); color: var(--tag-config); }
+    .tag-test     { background: rgba(69,183,209,.15);  color: var(--tag-test); }
+    .tag-db       { background: rgba(247,183,49,.15);  color: var(--tag-db); }
+    .tag-docs     { background: rgba(123,237,159,.15); color: var(--tag-docs); }
+    .tag-hotfix   { background: rgba(255,71,87,.2);    color: var(--tag-hotfix); }
+
+    .sev {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      letter-spacing: 0.3px;
+    }
+    .sev-critical { background: rgba(255,71,87,.2);    color: var(--sev-critical); }
+    .sev-high     { background: rgba(255,165,2,.2);    color: var(--sev-high); }
+    .sev-medium   { background: rgba(236,204,104,.2);  color: var(--sev-medium); }
+    .sev-low      { background: rgba(123,237,159,.2);  color: var(--sev-low); }
+
+    .entry-body {
+      display: none;
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .entry.open .entry-body { display: block; }
+
+    .section { margin-top: 14px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    /* 결정 이유 섹션 강조 */
+    .section.why .section-title { color: #a78bfa; }
+    .section.why {
+      background: rgba(167,139,250,.05);
+      border-left: 2px solid rgba(167,139,250,.4);
+      padding: 8px 10px;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .section p, .section li { font-size: 13px; color: var(--text); line-height: 1.65; }
+    .section ul { padding-left: 18px; }
+    .section li { margin-bottom: 3px; }
+
+    .files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+    .file {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #a8b4ff;
+    }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      background: var(--surface2);
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: #f8c555;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>news-pulse-back</span> — 변경 이력 (CHANGELOG)</h1>
+  <p>001 뉴스 수집 파이프라인 구현 전 과정 및 버그 수정 기록 · 민감 정보(API 키·비밀번호·토큰·개인정보) 기록 금지</p>
+  <div class="toolbar">
+    <button class="filter-btn active" onclick="filter('all')">전체</button>
+    <button class="filter-btn" onclick="filter('bugfix')">🐛 Bug Fix</button>
+    <button class="filter-btn" onclick="filter('hotfix')">🚨 Hotfix</button>
+    <button class="filter-btn" onclick="filter('feature')">✨ Feature</button>
+    <button class="filter-btn" onclick="filter('config')">⚙️ Config</button>
+    <button class="filter-btn" onclick="filter('test')">🧪 Test</button>
+    <button class="filter-btn" onclick="filter('db')">🗄️ DB / Migration</button>
+    <button class="filter-btn" onclick="filter('docs')">📄 Docs</button>
+    <input class="search" type="text" placeholder="🔍 검색..." oninput="search(this.value)" />
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num">22</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">12</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">3</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">4</div><div class="stat-label">DB Migration</div></div>
+  <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-10</div><div class="stat-label">작업 기간</div></div>
+</div>
+
+<div class="main">
+
+<nav class="sidebar">
+  <h3>날짜</h3>
+  <div class="toc-date">2026-06-10</div>
+  <a class="toc-item" href="#d0610-1">@Modifying+RETURNING 예외</a>
+  <a class="toc-item" href="#d0610-2">한겨레 403 차단</a>
+  <a class="toc-item" href="#d0610-3">YTN RSS URL 폐기</a>
+  <a class="toc-item" href="#d0610-4">size 음수 검증 누락</a>
+  <a class="toc-item" href="#d0610-5">Swagger category 오류</a>
+  <a class="toc-item" href="#d0610-6">Swagger 어노테이션 추가</a>
+  <a class="toc-item" href="#d0610-7">ProblemDetail $ref 오류</a>
+  <a class="toc-item" href="#d0610-8">VS Code 실행 환경</a>
+  <a class="toc-item" href="#d0610-9">CollectionService self-invocation</a>
+  <a class="toc-item" href="#d0610-10">한겨레 308 리다이렉트 미처리</a>
+  <a class="toc-item" href="#d0610-11">페치/파싱 실패 성공 오기록 마스킹</a>
+  <a class="toc-item" href="#d0610-12">AiTransientException — 429/5xx/타임아웃 분리</a>
+  <a class="toc-item" href="#d0610-13">AiProcessingService 배치 조기 중단</a>
+  <a class="toc-item" href="#d0610-14">AI 기본값 보수화</a>
+  <a class="toc-item" href="#d0610-15">통합 테스트 WireMock 채우기</a>
+  <a class="toc-item" href="#d0610-16">FAILED 기사 PENDING 복구</a>
+  <a class="toc-item" href="#d0610-17">RestClientConfig HTTP/1.1 강제</a>
+  <div class="toc-date">2026-06-07 ~ 09</div>
+  <a class="toc-item" href="#d0609-1">Spring Boot 4.x 테스트</a>
+  <a class="toc-item" href="#d0609-2">spring-boot-flyway 누락</a>
+  <a class="toc-item" href="#d0609-3">Spotless Java 25 호환</a>
+  <a class="toc-item" href="#d0609-4">001 파이프라인 구현</a>
+  <div class="toc-date">2026-06-03 ~ 08</div>
+  <a class="toc-item" href="#d0608-1">프로젝트 초기 설정</a>
+</nav>
+
+<div class="content">
+
+<!-- ═══════ 2026-06-10 ═══════ -->
+<div class="date-group" id="date-0610">
+  <div class="date-heading">
+    <h2>2026-06-10</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 1 -->
+  <div class="entry" id="d0610-1" data-tags="bugfix hotfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-hotfix">Hotfix</span>
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-critical">CRITICAL</span>
+          수집 파이프라인 전체 중단 — <code>@Modifying + RETURNING</code> 쿼리 예외
+        </div>
+        <div class="entry-meta"><span class="session-badge">스모크 테스트에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>연합뉴스·네이버-경제 출처의 <code>consecutive_failure_count</code>가 매 실행마다 증가하며 기사가 1건도 저장되지 않음. RSS/API 자체는 정상 응답하는데 <code>collectFromSource</code>가 예외로 종료.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>Hibernate 6는 <code>@Modifying</code> 존재 시 <code>executeUpdate()</code> 경로를 강제. PostgreSQL <code>RETURNING</code>은 결과 셋을 반환하므로 JDBC가 <code>"A result was returned when none was expected"</code> 예외 발생 → <code>@Transactional</code> 롤백 → 저장 0건, failure_count 증가.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <ul>
+          <li><code>incrementAndGetCallCount</code> 단일 쿼리를 <b>upsert</b>(void) + <b>select</b>(int) 두 쿼리로 분리</li>
+          <li><code>upsertCallCount</code>: <code>@Modifying(flushAutomatically=true)</code>, RETURNING 없는 upsert</li>
+          <li><code>selectCallCount</code>: 별도 native SELECT로 실제 카운트 반환</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>@Modifying 제거 후 SELECT 단일 쿼리로 변경</b>은 flush 타이밍 보장이 없어 stale 카운트 반환 가능 → 기각</li>
+          <li><b>EntityManager 직접 사용</b>은 Spring Data JPA 추상화를 포기하고 보일러플레이트 증가 → 기각</li>
+          <li><b>두 쿼리 분리</b>는 변경 범위 최소화 + Spring Data JPA 계약 유지 + <code>flushAutomatically</code>로 동일 트랜잭션 내 정합성 보장. 가장 작은 수정으로 문제 해결.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">repository/SourceDailyUsageRepository.java</span>
+          <span class="file">service/CollectionService.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="entry" id="d0610-2" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-high">HIGH</span>
+          한겨레 RSS 수집 실패 — Java User-Agent 차단 (403)
+        </div>
+        <div class="entry-meta"><span class="session-badge">스모크 테스트에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p><code>RestClient</code>가 기본 User-Agent(<code>Java/25.0.2</code>)로 요청 시 한겨레 nginx가 차단. <code>RssSourceAdapter</code> catch에서 <code>emptyList()</code> 반환 → 기사 0건.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>Spring <code>RestClient</code>의 기본 UA가 <code>Java/{버전}</code>. 한겨레는 이를 봇으로 판단해 403 반환.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <p><code>RestClientConfig</code>에 <code>defaultHeader("User-Agent", "Mozilla/5.0 (compatible; NewsCurator/1.0; ...)")</code> 추가.</p>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>어댑터별(소스별) UA 설정</b>은 새 소스 추가 시 누락 가능, 일관성 유지 어려움 → 기각</li>
+          <li><b>RestClient 전역 default header</b>로 설정하면 모든 소스가 동일한 UA를 사용. 향후 다른 소스도 Java UA를 차단할 경우 한 곳에서만 수정하면 됨. 관리 포인트 최소화.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">config/RestClientConfig.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="entry" id="d0610-3" data-tags="bugfix db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="tag tag-db">DB Migration</span>
+          <span class="sev sev-high">HIGH</span>
+          YTN RSS URL 폐기 → 조선일보로 교체 + failure count 리셋
+        </div>
+        <div class="entry-meta"><span class="session-badge">스모크 테스트에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>YTN RSS URL이 <code>302 → 404</code>로 폐기됨. ROME 파싱 실패 → <code>emptyList()</code>. 코드 버그(<code>@Modifying+RETURNING</code>)로 인해 연합뉴스·네이버의 <code>consecutive_failure_count</code>가 허위로 6~7까지 쌓임.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <ul>
+          <li>YTN → <b>조선일보</b> RSS로 교체</li>
+          <li>모든 출처의 <code>consecutive_failure_count</code> 리셋 (코드 버그 원인이므로)</li>
+          <li>V3 Flyway 마이그레이션으로 반영</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>조선일보를 선택한 이유</b>: Java UA로 직접 curl 테스트 결과 200 OK + 7개 아이템 확인. 동아일보는 403, 네이버·다음 RSS는 별도 인증 필요로 기각.</li>
+          <li><b>수동 DB UPDATE 대신 V3 Flyway 마이그레이션</b>: 환경별(local/dev/prd) 재현 가능하고 변경 이력 추적 가능. 수동 쿼리는 dev·prd 서버 중 하나라도 누락될 위험 있음.</li>
+          <li><b>failure_count를 리셋한 이유</b>: 코드 버그가 원인이므로 실제 소스 장애가 아님. 리셋하지 않으면 임계치(5회) 초과로 해당 소스 비활성화 로직이 동작할 수 있음.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">db/migration/V3__fix_sources.sql</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="entry" id="d0610-4" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-high">HIGH</span>
+          <code>size=-1</code> 요청 시 400 미반환 — Bean Validation 미동작
+        </div>
+        <div class="entry-meta"><span class="session-badge">스모크 테스트에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p><code>GET /api/v1/articles?size=-1</code> → HTTP 200 반환. <code>FeedRequest</code> record의 <code>@Positive</code>는 있으나 Controller가 <code>new FeedRequest(cursor, size, categoryEnum)</code>를 직접 생성해 <code>@Valid</code>가 동작하지 않음. <code>clampSize()</code>가 음수를 기본값으로 처리.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <ul>
+          <li>Controller에 <code>@Validated</code> 추가 (클래스 레벨)</li>
+          <li><code>@RequestParam size</code>에 <code>@Positive</code> 직접 추가</li>
+          <li><code>GlobalExceptionHandler</code>에 <code>ConstraintViolationException</code> 핸들러 추가 → 400 반환</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>FeedRequest record에 @Valid 적용</b>: Spring MVC는 컨트롤러 내부에서 <code>new FeedRequest(...)</code>로 수동 생성한 record에 <code>@Valid</code>를 지원하지 않음 → 기각</li>
+          <li><b>Service 레이어에서 수동 검증</b>: 입력 검증은 컨트롤러 경계 책임. Service에서 하면 계층 책임 위반 → 기각</li>
+          <li><b>@Validated + @Positive on @RequestParam</b>: Spring MVC MethodParameter 수준 Bean Validation의 표준 방식. FeedRequest 수정 없이 최소 변경으로 해결.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">controller/ArticleFeedController.java</span>
+          <span class="file">exception/GlobalExceptionHandler.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="entry" id="d0610-5" data-tags="bugfix docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="tag tag-docs">Docs</span>
+          <span class="sev sev-medium">MEDIUM</span>
+          Swagger <code>category</code> 파라미터 설명의 enum 값 오류
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>Swagger <code>@Parameter</code>의 category 설명이 <code>POLITICS, ECONOMY, TECH</code> 등으로 작성됐으나 실제 enum은 <code>ECONOMY_FINANCE, SCIENCE, ENTERTAINMENT_CULTURE, IT</code> 등으로 완전히 다름. 클라이언트가 설명을 보고 요청하면 400 에러.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <p><code>@Parameter description</code>을 실제 <code>Category</code> enum 값으로 수정: <code>ECONOMY_FINANCE, SCIENCE, POLITICS, SPORTS, WORLD, ENTERTAINMENT_CULTURE, HEALTH_MEDICINE, AUTOMOTIVE, IT, OTHER</code></p>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>@Schema(enumAsRef=true) 변경</b>: 응답 스키마 표현 방식 자체가 바뀌는 더 큰 변경. 현재 문제는 설명 텍스트만 틀렸으므로 오버엔지니어링 → 기각</li>
+          <li><b>description 텍스트 직접 수정</b>: 실제 enum 클래스는 정확하며 Swagger 설명 문자열만 오타 수준의 오류. 가장 작은 범위의 수정으로 충분.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">controller/ArticleFeedController.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="entry" id="d0610-6" data-tags="feature docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-docs">Docs</span>
+          전체 Controller·DTO Swagger 문서화 어노테이션 추가
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">이유</div>
+        <p>Swagger UI에 API 설명·파라미터·응답 스키마가 없어 클라이언트(웹·안드로이드) 개발 시 참조 불가.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">추가 내용</div>
+        <ul>
+          <li>Controller 4개: <code>@Tag</code>, 메서드별 <code>@Operation</code>, <code>@ApiResponses</code>, <code>@Parameter</code></li>
+          <li>DTO 6개: 클래스·필드별 <code>@Schema(description)</code> — null 가능 여부, 단위, 허용값 명시</li>
+          <li><code>CLAUDE.md</code>에 Swagger 문서화 필수 규칙 추가</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>점진적 추가(API별로 나중에)</b>: 부분 문서가 존재하면 클라이언트가 어떤 API는 문서가 있고 없는지 파악하기 어려움 → 기각</li>
+          <li><b>모든 API 한꺼번에 적용</b>: 이미 구현이 완료된 시점이므로 완전한 문서를 한 번에 제공하는 것이 클라이언트 입장에서 최선. CLAUDE.md 규칙 추가로 이후 누락 방지.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">controller/ArticleFeedController.java</span>
+          <span class="file">controller/ArticleDetailController.java</span>
+          <span class="file">controller/AdminPipelineController.java</span>
+          <span class="file">controller/InternalTriggerController.java</span>
+          <span class="file">dto/request/FeedRequest.java</span>
+          <span class="file">dto/response/ArticleFeedResponse.java</span>
+          <span class="file">dto/response/ArticleFeedItem.java</span>
+          <span class="file">dto/response/ArticleDetailResponse.java</span>
+          <span class="file">dto/response/SummarySlot.java</span>
+          <span class="file">dto/response/PipelineStatsResponse.java</span>
+          <span class="file">CLAUDE.md</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="entry" id="d0610-7" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-medium">MEDIUM</span>
+          Swagger UI 오류 — <code>$ref: ProblemDetail</code> schema 미등록
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p><code>@Schema(ref="#/components/schemas/ProblemDetail")</code>를 사용했으나 SpringDoc이 <code>ProblemDetail</code>을 named schema로 자동 등록하지 않아 Swagger UI에서 "Could not resolve reference" 오류 발생.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p><code>ref=</code>는 OpenAPI 컴포넌트에 이미 등록된 named schema만 참조 가능. Spring 내장 클래스(<code>ProblemDetail</code>)는 자동 등록 대상이 아님.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <p><code>ref=</code> → <code>implementation = org.springframework.http.ProblemDetail.class</code>로 변경.</p>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>OpenApiCustomizer로 ProblemDetail 수동 등록</b>: 글로벌 설정 추가가 필요하고, 실제로 사용되는 곳에서 직접 클래스를 지정하는 방식이 더 명확 → 기각</li>
+          <li><b>implementation= 사용</b>: SpringDoc이 해당 클래스를 직접 파싱해 인라인 스키마를 생성하므로 별도 등록 불필요. 사용 지점에서 의도가 명확하게 드러남.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">controller/ArticleFeedController.java</span>
+          <span class="file">controller/ArticleDetailController.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="entry" id="d0610-8" data-tags="config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-config">Config</span>
+          VS Code launch.json 프로파일 설정 누락
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p><code>launch.json</code>에 <code>spring.profiles.active=local</code> 인자가 없어 VS Code Run 시 default 프로파일로 기동 → DB 접속 설정 없음 → 앱 기동 실패.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <ul>
+          <li><code>args: "--spring.profiles.active=local"</code> 추가</li>
+          <li><code>envFile</code> 참조 제거</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>envFile 유지</b>: <code>application-local.yaml</code>이 이미 <code>${KEY:defaultValue}</code> 형태로 모든 폴백 기본값 보유. .env와 yaml 두 파일이 공존하면 "어느 파일이 실제 설정 소스인가" 혼란 발생 → 기각</li>
+          <li><b>application-local.yaml 단일 진실 소스</b>: 설정 파일 하나만 관리하면 되므로 신규 팀원 온보딩 시에도 단순. env 파일 없이도 앱이 기동되는 것을 명확히 함.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">.vscode/launch.json</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="entry" id="d0610-9">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">BUG FIX</span>
+          <span class="sev sev-critical">CRITICAL</span>
+          CollectionService.collectAll() self-invocation으로 @Transactional 무효화 → 수집 0건
+        </div>
+        <div class="entry-meta">
+          <span class="session-badge">service 분리</span>
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제 (발견 경위)</div>
+        <div class="section-content">collectAll() 내부에서 this.collectFromSource(source)를 직접 호출. Spring AOP 프록시를 우회하므로 collectFromSource의 @Transactional이 전혀 적용되지 않아 articles 수집 결과가 0건.</div>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <div class="section-content">Spring @Transactional은 프록시 기반 AOP로 동작. 동일 빈 내부에서 this.method() 호출 시 프록시를 거치지 않아 어드바이스(트랜잭션 경계)가 무시됨.</div>
+      </div>
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <div class="section-content">collectFromSource 및 관련 private 헬퍼(processCandidate, findAdapter)를 SourceCollectionExecutor 빈으로 분리. CollectionService는 순수 오케스트레이터로 단순화하여 sourceCollectionExecutor.collectFromSource(source)를 호출. CollectionServiceTest는 collectAll 오케스트레이션만 검증하도록 리팩터링, collectFromSource 케이스는 SourceCollectionExecutorTest로 이동.</div>
+      </div>
+      <div class="section">
+        <div class="section-title">결정 이유</div>
+        <div class="section-content">대안①: @Lazy 자기 주입 — 간단하나 순환 의존성이 발생하고 코드 의도가 불명확. 대안②: AopContext.currentProxy() — AspectJ 위빙 설정 필요, 빌드 복잡도 증가. 선택안: 별도 빈 분리는 단일 책임 원칙에 부합하고, 테스트 시 두 클래스를 독립적으로 mock할 수 있어 구조적으로 가장 깔끔.</div>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">service/CollectionService.java</span>
+          <span class="file">service/SourceCollectionExecutor.java (신규)</span>
+          <span class="file">test/.../CollectionServiceTest.java</span>
+          <span class="file">test/.../SourceCollectionExecutorTest.java (신규)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="entry" id="d0610-10" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-high">HIGH</span>
+          한겨레 RSS 308 Permanent Redirect 미처리 → RSS 본문 대신 <code>/rss</code> 4바이트 반환
+        </div>
+        <div class="entry-meta"><span class="session-badge">수집 파이프라인 검증에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제 (발견 경위)</div>
+        <p><code>https://www.hani.co.kr/rss/</code> 수집 트리거 시 ROME이 <code>SyndFeedException: Invalid XML: Error on line 1: 프롤로그에서는 콘텐츠가 허용되지 않습니다</code>를 던지며 한겨레 수집 0건. DB에는 <code>consecutive_failure_count</code> 증가 없이 조용히 실패.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>서버가 해당 URL을 HTTP 308로 <code>/rss</code>(4바이트)로 영구 이전함. <code>SimpleClientHttpRequestFactory</code>(내부 <code>HttpURLConnection</code>)는 301/302/303만 자동 follow하고 307/308은 follow하지 않아 응답 body로 <code>/rss</code> 텍스트가 그대로 반환됨. ROME이 이를 XML로 파싱 시도 → 예외.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <p><code>RestClientConfig</code>에서 <code>SimpleClientHttpRequestFactory</code>를 <code>JdkClientHttpRequestFactory(HttpClient.Redirect.NORMAL)</code>로 교체. <code>NORMAL</code> 정책은 301/302/303/307/308 모두 follow하며 HTTPS→HTTP 다운그레이드만 차단.</p>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>DB seed URL을 /rss로 변경</b>: 현재 URL은 영구 redirect이므로 단기적으로는 동작하나, redirect 체인이 다시 변경될 경우 DB를 재수정해야 함. 또한 CLAUDE.md에 "시드 URL 직접 수정 금지" 원칙에 위배. 기각.</li>
+          <li><b>어댑터에서 수동 redirect follow 구현</b>: redirect 처리 코드가 HTTP 클라이언트 레이어가 아닌 비즈니스 레이어에 노출됨. 관심사 분리 위반. 기각.</li>
+          <li><b>JdkClientHttpRequestFactory 교체</b>: Java 표준 <code>HttpClient</code>의 redirect 정책을 이용하므로 별도 코드 없음. 모든 RSS/Naver 출처의 307/308 redirect 대응이 전역으로 적용됨. RestClientConfig 한 곳만 수정하므로 최소 변경.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">config/RestClientConfig.java</span>
+          <span class="file">test/client/RssSourceAdapterTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="entry" id="d0610-11" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-high">HIGH</span>
+          RSS/Naver 페치·파싱 실패를 성공(0건)으로 오기록 → <code>consecutive_failure_count</code> 증가 안 함
+        </div>
+        <div class="entry-meta"><span class="session-badge">수집 파이프라인 검증에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제 (발견 경위)</div>
+        <p><code>RssSourceAdapter</code>·<code>NaverSourceAdapter</code>의 catch 블록이 HTTP/파싱 예외를 <code>Collections.emptyList()</code>로 삼켜 반환. <code>SourceCollectionExecutor</code>는 예외 없이 <code>recordCollected()</code>를 호출 → <code>consecutive_failure_count</code>가 0 유지. 운영자가 출처 장애를 인지할 방법 없음.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>어댑터 catch 블록 설계 실수: 하드 실패(HTTP 오류·파싱 예외)와 소프트 빈 결과(정상 응답이지만 기사 0건)를 동일하게 처리. 하드 실패도 빈 리스트 반환으로 마스킹됨.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <ul>
+          <li><code>RssSourceAdapter</code>: catch 블록에서 <code>return emptyList()</code> → <code>throw new RuntimeException(..., e)</code>. null/빈 body에 대한 soft empty는 유지.</li>
+          <li><code>NaverSourceAdapter</code>: 동일 패턴 수정.</li>
+          <li>예외 전파 시 <code>CollectionService.collectAll()</code>가 <code>recordFailure()</code> 호출 → <code>consecutive_failure_count</code> 증가, ERROR 로그 기록.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>emptyList() 유지 + 별도 모니터링 메트릭</b>: 예외 마스킹 구조 그대로 두고 지표만 추가하면 근본 원인이 해결되지 않음. 기각.</li>
+          <li><b>어댑터에서 직접 recordFailure() 호출</b>: 어댑터는 HTTP 클라이언트 레이어로 DB Repository 의존성을 가져선 안 됨. 계층 경계 위반. 기각.</li>
+          <li><b>예외 전파 + CollectionService에서 처리</b>: CollectionService가 이미 catch → recordFailure() 구조를 갖추고 있음. 어댑터는 예외를 그대로 전파하기만 하면 되므로 최소 변경으로 올바른 책임 분리 유지.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">client/source/RssSourceAdapter.java</span>
+          <span class="file">client/source/NaverSourceAdapter.java</span>
+          <span class="file">test/client/RssSourceAdapterTest.java</span>
+          <span class="file">test/client/NaverSourceAdapterTest.java</span>
+          <span class="file">test/service/SourceCollectionExecutorTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 12 -->
+  <div class="entry" id="d0610-12" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-medium">MEDIUM</span>
+          Gemini 429 일시 오류를 영구 FAILED와 동일하게 처리 — <code>AiTransientException</code> 분리
+        </div>
+        <div class="entry-meta"><span class="session-badge">AI 처리 파이프라인 런타임 검증에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제 (발견 경위)</div>
+        <p>Gemini 무료 티어 15 RPM 한도 초과 시 429 응답. 기존 <code>callGeminiWithRetry</code>는 내부적으로 최대 3회 재시도했지만 실패 시 <code>AiProviderException</code>으로 래핑 → <code>processCategory/processSummary</code>가 retry_count를 소모 → 90건이 FAILED 상태로 영구 고착.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>429(rate limit), 5xx(서버 오류), 연결 타임아웃 등 재시도 가능한 일시적 오류와 400(잘못된 요청) 등 영구 오류를 동일한 예외 타입(<code>AiProviderException</code>)으로 처리하여 서비스 레이어에서 구분 불가.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <ul>
+          <li><code>AiTransientException extends AiProviderException</code> 신규 생성.</li>
+          <li><code>GeminiAiProvider.callGemini()</code>: <code>HttpClientErrorException.TooManyRequests</code>(429) → <code>AiTransientException</code>; <code>HttpServerErrorException</code>(5xx) → <code>AiTransientException</code>; <code>ResourceAccessException</code>(연결/타임아웃) → <code>AiTransientException</code>; 기타 4xx → <code>AiProviderException</code>(하드 실패).</li>
+          <li><code>callGeminiWithRetry</code> 제거 — 배치 레벨에서 중단하는 방식으로 교체.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>내부 재시도 유지</b>: 429 직후 1~4초 대기 후 재시도하면 동일 RPM 창 안에서 또 429를 맞음. 배치 전체를 더 사용하고 같은 결과. 기각.</li>
+          <li><b>배치 중단 + 다음 스케줄 사이클</b>: 스케줄 간격(60s)이 RPM 창보다 길어 자연스럽게 회복됨. 구현도 단순. 채택.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">exception/AiTransientException.java</span>
+          <span class="file">client/ai/GeminiAiProvider.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <div class="entry" id="d0610-13" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <code>AiProcessingService</code> 배치 조기 중단 — 일시 오류 시 PENDING 유지, retry_count 미소모
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <ul>
+          <li><code>processCategory / processSummary</code>: <code>AiTransientException</code> catch → rethrow (retry_count 미증가).</li>
+          <li><code>processBatch</code>: <code>processArticle</code> 호출을 try-catch로 감싸 <code>AiTransientException</code> 시 WARN 로그 + break.</li>
+          <li>트랜잭션이 정상 커밋되어 배치 내 이전 성공 기사는 유지되고, 오류 기사는 PENDING 상태 그대로 남음.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">service/AiProcessingService.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14 -->
+  <div class="entry" id="d0610-14" data-tags="config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-config">Config</span>
+          AI 기본값 보수화 — <code>batch-size 10→5</code>, <code>delay-between-calls-ms 200→4500</code>
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <p>무료 티어 15 RPM 기준 안전 여유 확보: <code>batch-size=5</code>(기사당 2 호출) × <code>delay=4500ms</code> → 배치 10호출/45s ≈ 13 RPM. RPM 한도(15) 미만.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">resources/application.yaml</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15 -->
+  <div class="entry" id="d0610-15" data-tags="test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-test">Test</span>
+          통합 테스트 WireMock 시나리오 채우기 — Collection / AI / E2E 13종
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <ul>
+          <li><code>CollectionIntegrationTest</code>: 정상 RSS, 308 리다이렉트, 비-XML 실패(consecutiveFailureCount+1), cross-source 중복(is_merge=true), 동일출처 재수집 중복 없음.</li>
+          <li><code>AiProcessingIntegrationTest</code>: 성공(COMPLETED+3슬롯), 알 수 없는 카테고리→OTHER, 429 PENDING 유지+retry_count=0, 400 하드실패→FAILED, lazy deep 1회만 호출.</li>
+          <li><code>PipelineE2ETest</code>: RSS+Gemini WireMock → COMPLETED 피드 노출, brief 채워짐, 상세 API에서 deep 슬롯 lazy 생성.</li>
+          <li>모든 AI 테스트에 <code>app.ai.delay-between-calls-ms=0</code> 설정으로 불필요한 sleep 제거.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>WireMock 스텁 패턴 <code>.*/generateContent.*</code>가 경로 <code>:generateContent</code>(콜론 뒤)와 매칭되지 않아 ResourceAccessException 발생. <code>.*generateContent.*</code>로 수정. JDK HttpClient HTTP/2 h2c 업그레이드 시 WireMock이 연결을 조기 종료하는 문제는 RestClientConfig에 <code>HTTP_1_1</code> 강제로 해결.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">integration/CollectionIntegrationTest.java</span>
+          <span class="file">integration/AiProcessingIntegrationTest.java</span>
+          <span class="file">integration/PipelineE2ETest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16 -->
+  <div class="entry" id="d0610-16" data-tags="db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-db">DB</span>
+          429 rate limit으로 FAILED 고착된 기사 90건 → PENDING 복구 (retry_count 초기화)
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <p>복구 전: FAILED/FAILED 90건, PENDING 442건. 복구 후: PENDING 532건, FAILED 0건.</p>
+        <p>쿼리: <code>UPDATE articles SET category_status='PENDING', summary_status='PENDING', category_retry_count=0, summary_retry_count=0 WHERE category_status='FAILED' AND summary_status='FAILED'</code></p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">DB: articles 테이블 90행 직접 수정</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 -->
+  <div class="entry" id="d0610-17" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-medium">MEDIUM</span>
+          <code>RestClientConfig</code> HTTP/2 h2c 업그레이드 → WireMock 연결 조기 종료 (테스트 실패)
+        </div>
+        <div class="entry-meta"><span class="session-badge">통합 테스트 실행에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제 (발견 경위)</div>
+        <p>AI 통합 테스트에서 POST 요청마다 <code>ResourceAccessException(IOException at Stream.java:778)</code> 발생. JDK <code>HttpClient</code>가 WireMock에 HTTP/2 h2c 업그레이드를 시도하면 WireMock이 스트림을 조기 종료.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p><code>HttpClient.newBuilder()</code> 기본값이 HTTP/2 활성화. WireMock(Jetty 기반)은 h2c(HTTP/2 cleartext) 미지원. GET 요청은 우연히 성공했으나 POST+body 시 스트림 오류 발생.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <p><code>HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)</code> 추가. 308 리다이렉트(<code>Redirect.NORMAL</code>)는 HTTP 버전과 무관하므로 기존 기능 유지.</p>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>테스트에서만 HTTP/1.1 강제</b>: <code>@TestConfiguration</code>으로 RestClient 오버라이드 가능하나, 실제 서버(Gemini)도 HTTP/2를 명시적으로 필요로 하지 않으므로 전체 HTTP/1.1이 더 단순. 채택.</li>
+          <li><b>WireMock h2c 활성화</b>: <code>wireMockConfig().http2PlainText(true)</code> 가능하나 테스트 클래스마다 수정 필요. 더 많은 변경 범위. 기각.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">config/RestClientConfig.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /date-group 0610 -->
+
+
+<!-- ═══════ 2026-06-07 ~ 09 ═══════ -->
+<div class="date-group" id="date-0609">
+  <div class="date-heading">
+    <h2>2026-06-07 ~ 09</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (구현 결과물)</div>
+  </div>
+
+  <!-- 9 -->
+  <div class="entry" id="d0609-1" data-tags="bugfix test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="tag tag-test">Test</span>
+          <span class="sev sev-critical">CRITICAL</span>
+          Spring Boot 4.x 테스트 Breaking Changes 전면 수정
+        </div>
+        <div class="entry-meta"><span class="session-badge">gradle build 실패에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>Spring Boot 4.0.5가 <code>@DataJpaTest</code>, <code>@WebMvcTest</code>, <code>@AutoConfigureTestDatabase</code>, <code>TestRestTemplate</code>을 <code>spring-boot-test-autoconfigure</code>에서 제거함. 전체 테스트 컴파일 실패.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <ul>
+          <li>Controller 테스트: <code>@ExtendWith(MockitoExtension)</code> + <code>MockMvcBuilders.standaloneSetup()</code></li>
+          <li>Repository 테스트: <code>@SpringBootTest</code> + Testcontainers (PostgreSQL 16-alpine)</li>
+          <li>E2E 테스트: <code>TestRestTemplate</code> → <code>RestClient</code></li>
+          <li><code>@Testcontainers(disabledWithoutDocker=true)</code>: Docker 없을 때 skip</li>
+          <li>WireMock + HTTP/2 충돌: <code>SimpleClientHttpRequestFactory</code> 강제 적용</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>Controller — standaloneSetup 선택</b>: <code>@WebMvcTest</code> 제거로 대안 필요. <code>@SpringBootTest</code>는 전체 컨텍스트 로딩으로 느림. standaloneSetup은 컨트롤러 레이어만 격리해 빠른 테스트 유지.</li>
+          <li><b>Repository — Testcontainers 선택</b>: H2 인메모리는 PostgreSQL 방언(JSON, array 타입, native 쿼리)을 정확히 재현하지 못해 false positive 발생 위험. 실제 PostgreSQL을 컨테이너로 사용해 운영 환경과 동일하게 검증.</li>
+          <li><b>disabledWithoutDocker</b>: CI 환경이나 Docker 없는 개발 머신에서 테스트 자체가 에러로 실패하는 대신 skip 처리하여 빌드 흐름 유지.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">test/controller/*Test.java (3개)</span>
+          <span class="file">test/repository/ArticleRepositoryTest.java</span>
+          <span class="file">test/integration/PipelineE2ETest.java</span>
+          <span class="file">test/service/*Test.java</span>
+          <span class="file">test/client/GeminiAiProviderTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="entry" id="d0609-2" data-tags="bugfix config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="tag tag-config">Config</span>
+          <span class="sev sev-critical">CRITICAL</span>
+          <code>spring-boot-flyway</code> 의존성 누락 → DB 스키마 미생성
+        </div>
+        <div class="entry-meta"><span class="session-badge">통합 테스트 실행 중 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>Flyway 자동 설정이 동작하지 않아 스키마 미생성 → Hibernate <code>ddl-auto=validate</code> 실패 (<code>"missing table [article_sources]"</code>).</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>Spring Boot 4.x가 <code>FlywayAutoConfiguration</code>을 <code>org.springframework.boot:spring-boot-flyway</code> 별도 아티팩트로 분리. 명시적 선언 없이는 자동 설정 불가.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <p><code>build.gradle</code>에 <code>implementation 'org.springframework.boot:spring-boot-flyway'</code> 추가.</p>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>Hibernate ddl-auto=update로 변경</b>: 운영 환경에서 자동 DDL은 헌법(constitution) 위반 — <i>"운영 환경에서 Hibernate ddl-auto는 none/validate로 고정"</i> → 기각</li>
+          <li><b>의존성 명시 추가</b>: Spring Boot 4.x 모듈화 방향에 맞는 유일한 올바른 대응. Flyway 기반 마이그레이션 체계를 그대로 유지.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">build.gradle</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="entry" id="d0609-3" data-tags="bugfix config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="tag tag-config">Config</span>
+          <span class="sev sev-critical">CRITICAL</span>
+          Spotless <code>googleJavaFormat</code> Java 25 비호환 (<code>NoSuchMethodError</code>)
+        </div>
+        <div class="entry-meta"><span class="session-badge">gradle clean build 실패에서 발견</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p><code>google-java-format 1.25.2</code>이 <code>DeferredDiagnosticHandler.getDiagnostics()</code>를 호출하는데, 이 메서드가 Java 25에서 제거됨 → <code>spotlessApply</code> 실행 시 <code>NoSuchMethodError</code>.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <p><code>googleJavaFormat('1.25.2')</code> 제거 → <code>removeUnusedImports('cleanthat-javaparser-unnecessaryimport')</code>로 교체.</p>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>google-java-format 다운그레이드</b>: 1.24 이하 버전도 동일하게 같은 JDK 내부 API를 사용. Java 25를 지원하는 버전이 존재하지 않음 → 기각</li>
+          <li><b>--add-exports JVM 옵션 추가</b>: 접근 제한(access) 문제가 아니라 메서드 자체가 제거(missing)된 것이므로 exports로 해결 불가 → 기각</li>
+          <li><b>cleanthat-javaparser 채택</b>: JavaParser 기반으로 JDK 내부 API에 의존하지 않아 Java 버전 영향 없음. 미사용 import 제거라는 핵심 기능을 동일하게 제공.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">build.gradle (spotless 블록)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12 -->
+  <div class="entry" id="d0609-4" data-tags="feature db test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-db">DB Migration</span>
+          <span class="tag tag-test">Test</span>
+          001 뉴스 수집 파이프라인 전체 구현 (56 tasks)
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">구현 범위</div>
+        <ul>
+          <li><b>Domain</b>: Article, Source, Summary, ArticleSource, SourceDailyUsage + 상태 Enum 5종</li>
+          <li><b>DB Migration</b>: V1 (core tables), V2 (시드: 연합뉴스·YTN·한겨레 RSS, 네이버-경제)</li>
+          <li><b>Client</b>: <code>SourceAdapter</code> 인터페이스 + RSS(ROME 2.1.0), NaverSearchAdapter</li>
+          <li><b>Client</b>: <code>AiProvider</code> 인터페이스 + GeminiAiProvider (Flash, 지수 백오프 3회)</li>
+          <li><b>Service</b>: Collection, AiProcessing, ArticleFeed (커서 페이지네이션), ArticleDetail (lazy deep), Summary, PipelineStats, Expiry</li>
+          <li><b>Controller</b>: ArticleFeed, ArticleDetail, AdminPipeline, InternalTrigger(local 전용)</li>
+          <li><b>Scheduler</b>: CollectionScheduler, AiProcessingScheduler, ExpiryScheduler (MDC runId)</li>
+          <li><b>Test</b>: 단위 9개 + Controller 3개 + Repository + Client 3개 + 통합/E2E 2개 → 총 83개 통과</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (핵심 설계 선택)</div>
+        <ul>
+          <li><b>수집·AI 처리 분리 (PENDING 큐)</b>: AI 장애가 수집을 막지 않도록. 수집기는 저장만, AI 스케줄러가 별도 폴링 → 두 파이프라인이 독립적으로 재시작 가능.</li>
+          <li><b>중복 기사 병합(폐기 아님)</b>: 동일 기사가 여러 소스에서 수집될 때 article_sources에 병합 기록 → 출처 provenance 보존 + 중복 제거율 지표 산출 가능.</li>
+          <li><b>brief = balanced 트런케이션(≤200자), deep = lazy</b>: 별도 AI 호출로 brief를 생성하면 기사당 API 호출 횟수가 증가. balanced 요약으로부터 트런케이션하면 추가 비용 없이 목록 미리보기 제공.</li>
+          <li><b>SELECT...FOR UPDATE SKIP LOCKED</b>: 향후 워커 스케일 시 동일 PENDING 기사를 두 워커가 동시 처리하는 문제 방지. 현재 단일 인스턴스에서도 안전.</li>
+          <li><b>피드 노출 기준 category_status ∈ {COMPLETED, FAILED}</b>: PENDING 기사를 노출하면 카테고리가 없어 필터링 UX가 깨짐. 분류 완료·실패(OTHER) 기사만 노출.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /date-group 0609 -->
+
+
+<!-- ═══════ 2026-06-03 ~ 08 ═══════ -->
+<div class="date-group" id="date-0608">
+  <div class="date-heading">
+    <h2>2026-06-03 ~ 08</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">커밋 완료</div>
+  </div>
+
+  <!-- 13 -->
+  <div class="entry" id="d0608-1" data-tags="config docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-config">Config</span>
+          <span class="tag tag-docs">Docs</span>
+          프로젝트 초기 설정 및 설계 문서 작성
+        </div>
+        <div class="entry-meta">
+          <span class="commit-hash">572ade1</span>
+          <span class="commit-hash">e488203</span>
+          <span class="commit-hash">b817254</span>
+          <span class="commit-hash">9c12401</span>
+          <span class="commit-hash">dcee726</span>
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">커밋별 내용</div>
+        <ul>
+          <li><code>572ade1</code> — Spring Boot 초기 프로젝트 설정, CLAUDE.md 초안</li>
+          <li><code>1469995</code> — Groovy DSL 전환, Spring Boot 4.0.5 / Java 25 적용</li>
+          <li><code>e488203</code> — docker-compose (postgres:17, redis:7), Taskfile docker task 추가</li>
+          <li><code>b817254</code> — Spotless 7.0.3 업그레이드, Java 25 jdk.compiler <code>--add-exports</code> JVM 옵션 추가</li>
+          <li><code>9c12401</code> ~ <code>56cf534</code> — spec-kit constitution v1.0.0</li>
+          <li><code>19bcc8b</code> ~ <code>dcee726</code> — 001 파이프라인 설계 문서 (plan, research, data-model, contracts, quickstart, tasks)</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <ul>
+          <li><b>Spring Boot 4.0.5 + Java 25 채택</b>: 최신 LTS에 가까운 Java 버전과 Spring Boot 최신 메이저 버전으로 시작해 장기 지원성 확보. 이후 버전 업그레이드 비용 최소화.</li>
+          <li><b>Groovy DSL 유지</b>: Spring Boot 4.x가 Groovy DSL을 공식 지원. Kotlin DSL 대비 Spring 생태계 예제·레퍼런스가 풍부해 학습 비용 낮음.</li>
+          <li><b>constitution 먼저 작성</b>: 구현 전 아키텍처 원칙(레이어드 의존, Entity 비노출, Flyway 강제, 멱등성 등)을 문서화해 구현 중 일관성 유지. ADR 없이 구현하면 결정 사유가 코드에 묻힘.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">build.gradle</span>
+          <span class="file">docker-compose.yml</span>
+          <span class="file">CLAUDE.md</span>
+          <span class="file">.specify/specs/001-news-collection-pipeline/*</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /date-group 0608 -->
+
+</div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+  function toggle(header) {
+    const entry = header.parentElement;
+    entry.classList.toggle('open');
+  }
+
+  function filter(tag) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.entry').forEach(e => {
+      if (tag === 'all') {
+        e.classList.remove('hidden');
+      } else {
+        const tags = (e.dataset.tags || '').split(' ');
+        e.classList.toggle('hidden', !tags.includes(tag));
+      }
+    });
+  }
+
+  function search(q) {
+    const lq = q.toLowerCase();
+    document.querySelectorAll('.entry').forEach(e => {
+      const text = e.textContent.toLowerCase();
+      e.classList.toggle('hidden', lq.length > 0 && !text.includes(lq));
+    });
+  }
+</script>
+</body>
+</html>
