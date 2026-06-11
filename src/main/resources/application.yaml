@@ -10,6 +10,13 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    placeholders:
+      admin-email: ${ADMIN_EMAIL:admin@newscurator.local}
+      admin-password-hash: ${ADMIN_PASSWORD_HASH:PLACEHOLDER_SET_IN_ENV}
+  security:
+    user:
+      name: disabled
+      password: disabled
 
 server:
   port: 8080
@@ -25,6 +32,15 @@ management:
     web:
       exposure:
         include: health,info
+
+jwt:
+  secret: ${JWT_SECRET:default-test-secret-change-in-prod-minimum-32-chars!!}
+  access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:3600}
+  refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
+
+email-service:
+  base-url: ${EMAIL_SERVICE_BASE_URL:http://localhost:9999}
+  api-key: ${EMAIL_SERVICE_API_KEY:test-api-key}
 
 app:
   scheduler:

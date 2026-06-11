@@ -3,6 +3,8 @@ package com.newscurator.integration;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.*;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.newscurator.domain.Article;
 import com.newscurator.domain.Source;
@@ -13,6 +15,7 @@ import com.newscurator.repository.SourceRepository;
 import com.newscurator.repository.SummaryRepository;
 import com.newscurator.service.AiProcessingService;
 import com.newscurator.service.CollectionService;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,8 +23,10 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -47,6 +52,10 @@ class PipelineE2ETest {
                     .withUsername("test")
                     .withPassword("test");
 
+    private static final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
+    private static final String ADMIN_PASSWORD = "Admin@test123!";
+    private static final String ADMIN_HASH = encoder.encode(ADMIN_PASSWORD);
+
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
@@ -59,6 +68,10 @@ class PipelineE2ETest {
         registry.add("app.client.naver.client-id", () -> "test-id");
         registry.add("app.client.naver.client-secret", () -> "test-secret");
         registry.add("app.client.naver.base-url", wireMock::baseUrl);
+        registry.add("email-service.base-url", wireMock::baseUrl);
+        registry.add("email-service.api-key", () -> "test-api-key");
+        registry.add("spring.flyway.placeholders.admin-email", () -> "admin@test.local");
+        registry.add("spring.flyway.placeholders.admin-password-hash", () -> ADMIN_HASH);
     }
 
     @LocalServerPort int port;
@@ -71,6 +84,7 @@ class PipelineE2ETest {
     @Autowired private JdbcTemplate jdbcTemplate;
 
     private RestClient restClient;
+    private String adminAccessToken;
 
     @BeforeEach
     void setUp() {
@@ -78,13 +92,25 @@ class PipelineE2ETest {
         jdbcTemplate.execute(
                 "TRUNCATE TABLE summaries, article_sources, source_daily_usage, articles, sources"
                         + " RESTART IDENTITY CASCADE");
+
+        // All endpoints require auth (002 spec). Login as the Flyway-seeded admin.
+        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+                .willReturn(aResponse().withStatus(200)));
+        Map<?, ?> loginResp = restClient.post().uri("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("email", "admin@test.local", "password", ADMIN_PASSWORD))
+                .retrieve()
+                .body(Map.class);
+        adminAccessToken = (String) ((Map<?, ?>) loginResp.get("tokens")).get("accessToken");
     }
 
     @Test
     @DisplayName("E2E: 피드 API 정상 응답 (빈 피드)")
     void e2e_feedApi_returnsEmptyFeed() {
         ResponseEntity<String> response =
-                restClient.get().uri("/api/v1/articles").retrieve().toEntity(String.class);
+                restClient.get().uri("/api/v1/articles")
+                        .header("Authorization", "Bearer " + adminAccessToken)
+                        .retrieve().toEntity(String.class);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).contains("data");
@@ -94,7 +120,9 @@ class PipelineE2ETest {
     @DisplayName("E2E: 존재하지 않는 기사 404 응답")
     void e2e_articleNotFound_returns404() {
         try {
-            restClient.get().uri("/api/v1/articles/999999").retrieve().toEntity(String.class);
+            restClient.get().uri("/api/v1/articles/999999")
+                    .header("Authorization", "Bearer " + adminAccessToken)
+                    .retrieve().toEntity(String.class);
             fail("Expected 404 exception");
         } catch (org.springframework.web.client.HttpClientErrorException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(404);
@@ -174,13 +202,16 @@ class PipelineE2ETest {
 
         // 피드 API 확인
         ResponseEntity<String> feedResponse =
-                restClient.get().uri("/api/v1/articles").retrieve().toEntity(String.class);
+                restClient.get().uri("/api/v1/articles")
+                        .header("Authorization", "Bearer " + adminAccessToken)
+                        .retrieve().toEntity(String.class);
         assertThat(feedResponse.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(feedResponse.getBody()).contains("ECONOMY_FINANCE");
 
         // 상세 API 확인 (DEEP 슬롯 lazy 생성 포함)
         ResponseEntity<String> detailResponse = restClient.get()
                 .uri("/api/v1/articles/" + article.getId())
+                .header("Authorization", "Bearer " + adminAccessToken)
                 .retrieve()
                 .toEntity(String.class);
         assertThat(detailResponse.getStatusCode().is2xxSuccessful()).isTrue();

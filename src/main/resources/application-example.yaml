@@ -10,6 +10,42 @@ spring:
   jpa:
     show-sql: true
 
+# JWT 설정 (절대 코드/git에 하드코딩 금지)
+jwt:
+  secret: ${JWT_SECRET}              # 32자 이상 랜덤 시크릿
+  access-ttl-seconds: 3600           # 액세스 토큰 TTL (초, 기본 1시간)
+  refresh-ttl-days: 30               # 리프레시 토큰 TTL (일, 기본 30일)
+
+# 이메일 서비스 (절대 코드/git에 하드코딩 금지)
+email-service:
+  base-url: ${EMAIL_SERVICE_BASE_URL}
+  api-key: ${EMAIL_SERVICE_API_KEY}
+
+# OAuth 소셜 로그인 (절대 코드/git에 하드코딩 금지)
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+    client-secret: ${GOOGLE_CLIENT_SECRET}
+    redirect-uri: ${GOOGLE_REDIRECT_URI}
+  apple:
+    client-id: ${APPLE_CLIENT_ID}
+    client-secret: ${APPLE_CLIENT_SECRET}
+    redirect-uri: ${APPLE_REDIRECT_URI}
+    team-id: ${APPLE_TEAM_ID}
+    key-id: ${APPLE_KEY_ID}
+    private-key: ${APPLE_PRIVATE_KEY}   # PEM 형식 EC 비공개키
+
+# Flyway Admin 시드 (절대 코드/git에 하드코딩 금지)
+spring:
+  flyway:
+    placeholders:
+      admin-email: ${ADMIN_EMAIL}
+      admin-password-hash: ${ADMIN_PASSWORD_HASH}  # BCrypt 해시 (BCryptPasswordEncoder.encode)
+
 # 외부 API 키 (절대 코드/git에 하드코딩 금지)
 app:
   client:
@@ -21,7 +57,3 @@ app:
       client-id: ${NAVER_CLIENT_ID}
       client-secret: ${NAVER_CLIENT_SECRET}
       base-url: https://openapi.naver.com
-
-  jwt:
-    secret: ${JWT_SECRET}
-    expiration-ms: 86400000
