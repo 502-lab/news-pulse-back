@@ -103,4 +103,8 @@ public class Account {
     public boolean isSuspended() {
         return status == AccountStatus.SUSPENDED;
     }
+
+    public void updatePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
 }

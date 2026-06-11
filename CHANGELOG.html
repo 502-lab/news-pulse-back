@@ -301,7 +301,7 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">35</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">36</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">14</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">4</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">4</div><div class="stat-label">DB Migration</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-11</div>
+  <a class="toc-item" href="#d0611-17">T046~T060 비밀번호 재설정·소셜 OAuth 구현</a>
   <a class="toc-item" href="#d0611-11">PipelineE2ETest 인증 헤더 추가</a>
   <a class="toc-item" href="#d0611-10">EmailVerification 테스트 2건 수정</a>
   <a class="toc-item" href="#d0611-9">AppConfig ObjectMapper JavaTimeModule 누락</a>
@@ -357,6 +358,71 @@
     <h2>2026-06-11</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 17 -->
+  <div class="entry" id="d0611-17" data-tags="feature bugfix test db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-bugfix">Bugfix</span>
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-db">DB</span>
+          T046~T060 비밀번호 재설정 3단계·소셜 OAuth(Kakao·Google·Apple) 구현 완료 — 160/160 테스트 통과
+        </div>
+        <div class="entry-meta"><span class="session-badge">Phase 7 US5 + Phase 8 US3</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">구현 내용</div>
+        <ul>
+          <li><b>비밀번호 재설정 (T046~T050)</b>: requestCode→verifyCode→confirmReset 3단계 흐름. 미등록·소셜 전용·정상 계정 전부 균일 202 응답(열거 방지). 소셜 전용은 안내 이메일 발송, 실패 시 삼킴. 정상 계정 이메일 발송 실패만 503 전파, orphan 코드 미생성. resetToken = JWT(jti=VerificationCode.id), 단일 사용 추적 — confirmReset 성공 시 모든 리프레시 토큰 무효화(FR-025).</li>
+          <li><b>소셜 OAuth (T051~T060)</b>: OAuthProviderPort 어댑터 패턴, Kakao/Google/Apple 3종. HMAC 서명 JWT state(stateless, Redis 미사용, FR-027). Apple ES256 client_secret JWT(.p8 ECPrivateKey, 환경변수 주입). 소셜 신규 가입 → emailVerified=true 즉시(FR-024). 동일 이메일 계정 존재 → 409(FR-007).</li>
+          <li><b>V7 마이그레이션</b>: social_connections에 provider_email·user_info 컬럼 추가.</li>
+          <li><b>PasswordResetServiceTest</b>: 14개 단위 테스트(requestCode 6·verifyCode 5·confirmReset 3), @MockitoSettings(LENIENT) 적용.</li>
+          <li><b>PasswordResetIntegrationTest</b>: 7개 통합 테스트(Testcontainers+WireMock), FR-025 DB 단언 포함.</li>
+          <li><b>SocialAuthIntegrationTest</b>: 9개 통합 테스트(Kakao·Google·Apple WireMock stub, ES256 client_secret 단언, state 위조·이메일 충돌·신규/기존 가입 시나리오).</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">버그 수정 — 근본 원인</div>
+        <ul>
+          <li><b>PasswordResetServiceTest UnnecessaryStubbingException (7건)</b>: mockVerificationCode 헬퍼가 vc.getId()·vc.isUsed()·vc.isExpired()·vc.getCodeHash() 전부를 항상 stubbing. confirmReset 경로는 claims.getId() 사용(vc.getId() 미호출), isExpired 경로는 조기 throw(isUsed 미호출). Mockito STRICT_STUBS 모드가 미사용 stub을 오류로 처리. → @MockitoSettings(LENIENT)로 수정, 불필요 stub 재설계.</li>
+          <li><b>PasswordResetIntegrationTest 503 단언 타입 오류</b>: 503은 5xx → HttpServerErrorException 계열이나 HttpClientErrorException으로 단언. → HttpServerErrorException으로 수정.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>HMAC JWT state(stateless): Redis 재도입 없이 CSRF 방지. state 위조·만료·provider 불일치 모두 400. Apple .p8 키는 환경변수 전용(공백 기본값으로 미설정 시 앱 기동 허용). 소셜 이메일 충돌 409: 자동 연결 대신 명시적 오류로 보안 상태 모호성 방지.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">빌드 결과</div>
+        <p>./gradlew test — <b>162 tests, 0 failures, 5 skipped. BUILD SUCCESSFUL.</b> 기존 130 테스트 회귀 없음. 신규 32개(단위 14 + 통합 18) 전부 통과.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/resources/db/migration/V7__social_connections_extend.sql</span>
+          <span class="file">src/main/java/com/newscurator/service/PasswordResetService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/SocialAuthService.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/PasswordResetController.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/SocialAuthController.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/KakaoOAuthAdapter.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/GoogleOAuthAdapter.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/AppleOAuthAdapter.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/OAuthProviderPort.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/OAuthProviderFactory.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/SocialConnection.java</span>
+          <span class="file">src/main/java/com/newscurator/security/JwtTokenProvider.java</span>
+          <span class="file">src/test/java/com/newscurator/service/PasswordResetServiceTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/PasswordResetIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/SocialAuthIntegrationTest.java</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 16 -->

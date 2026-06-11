@@ -5,12 +5,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("oauth")
 public class OAuthConfig {
 
-    private Provider kakao = new Provider();
+    private Kakao kakao = new Kakao();
     private Provider google = new Provider();
     private Apple apple = new Apple();
 
-    public Provider getKakao() { return kakao; }
-    public void setKakao(Provider kakao) { this.kakao = kakao; }
+    public Kakao getKakao() { return kakao; }
+    public void setKakao(Kakao kakao) { this.kakao = kakao; }
 
     public Provider getGoogle() { return google; }
     public void setGoogle(Provider google) { this.google = google; }
@@ -22,6 +22,7 @@ public class OAuthConfig {
         private String clientId;
         private String clientSecret;
         private String redirectUri;
+        private String tokenBaseUrl;
 
         public String getClientId() { return clientId; }
         public void setClientId(String clientId) { this.clientId = clientId; }
@@ -31,6 +32,16 @@ public class OAuthConfig {
 
         public String getRedirectUri() { return redirectUri; }
         public void setRedirectUri(String redirectUri) { this.redirectUri = redirectUri; }
+
+        public String getTokenBaseUrl() { return tokenBaseUrl; }
+        public void setTokenBaseUrl(String tokenBaseUrl) { this.tokenBaseUrl = tokenBaseUrl; }
+    }
+
+    public static class Kakao extends Provider {
+        private String apiBaseUrl;
+
+        public String getApiBaseUrl() { return apiBaseUrl; }
+        public void setApiBaseUrl(String apiBaseUrl) { this.apiBaseUrl = apiBaseUrl; }
     }
 
     public static class Apple extends Provider {

@@ -122,6 +122,18 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("VALIDATION_ERROR", message));
     }
 
+    @ExceptionHandler(OAuthStateInvalidException.class)
+    public ResponseEntity<ErrorResponse> handleOAuthStateInvalid(OAuthStateInvalidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of("OAUTH_STATE_INVALID", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SocialEmailConflictException.class)
+    public ResponseEntity<ErrorResponse> handleSocialEmailConflict(SocialEmailConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("EMAIL_ALREADY_EXISTS", ex.getMessage()));
+    }
+
     @ExceptionHandler(AiProviderException.class)
     public ResponseEntity<ErrorResponse> handleAiProvider(AiProviderException ex) {
         log.error("AI provider error", ex);

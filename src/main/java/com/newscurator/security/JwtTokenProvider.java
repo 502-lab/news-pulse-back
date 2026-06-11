@@ -14,6 +14,7 @@ import java.util.HexFormat;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 @Component
 public class JwtTokenProvider {
@@ -59,6 +60,45 @@ public class JwtTokenProvider {
     public String generateRawRefreshToken() {
         return UUID.randomUUID().toString().replace("-", "") +
                UUID.randomUUID().toString().replace("-", "");
+    }
+
+    /** Issues a 10-minute single-use password-reset token. jti = verificationCode ID. */
+    public String generateResetToken(UUID accountId, UUID codeId) {
+        long now = System.currentTimeMillis();
+        return Jwts.builder()
+                .subject(accountId.toString())
+                .claim("purpose", "PASSWORD_RESET")
+                .id(codeId.toString())
+                .issuedAt(new Date(now))
+                .expiration(new Date(now + 10L * 60 * 1000))
+                .signWith(signingKey)
+                .compact();
+    }
+
+    /** Parses and validates a reset token. Throws JwtException on invalid/expired. */
+    public Claims parseResetToken(String token) {
+        Claims claims = parseToken(token);
+        Assert.isTrue("PASSWORD_RESET".equals(claims.get("purpose")), "Token purpose mismatch");
+        return claims;
+    }
+
+    /** Issues a 5-minute stateless OAuth state token. sub = provider name. */
+    public String generateOAuthState(String provider) {
+        long now = System.currentTimeMillis();
+        return Jwts.builder()
+                .subject(provider)
+                .claim("type", "OAUTH_STATE")
+                .issuedAt(new Date(now))
+                .expiration(new Date(now + 5L * 60 * 1000))
+                .signWith(signingKey)
+                .compact();
+    }
+
+    /** Parses and validates an OAuth state token. Throws JwtException on invalid/expired. */
+    public Claims parseOAuthState(String state) {
+        Claims claims = parseToken(state);
+        Assert.isTrue("OAUTH_STATE".equals(claims.get("type")), "Invalid state token type");
+        return claims;
     }
 
     public String sha256Hex(String input) {
