@@ -94,6 +94,7 @@ public class TokenService {
                 // blast-time signal rather than consumedAt (which is the rotation time, not blast time).
                 log.warn("Token reuse detected beyond grace, blasting family={} account={}",
                         existing.getFamilyId(), existing.getAccount().getId());
+                AuditLogger.tokenReuseDetected(existing.getAccount().getId());
                 existing.markBlasted();
                 refreshTokenRepository.save(existing);
                 refreshTokenRepository.revokeByFamilyId(existing.getFamilyId());

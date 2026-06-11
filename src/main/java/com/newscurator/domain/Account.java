@@ -40,6 +40,9 @@ public class Account {
     @Column(name = "onboarding_completed", nullable = false)
     private boolean onboardingCompleted = false;
 
+    @Column(name = "personalization_active", nullable = false)
+    private boolean personalizationActive = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "signup_type", nullable = false, length = 20)
     private SignupType signupType;
@@ -106,5 +109,10 @@ public class Account {
 
     public void updatePassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
+    }
+
+    public void completeOnboarding(boolean personalizationActive) {
+        this.onboardingCompleted = true;
+        this.personalizationActive = personalizationActive;
     }
 }

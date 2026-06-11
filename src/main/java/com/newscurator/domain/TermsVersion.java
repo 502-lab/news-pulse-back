@@ -52,4 +52,8 @@ public class TermsVersion {
     void prePersist() {
         this.createdAt = Instant.now();
     }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
 }

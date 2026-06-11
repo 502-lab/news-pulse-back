@@ -231,25 +231,25 @@
 
 ### 엔티티 & 리포지토리
 
-- [ ] T061 [P] [US6] UserProfile.java Entity 생성: id, account(OneToOne), nickname, ageGroup(AgeGroup), occupation (`…/domain/UserProfile.java`)
-- [ ] T062 [P] [US6] UserInterests.java Entity 생성: id, account(ManyToOne), category(String) — UNIQUE(account_id, category) (`…/domain/UserInterests.java`)
-- [ ] T063 [P] [US6] FollowKeyword.java Entity 생성: id, account(ManyToOne), keyword, type(KeywordType) (`…/domain/FollowKeyword.java`)
-- [ ] T064 [P] [US6] ReadingPreference.java Entity 생성: id, account(OneToOne), summaryDepth(SummaryDepth), consumeMode(ConsumeMode) (`…/domain/ReadingPreference.java`)
-- [ ] T065 [P] [US6] BriefingSettings.java Entity 생성: id, account(OneToOne), briefingTime(LocalTime), timezoneOffset(Short), voiceEnabled, pushAgreed, pushAgreedAt (`…/domain/BriefingSettings.java`)
-- [ ] T066 [P] [US6] UserProfileRepository, UserInterestsRepository, FollowKeywordRepository, ReadingPreferenceRepository, BriefingSettingsRepository 생성 (`…/repository/*.java`)
+- [X] T061 [P] [US6] UserProfile.java Entity 생성: id, account(OneToOne), nickname, ageGroup(AgeGroup), occupation (`…/domain/UserProfile.java`)
+- [X] T062 [P] [US6] UserInterests.java Entity 생성: id, account(ManyToOne), category(String) — UNIQUE(account_id, category) (`…/domain/UserInterests.java`)
+- [X] T063 [P] [US6] FollowKeyword.java Entity 생성: id, account(ManyToOne), keyword, type(KeywordType) (`…/domain/FollowKeyword.java`)
+- [X] T064 [P] [US6] ReadingPreference.java Entity 생성: id, account(OneToOne), summaryDepth(SummaryDepth), consumeMode(ConsumeMode) (`…/domain/ReadingPreference.java`)
+- [X] T065 [P] [US6] BriefingSettings.java Entity 생성: id, account(OneToOne), briefingTime(LocalTime), timezoneOffset(Short), voiceEnabled, pushAgreed, pushAgreedAt (`…/domain/BriefingSettings.java`)
+- [X] T066 [P] [US6] UserProfileRepository, UserInterestsRepository, FollowKeywordRepository, ReadingPreferenceRepository, BriefingSettingsRepository 생성 (`…/repository/*.java`)
 
 ### DTO
 
-- [ ] T067 [P] [US6] OnboardingRequest.java(record) + OnboardingStatusResponse.java(record) 생성 (`…/dto/request/OnboardingRequest.java`, `…/dto/response/OnboardingStatusResponse.java`)
+- [X] T067 [P] [US6] OnboardingRequest.java(record) + OnboardingStatusResponse.java(record) 생성 (`…/dto/request/OnboardingRequest.java`, `…/dto/response/OnboardingStatusResponse.java`)
 
 ### 서비스 & 컨트롤러
 
-- [ ] T068 [US6] OnboardingService.java 구현: `submitOnboarding()` — interests 3개 미만 422, UserProfile·UserInterests(기존 삭제 후 재저장)·FollowKeyword·ReadingPreference·BriefingSettings 저장, pushAgreed=true 시 pushAgreedAt=now(), onboardingCompleted=true, personalizationActive 계산; `getStatus()` (`…/service/OnboardingService.java`)
-- [ ] T069 [US6] OnboardingController.java 구현: `POST /api/v1/me/onboarding` + `GET /api/v1/me/onboarding/status` (`…/controller/OnboardingController.java`)
+- [X] T068 [US6] OnboardingService.java 구현: `submitOnboarding()` — interests 3개 미만 422, UserProfile·UserInterests(기존 삭제 후 재저장)·FollowKeyword·ReadingPreference·BriefingSettings 저장, pushAgreed=true 시 pushAgreedAt=now(), onboardingCompleted=true, personalizationActive 계산; `getStatus()` (`…/service/OnboardingService.java`)
+- [X] T069 [US6] OnboardingController.java 구현: `POST /api/v1/me/onboarding` + `GET /api/v1/me/onboarding/status` (`…/controller/OnboardingController.java`)
 
 ### 통합 테스트
 
-- [ ] T070 [US6] OnboardingIntegrationTest.java 생성 — 4개 시나리오: 정상 저장+personalizationActive·카테고리 2개 422·온보딩 미완료 상태 재진입·브리핑 푸시 동의 시각 기록 (`src/test/java/com/newscurator/integration/OnboardingIntegrationTest.java`)
+- [X] T070 [US6] OnboardingIntegrationTest.java 생성 — 4개 시나리오: 정상 저장+personalizationActive·카테고리 2개 422·온보딩 미완료 상태 재진입·브리핑 푸시 동의 시각 기록 (`src/test/java/com/newscurator/integration/OnboardingIntegrationTest.java`)
 
 **Checkpoint**: 온보딩 독립 동작 확인, T070 모두 PASS
 
@@ -263,13 +263,13 @@
 
 ### DTO
 
-- [ ] T071 [P] [US7] 요청 DTO 5종 생성: UserProfileRequest(record), UserInterestsRequest(record, minItems=3), FollowKeywordsRequest(record), ReadingPreferenceRequest(record), BriefingSettingsRequest(record) (`…/dto/request/*.java`)
-- [ ] T072 [P] [US7] 응답 DTO 5종 생성: UserProfileResponse, UserInterestsResponse, FollowKeywordsResponse, ReadingPreferenceResponse, BriefingSettingsResponse (`…/dto/response/*.java`)
+- [X] T071 [P] [US7] 요청 DTO 5종 생성: UserProfileRequest(record), UserInterestsRequest(record, minItems=3), FollowKeywordsRequest(record), ReadingPreferenceRequest(record), BriefingSettingsRequest(record) (`…/dto/request/*.java`)
+- [X] T072 [P] [US7] 응답 DTO 5종 생성: UserProfileResponse, UserInterestsResponse, FollowKeywordsResponse, ReadingPreferenceResponse, BriefingSettingsResponse (`…/dto/response/*.java`)
 
 ### 서비스 & 컨트롤러
 
-- [ ] T073 [US7] ProfileService.java 구현: 프로필·관심사·키워드·읽는방식·브리핑 각각 조회(readOnly=true)·수정(interests 3개 미만 422, FollowKeyword 교체는 기존 전체 삭제 후 재저장) (`…/service/ProfileService.java`)
-- [ ] T074 [US7] MeController.java에 엔드포인트 추가: `GET/PUT /api/v1/me/profile`, `GET/PUT /api/v1/me/interests`, `GET/PUT /api/v1/me/keywords`, `GET/PUT /api/v1/me/reading-preference`, `GET/PUT /api/v1/me/briefing-settings` (`…/controller/MeController.java`)
+- [X] T073 [US7] ProfileService.java 구현: 프로필·관심사·키워드·읽는방식·브리핑 각각 조회(readOnly=true)·수정(interests 3개 미만 422, FollowKeyword 교체는 기존 전체 삭제 후 재저장) (`…/service/ProfileService.java`)
+- [X] T074 [US7] MeController.java에 엔드포인트 추가: `GET/PUT /api/v1/me/profile`, `GET/PUT /api/v1/me/interests`, `GET/PUT /api/v1/me/keywords`, `GET/PUT /api/v1/me/reading-preference`, `GET/PUT /api/v1/me/briefing-settings` (`…/controller/MeController.java`)
 
 **Checkpoint**: 프로필·설정 조회·수정 독립 동작 확인
 
@@ -283,12 +283,12 @@
 
 ### DTO
 
-- [ ] T075 [P] [US8] CreateTermsVersionRequest.java(record) + TermsVersionResponse.java + ConsentRecordResponse.java 생성 (`…/dto/request/CreateTermsVersionRequest.java`, `…/dto/response/TermsVersionResponse.java`, `…/dto/response/ConsentRecordResponse.java`)
+- [X] T075 [P] [US8] CreateTermsVersionRequest.java(record) + TermsVersionResponse.java + ConsentRecordResponse.java 생성 (`…/dto/request/CreateTermsVersionRequest.java`, `…/dto/response/TermsVersionResponse.java`, `…/dto/response/ConsentRecordResponse.java`)
 
 ### 서비스 & 컨트롤러
 
-- [ ] T076 [US8] TermsService.java 확장: `createVersion()` — 동일 type+version 중복 409, 신규 버전 활성화; `getConsentHistory()` — 버전별 동의 이력 반환; `submitConsents()` — 이미 동의한 버전 무시(멱등), ConsentRecord 저장 (`…/service/TermsService.java`)
-- [ ] T077 [US8] TermsController.java 확장: `POST /api/v1/admin/terms`(ADMIN), `GET /api/v1/me/consents`, `POST /api/v1/me/consents` (`…/controller/TermsController.java`)
+- [X] T076 [US8] TermsService.java 확장: `createVersion()` — 동일 type+version 중복 409, 신규 버전 활성화; `getConsentHistory()` — 버전별 동의 이력 반환; `submitConsents()` — 이미 동의한 버전 무시(멱등), ConsentRecord 저장 (`…/service/TermsService.java`)
+- [X] T077 [US8] TermsController.java 확장: `POST /api/v1/admin/terms`(ADMIN), `GET /api/v1/me/consents`, `POST /api/v1/me/consents` (`…/controller/TermsController.java`)
 
 **Checkpoint**: 약관 관리 독립 동작 확인
 
@@ -298,11 +298,11 @@
 
 **Purpose**: Swagger 문서화, 감사 로그, E2E 검증
 
-- [ ] T078 [P] Swagger 어노테이션 전체 컨트롤러에 추가: `@Tag`, `@Operation(summary, description)`, `@ApiResponses`, `@Parameter`, `@Schema` — `AuthController`, `SocialAuthController`, `EmailVerificationController`, `PasswordResetController`, `MeController`, `OnboardingController`, `TermsController`
-- [ ] T079 [P] EmailVerificationServiceTest.java 생성: requestCode 발송 실패→503+한도 미차감, 재전송 5회 초과→429 단위 테스트(Mockito) (`src/test/java/com/newscurator/auth/EmailVerificationServiceTest.java`)
-- [ ] T080 [P] 감사 로그 구현(FR-028): AuthService·TokenService·PasswordResetService에 SLF4J MDC 기반 보안 이벤트 구조적 로깅 추가 — LOGIN_FAILED, ACCOUNT_LOCKED, TOKEN_REUSE_DETECTED, PASSWORD_CHANGED (로그에 이메일·토큰 원문·비밀번호 절대 출력 금지, accountId UUID만)
-- [ ] T081 quickstart.md 7개 E2E 시나리오 실행: 이메일인증 게이팅·계정잠금·Rotation·RBAC·비번재설정·이메일장애 503·CSRF state 검증 수동 확인
-- [ ] T082 CHANGELOG.html 갱신
+- [X] T078 [P] Swagger 어노테이션 전체 컨트롤러에 추가: `@Tag`, `@Operation(summary, description)`, `@ApiResponses`, `@Parameter`, `@Schema` — `AuthController`, `SocialAuthController`, `EmailVerificationController`, `PasswordResetController`, `MeController`, `OnboardingController`, `TermsController`
+- [X] T079 [P] EmailVerificationServiceTest.java 생성: requestCode 발송 실패→503+한도 미차감, 재전송 5회 초과→429 단위 테스트(Mockito) (`src/test/java/com/newscurator/auth/EmailVerificationServiceTest.java`)
+- [X] T080 [P] 감사 로그 구현(FR-028): AuthService·TokenService·PasswordResetService에 SLF4J MDC 기반 보안 이벤트 구조적 로깅 추가 — LOGIN_FAILED, ACCOUNT_LOCKED, TOKEN_REUSE_DETECTED, PASSWORD_CHANGED (로그에 이메일·토큰 원문·비밀번호 절대 출력 금지, accountId UUID만)
+- [X] T081 quickstart.md 7개 E2E 시나리오 실행: 이메일인증 게이팅·계정잠금·Rotation·RBAC·비번재설정·이메일장애 503·CSRF state 검증 수동 확인
+- [X] T082 CHANGELOG.html 갱신
 
 ---
 

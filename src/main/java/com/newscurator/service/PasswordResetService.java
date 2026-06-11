@@ -183,5 +183,6 @@ public class PasswordResetService {
         accountRepository.save(account);
 
         tokenService.revokeAllByAccount(account);
+        AuditLogger.passwordChanged(account.getId());
     }
 }

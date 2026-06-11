@@ -301,18 +301,20 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">36</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">14</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">4</div><div class="stat-label">Feature</div></div>
-  <div class="stat"><div class="stat-num">4</div><div class="stat-label">DB Migration</div></div>
+  <div class="stat"><div class="stat-num">37</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">15</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-11</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-12</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-12</div>
+  <a class="toc-item" href="#d0612-1">T061~T082 온보딩·프로필·약관·감사로그 구현</a>
   <div class="toc-date">2026-06-11</div>
   <a class="toc-item" href="#d0611-17">T046~T060 비밀번호 재설정·소셜 OAuth 구현</a>
   <a class="toc-item" href="#d0611-11">PipelineE2ETest 인증 헤더 추가</a>
@@ -351,6 +353,101 @@
 </nav>
 
 <div class="content">
+
+<!-- ═══════ 2026-06-12 ═══════ -->
+<div class="date-group" id="date-0612">
+  <div class="date-heading">
+    <h2>2026-06-12</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 1 -->
+  <div class="entry" id="d0612-1" data-tags="feature bugfix test db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-bugfix">Bugfix</span>
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-db">DB</span>
+          T061~T082 온보딩·프로필·설정·약관 버전관리·감사로그 구현 완료 — 182/182 테스트 통과
+        </div>
+        <div class="entry-meta"><span class="session-badge">Phase 9~12 US6·US7·US8·Polish</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">구현 내용</div>
+        <ul>
+          <li><b>V8 마이그레이션</b>: <code>accounts</code>에 <code>personalization_active BOOLEAN DEFAULT FALSE</code> 컬럼 추가.</li>
+          <li><b>온보딩 (T061~T070, Phase 9)</b>: UserProfile·UserInterests·FollowKeyword·ReadingPreference·BriefingSettings 5종 Entity+Repository 신규 생성. <code>OnboardingService.submitOnboarding()</code> — 카테고리 3개 미만 시 422, 5개 하위 엔티티 upsert, <code>pushAgreed</code> true 전환 시에만 <code>pushAgreedAt=now()</code>, <code>onboardingCompleted=true + personalizationActive 계산</code>. <code>OnboardingController</code>: <code>POST /api/v1/me/onboarding</code>, <code>GET /api/v1/me/onboarding/status</code>.</li>
+          <li><b>프로필·설정 (T071~T074, Phase 10)</b>: 요청·응답 DTO 10종 신규. <code>ProfileService</code>: 5개 하위 엔티티 개별 조회(readOnly)·수정 — interests 3개 미만 422, FollowKeyword 교체 시 전체 삭제 후 재저장. <code>MeController</code>에 <code>GET/PUT</code> 엔드포인트 10개 추가.</li>
+          <li><b>약관 (T075~T077, Phase 11)</b>: <code>TermsService.createVersion()</code> — 동일 type+version 중복 409, 기존 동일 type 활성 버전 비활성화, 신규 버전 활성화. <code>getConsentHistory()</code> · <code>submitConsents()</code> 멱등(이미 동의 버전 재제출 무시). <code>GET /api/v1/terms</code> public(무인증). <code>POST /api/v1/admin/terms</code> ADMIN 전용 201. <code>GET/POST /api/v1/me/consents</code>.</li>
+          <li><b>감사 로그 (T080, FR-028)</b>: <code>AuditLogger</code> 정적 헬퍼 — SLF4J MDC 기반 구조화 로깅. LOGIN_FAILED·ACCOUNT_LOCKED·TOKEN_REUSE_DETECTED·PASSWORD_CHANGED·ADMIN_ACCESS 이벤트. accountId UUID만 기록(이메일·토큰·비밀번호 완전 배제). AuthService·TokenService·PasswordResetService 연동.</li>
+          <li><b>Swagger (T078)</b>: OnboardingController·MeController·TermsController 전체에 <code>@Tag</code>·<code>@Operation</code>·<code>@ApiResponses</code>·<code>@Parameter</code>·<code>@Schema</code> 완비.</li>
+          <li><b>신규 테스트 +20개 (T070·T074·T077·T079·T080)</b>: EmailVerificationServiceTest 3개(발송 실패→503+한도 미차감, 재전송 429, 정상), AuditLoggerTest 5개(각 이벤트 로그 존재+민감 데이터 미포함 Logback 캡처 단언), OnboardingIntegrationTest 4개, ProfileIntegrationTest 3개, TermsIntegrationTest 5개.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">버그 수정 — 근본 원인</div>
+        <ul>
+          <li><b>[1] AuditLogger try-with-resources 컴파일 오류</b>: 람다에서 <code>AutoCloseable</code> 반환 시 checked <code>Exception</code> throw 선언 필요 → <code>withContext(String, UUID, Runnable)</code> + try/finally 패턴으로 교체.</li>
+          <li><b>[2] Map.of() 11개 항목 한도 초과</b>: Java <code>Map.of()</code>는 최대 10 엔트리 — <code>fullOnboardingBody()</code>를 <code>new HashMap&lt;&gt;()</code> + 명시적 put으로 수정.</li>
+          <li><b>[3] /me/** JWT 게이트가 미인증 계정 차단</b>: 가입 직후 <code>emailVerified=false</code> → JWT 필터가 /me/** 401 반환. 테스트 헬퍼에서 DB UPDATE로 <code>email_verified=true</code> 직접 설정 후 재로그인.</li>
+          <li><b>[4] 온보딩 재진입 시 UNIQUE 제약 위반</b>: Spring Data derived <code>deleteByAccountId</code>는 같은 트랜잭션 내 flush 순서 보장 불가 — <code>@Modifying @Query("DELETE FROM UserInterests ... WHERE account.id=:accountId")</code> 벌크 JPQL delete로 교체, FollowKeyword도 동일 패턴 적용.</li>
+          <li><b>[5] BriefingSettings.pushAgreedAt 신규 생성 시 유실</b>: 신규 엔티티를 <code>builder().pushAgreed(true).build()</code> 후 <code>update()</code> 호출 시 <code>update()</code>가 <code>pushAgreed &amp;&amp; !this.pushAgreed</code>를 false로 평가 → 타임스탬프 미기록. 신규와 기존 분기를 if/else로 명시적 처리.</li>
+          <li><b>[6] TermsIntegrationTest 관리자 계정 소실</b>: <code>TRUNCATE … accounts CASCADE</code>가 Flyway 시드 admin 계정 삭제 → setUp에서 admin 계정 재삽입 추가.</li>
+          <li><b>[7] TermsIntegrationTest 약관 버전 테스트 간 오염</b>: createTerms 테스트가 SERVICE v1.0을 비활성화 → 다음 테스트 setUp에서 활성 약관 조회 실패. setUp에 <code>DELETE WHERE version != '1.0'</code> + <code>UPDATE SET is_active=TRUE</code> 리셋 추가.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>@Modifying @Query 벌크 삭제: JPA dirty-checking flush 순서 의존 대신 SQL 레벨 원자 삭제로 UNIQUE 제약 경합 완전 제거. AuditLogger 정적 헬퍼: MDC는 스레드 로컬이므로 별도 Bean 불필요하며 finally로 클린업 보장. TermsController GET /api/v1/terms public 허용: 약관은 로그인 전 가입 흐름에서도 표시 필요(FR-016). 온보딩 비차단: emailVerified 게이트만 유지하되 onboardingCompleted는 차단 게이트가 아님(스펙 FR-006).</p>
+      </div>
+      <div class="section">
+        <div class="section-title">빌드 결과</div>
+        <p>./gradlew build — <b>182 tests, 0 failures, 5 skipped. BUILD SUCCESSFUL.</b> 기존 162 테스트 회귀 없음. 신규 +20개(단위 8 + 통합 12) 전부 통과.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/resources/db/migration/V8__add_personalization_active.sql</span>
+          <span class="file">src/main/java/com/newscurator/domain/Account.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/UserProfile.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/UserInterests.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/FollowKeyword.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/ReadingPreference.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/BriefingSettings.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/TermsVersion.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/UserInterestsRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/FollowKeywordRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/UserProfileRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/ReadingPreferenceRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/BriefingSettingsRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/TermsVersionRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/service/OnboardingService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/ProfileService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/TermsService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/AuditLogger.java</span>
+          <span class="file">src/main/java/com/newscurator/service/AuthService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/TokenService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/PasswordResetService.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/OnboardingController.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/MeController.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/TermsController.java</span>
+          <span class="file">src/test/java/com/newscurator/service/EmailVerificationServiceTest.java</span>
+          <span class="file">src/test/java/com/newscurator/service/AuditLoggerTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/OnboardingIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/ProfileIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/TermsIntegrationTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
 
 <!-- ═══════ 2026-06-11 ═══════ -->
 <div class="date-group" id="date-0611">

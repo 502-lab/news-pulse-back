@@ -10,4 +10,6 @@ public interface TermsVersionRepository extends JpaRepository<TermsVersion, UUID
     List<TermsVersion> findByIsActiveTrue();
     List<TermsVersion> findByTypeAndIsActiveTrue(TermsType type);
     List<TermsVersion> findByIsActiveTrueAndIsRequiredTrue();
+    boolean existsByTypeAndVersion(TermsType type, String version);
+    List<TermsVersion> findByType(TermsType type);
 }

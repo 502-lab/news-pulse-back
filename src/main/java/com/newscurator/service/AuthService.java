@@ -159,8 +159,10 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), account.getPasswordHash())) {
             Instant lockUntil = Instant.now().plus(LOCK_MINUTES, ChronoUnit.MINUTES);
             account.recordLoginFailure(lockUntil);
+            AuditLogger.loginFailed(account.getId());
             if (account.isLocked()) {
                 log.info("Account locked after {} failed attempts, account={}", MAX_FAILED, account.getId());
+                AuditLogger.accountLocked(account.getId());
             }
             accountRepository.save(account);
             throw new BadCredentialsException("Authentication failed");
