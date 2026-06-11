@@ -10,6 +10,13 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    placeholders:
+      admin-email: ${ADMIN_EMAIL:admin@newscurator.local}
+      admin-password-hash: ${ADMIN_PASSWORD_HASH:PLACEHOLDER_SET_IN_ENV}
+  security:
+    user:
+      name: disabled
+      password: disabled
 
 server:
   port: 8080
@@ -25,6 +32,35 @@ management:
     web:
       exposure:
         include: health,info
+
+jwt:
+  secret: ${JWT_SECRET:default-test-secret-change-in-prod-minimum-32-chars!!}
+  access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:3600}
+  refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
+
+email-service:
+  base-url: ${EMAIL_SERVICE_BASE_URL:http://localhost:9999}
+  api-key: ${EMAIL_SERVICE_API_KEY:test-api-key}
+
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID:test-kakao-id}
+    client-secret: ${KAKAO_CLIENT_SECRET:test-kakao-secret}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/oauth/kakao/callback}
+    token-base-url: ${KAKAO_TOKEN_BASE_URL:https://kauth.kakao.com}
+    api-base-url: ${KAKAO_API_BASE_URL:https://kapi.kakao.com}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:test-google-id}
+    client-secret: ${GOOGLE_CLIENT_SECRET:test-google-secret}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/oauth/google/callback}
+    token-base-url: ${GOOGLE_TOKEN_BASE_URL:https://oauth2.googleapis.com}
+  apple:
+    client-id: ${APPLE_CLIENT_ID:test-apple-id}
+    team-id: ${APPLE_TEAM_ID:test-team}
+    key-id: ${APPLE_KEY_ID:test-key-id}
+    private-key: ${APPLE_PRIVATE_KEY:}
+    redirect-uri: ${APPLE_REDIRECT_URI:http://localhost:8080/oauth/apple/callback}
+    token-base-url: ${APPLE_TOKEN_BASE_URL:https://appleid.apple.com}
 
 app:
   scheduler:

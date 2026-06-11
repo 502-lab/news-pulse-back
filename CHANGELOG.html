@@ -301,18 +301,30 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">22</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">12</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">3</div><div class="stat-label">Feature</div></div>
-  <div class="stat"><div class="stat-num">4</div><div class="stat-label">DB Migration</div></div>
+  <div class="stat"><div class="stat-num">37</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">15</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-10</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-12</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-12</div>
+  <a class="toc-item" href="#d0612-1">T061~T082 온보딩·프로필·약관·감사로그 구현</a>
+  <div class="toc-date">2026-06-11</div>
+  <a class="toc-item" href="#d0611-17">T046~T060 비밀번호 재설정·소셜 OAuth 구현</a>
+  <a class="toc-item" href="#d0611-11">PipelineE2ETest 인증 헤더 추가</a>
+  <a class="toc-item" href="#d0611-10">EmailVerification 테스트 2건 수정</a>
+  <a class="toc-item" href="#d0611-9">AppConfig ObjectMapper JavaTimeModule 누락</a>
+  <a class="toc-item" href="#d0611-8">SecurityConfig 필터 이중등록 버그</a>
+  <a class="toc-item" href="#d0611-7">spec 002 T001~T045 구현 완료</a>
+  <a class="toc-item" href="#d0611-6">spec 002 analyze N1·N2 수정</a>
+  <a class="toc-item" href="#d0611-5">spec 002 analyze C1~C6 수정</a>
+  <a class="toc-item" href="#d0611-4">spec 002 tasks.md 생성</a>
   <div class="toc-date">2026-06-10</div>
   <a class="toc-item" href="#d0610-1">@Modifying+RETURNING 예외</a>
   <a class="toc-item" href="#d0610-2">한겨레 403 차단</a>
@@ -341,6 +353,648 @@
 </nav>
 
 <div class="content">
+
+<!-- ═══════ 2026-06-12 ═══════ -->
+<div class="date-group" id="date-0612">
+  <div class="date-heading">
+    <h2>2026-06-12</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 1 -->
+  <div class="entry" id="d0612-1" data-tags="feature bugfix test db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-bugfix">Bugfix</span>
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-db">DB</span>
+          T061~T082 온보딩·프로필·설정·약관 버전관리·감사로그 구현 완료 — 182/182 테스트 통과
+        </div>
+        <div class="entry-meta"><span class="session-badge">Phase 9~12 US6·US7·US8·Polish</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">구현 내용</div>
+        <ul>
+          <li><b>V8 마이그레이션</b>: <code>accounts</code>에 <code>personalization_active BOOLEAN DEFAULT FALSE</code> 컬럼 추가.</li>
+          <li><b>온보딩 (T061~T070, Phase 9)</b>: UserProfile·UserInterests·FollowKeyword·ReadingPreference·BriefingSettings 5종 Entity+Repository 신규 생성. <code>OnboardingService.submitOnboarding()</code> — 카테고리 3개 미만 시 422, 5개 하위 엔티티 upsert, <code>pushAgreed</code> true 전환 시에만 <code>pushAgreedAt=now()</code>, <code>onboardingCompleted=true + personalizationActive 계산</code>. <code>OnboardingController</code>: <code>POST /api/v1/me/onboarding</code>, <code>GET /api/v1/me/onboarding/status</code>.</li>
+          <li><b>프로필·설정 (T071~T074, Phase 10)</b>: 요청·응답 DTO 10종 신규. <code>ProfileService</code>: 5개 하위 엔티티 개별 조회(readOnly)·수정 — interests 3개 미만 422, FollowKeyword 교체 시 전체 삭제 후 재저장. <code>MeController</code>에 <code>GET/PUT</code> 엔드포인트 10개 추가.</li>
+          <li><b>약관 (T075~T077, Phase 11)</b>: <code>TermsService.createVersion()</code> — 동일 type+version 중복 409, 기존 동일 type 활성 버전 비활성화, 신규 버전 활성화. <code>getConsentHistory()</code> · <code>submitConsents()</code> 멱등(이미 동의 버전 재제출 무시). <code>GET /api/v1/terms</code> public(무인증). <code>POST /api/v1/admin/terms</code> ADMIN 전용 201. <code>GET/POST /api/v1/me/consents</code>.</li>
+          <li><b>감사 로그 (T080, FR-028)</b>: <code>AuditLogger</code> 정적 헬퍼 — SLF4J MDC 기반 구조화 로깅. LOGIN_FAILED·ACCOUNT_LOCKED·TOKEN_REUSE_DETECTED·PASSWORD_CHANGED·ADMIN_ACCESS 이벤트. accountId UUID만 기록(이메일·토큰·비밀번호 완전 배제). AuthService·TokenService·PasswordResetService 연동.</li>
+          <li><b>Swagger (T078)</b>: OnboardingController·MeController·TermsController 전체에 <code>@Tag</code>·<code>@Operation</code>·<code>@ApiResponses</code>·<code>@Parameter</code>·<code>@Schema</code> 완비.</li>
+          <li><b>신규 테스트 +20개 (T070·T074·T077·T079·T080)</b>: EmailVerificationServiceTest 3개(발송 실패→503+한도 미차감, 재전송 429, 정상), AuditLoggerTest 5개(각 이벤트 로그 존재+민감 데이터 미포함 Logback 캡처 단언), OnboardingIntegrationTest 4개, ProfileIntegrationTest 3개, TermsIntegrationTest 5개.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">버그 수정 — 근본 원인</div>
+        <ul>
+          <li><b>[1] AuditLogger try-with-resources 컴파일 오류</b>: 람다에서 <code>AutoCloseable</code> 반환 시 checked <code>Exception</code> throw 선언 필요 → <code>withContext(String, UUID, Runnable)</code> + try/finally 패턴으로 교체.</li>
+          <li><b>[2] Map.of() 11개 항목 한도 초과</b>: Java <code>Map.of()</code>는 최대 10 엔트리 — <code>fullOnboardingBody()</code>를 <code>new HashMap&lt;&gt;()</code> + 명시적 put으로 수정.</li>
+          <li><b>[3] /me/** JWT 게이트가 미인증 계정 차단</b>: 가입 직후 <code>emailVerified=false</code> → JWT 필터가 /me/** 401 반환. 테스트 헬퍼에서 DB UPDATE로 <code>email_verified=true</code> 직접 설정 후 재로그인.</li>
+          <li><b>[4] 온보딩 재진입 시 UNIQUE 제약 위반</b>: Spring Data derived <code>deleteByAccountId</code>는 같은 트랜잭션 내 flush 순서 보장 불가 — <code>@Modifying @Query("DELETE FROM UserInterests ... WHERE account.id=:accountId")</code> 벌크 JPQL delete로 교체, FollowKeyword도 동일 패턴 적용.</li>
+          <li><b>[5] BriefingSettings.pushAgreedAt 신규 생성 시 유실</b>: 신규 엔티티를 <code>builder().pushAgreed(true).build()</code> 후 <code>update()</code> 호출 시 <code>update()</code>가 <code>pushAgreed &amp;&amp; !this.pushAgreed</code>를 false로 평가 → 타임스탬프 미기록. 신규와 기존 분기를 if/else로 명시적 처리.</li>
+          <li><b>[6] TermsIntegrationTest 관리자 계정 소실</b>: <code>TRUNCATE … accounts CASCADE</code>가 Flyway 시드 admin 계정 삭제 → setUp에서 admin 계정 재삽입 추가.</li>
+          <li><b>[7] TermsIntegrationTest 약관 버전 테스트 간 오염</b>: createTerms 테스트가 SERVICE v1.0을 비활성화 → 다음 테스트 setUp에서 활성 약관 조회 실패. setUp에 <code>DELETE WHERE version != '1.0'</code> + <code>UPDATE SET is_active=TRUE</code> 리셋 추가.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>@Modifying @Query 벌크 삭제: JPA dirty-checking flush 순서 의존 대신 SQL 레벨 원자 삭제로 UNIQUE 제약 경합 완전 제거. AuditLogger 정적 헬퍼: MDC는 스레드 로컬이므로 별도 Bean 불필요하며 finally로 클린업 보장. TermsController GET /api/v1/terms public 허용: 약관은 로그인 전 가입 흐름에서도 표시 필요(FR-016). 온보딩 비차단: emailVerified 게이트만 유지하되 onboardingCompleted는 차단 게이트가 아님(스펙 FR-006).</p>
+      </div>
+      <div class="section">
+        <div class="section-title">빌드 결과</div>
+        <p>./gradlew build — <b>182 tests, 0 failures, 5 skipped. BUILD SUCCESSFUL.</b> 기존 162 테스트 회귀 없음. 신규 +20개(단위 8 + 통합 12) 전부 통과.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/resources/db/migration/V8__add_personalization_active.sql</span>
+          <span class="file">src/main/java/com/newscurator/domain/Account.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/UserProfile.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/UserInterests.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/FollowKeyword.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/ReadingPreference.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/BriefingSettings.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/TermsVersion.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/UserInterestsRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/FollowKeywordRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/UserProfileRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/ReadingPreferenceRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/BriefingSettingsRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/TermsVersionRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/service/OnboardingService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/ProfileService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/TermsService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/AuditLogger.java</span>
+          <span class="file">src/main/java/com/newscurator/service/AuthService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/TokenService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/PasswordResetService.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/OnboardingController.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/MeController.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/TermsController.java</span>
+          <span class="file">src/test/java/com/newscurator/service/EmailVerificationServiceTest.java</span>
+          <span class="file">src/test/java/com/newscurator/service/AuditLoggerTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/OnboardingIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/ProfileIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/TermsIntegrationTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════ 2026-06-11 ═══════ -->
+<div class="date-group" id="date-0611">
+  <div class="date-heading">
+    <h2>2026-06-11</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 17 -->
+  <div class="entry" id="d0611-17" data-tags="feature bugfix test db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-bugfix">Bugfix</span>
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-db">DB</span>
+          T046~T060 비밀번호 재설정 3단계·소셜 OAuth(Kakao·Google·Apple) 구현 완료 — 160/160 테스트 통과
+        </div>
+        <div class="entry-meta"><span class="session-badge">Phase 7 US5 + Phase 8 US3</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">구현 내용</div>
+        <ul>
+          <li><b>비밀번호 재설정 (T046~T050)</b>: requestCode→verifyCode→confirmReset 3단계 흐름. 미등록·소셜 전용·정상 계정 전부 균일 202 응답(열거 방지). 소셜 전용은 안내 이메일 발송, 실패 시 삼킴. 정상 계정 이메일 발송 실패만 503 전파, orphan 코드 미생성. resetToken = JWT(jti=VerificationCode.id), 단일 사용 추적 — confirmReset 성공 시 모든 리프레시 토큰 무효화(FR-025).</li>
+          <li><b>소셜 OAuth (T051~T060)</b>: OAuthProviderPort 어댑터 패턴, Kakao/Google/Apple 3종. HMAC 서명 JWT state(stateless, Redis 미사용, FR-027). Apple ES256 client_secret JWT(.p8 ECPrivateKey, 환경변수 주입). 소셜 신규 가입 → emailVerified=true 즉시(FR-024). 동일 이메일 계정 존재 → 409(FR-007).</li>
+          <li><b>V7 마이그레이션</b>: social_connections에 provider_email·user_info 컬럼 추가.</li>
+          <li><b>PasswordResetServiceTest</b>: 14개 단위 테스트(requestCode 6·verifyCode 5·confirmReset 3), @MockitoSettings(LENIENT) 적용.</li>
+          <li><b>PasswordResetIntegrationTest</b>: 7개 통합 테스트(Testcontainers+WireMock), FR-025 DB 단언 포함.</li>
+          <li><b>SocialAuthIntegrationTest</b>: 9개 통합 테스트(Kakao·Google·Apple WireMock stub, ES256 client_secret 단언, state 위조·이메일 충돌·신규/기존 가입 시나리오).</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">버그 수정 — 근본 원인</div>
+        <ul>
+          <li><b>PasswordResetServiceTest UnnecessaryStubbingException (7건)</b>: mockVerificationCode 헬퍼가 vc.getId()·vc.isUsed()·vc.isExpired()·vc.getCodeHash() 전부를 항상 stubbing. confirmReset 경로는 claims.getId() 사용(vc.getId() 미호출), isExpired 경로는 조기 throw(isUsed 미호출). Mockito STRICT_STUBS 모드가 미사용 stub을 오류로 처리. → @MockitoSettings(LENIENT)로 수정, 불필요 stub 재설계.</li>
+          <li><b>PasswordResetIntegrationTest 503 단언 타입 오류</b>: 503은 5xx → HttpServerErrorException 계열이나 HttpClientErrorException으로 단언. → HttpServerErrorException으로 수정.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>HMAC JWT state(stateless): Redis 재도입 없이 CSRF 방지. state 위조·만료·provider 불일치 모두 400. Apple .p8 키는 환경변수 전용(공백 기본값으로 미설정 시 앱 기동 허용). 소셜 이메일 충돌 409: 자동 연결 대신 명시적 오류로 보안 상태 모호성 방지.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">빌드 결과</div>
+        <p>./gradlew test — <b>162 tests, 0 failures, 5 skipped. BUILD SUCCESSFUL.</b> 기존 130 테스트 회귀 없음. 신규 32개(단위 14 + 통합 18) 전부 통과.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/resources/db/migration/V7__social_connections_extend.sql</span>
+          <span class="file">src/main/java/com/newscurator/service/PasswordResetService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/SocialAuthService.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/PasswordResetController.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/SocialAuthController.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/KakaoOAuthAdapter.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/GoogleOAuthAdapter.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/AppleOAuthAdapter.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/OAuthProviderPort.java</span>
+          <span class="file">src/main/java/com/newscurator/client/social/OAuthProviderFactory.java</span>
+          <span class="file">src/main/java/com/newscurator/domain/SocialConnection.java</span>
+          <span class="file">src/main/java/com/newscurator/security/JwtTokenProvider.java</span>
+          <span class="file">src/test/java/com/newscurator/service/PasswordResetServiceTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/PasswordResetIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/SocialAuthIntegrationTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16 -->
+  <div class="entry" id="d0611-16" data-tags="bugfix feature db test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bugfix</span>
+          <span class="sev sev-high">HIGH</span>
+          <span class="tag tag-db">DB</span>
+          <span class="tag tag-test">Test</span>
+          blast window 쿼리 버그 수정 — consumedAt proxy → blasted_at 전용 신호로 교체, false-escalation 가드 테스트 추가
+        </div>
+        <div class="entry-meta"><span class="session-badge">에스컬레이션 카운팅 정확성 검증</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p><code>countRecentFamilyBlastsByAccountId</code>가 <code>consumedAt</code>을 blast 시각으로 사용하므로 두 가지 버그가 있음. (1) 토큰이 5분 이전에 정상 소비된 후 blast가 발생하면 <code>consumedAt &gt; since</code> 조건 불충족 → blast 미카운트(에스컬레이션 누락). (2) 로그아웃이 <code>revokeByFamilyId</code>를 호출하므로 최근 소비된 토큰이 <code>isRevoked=TRUE</code>가 되어 blast로 잘못 카운트 → false-escalation. "정상 회전 N회 → count=0" 검증 테스트도 부재했음.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>blast 시각 전용 신호가 없었음. <code>consumedAt</code>은 토큰 소비(회전) 시각이고 <code>isRevoked</code>는 방법(blast/logout/account-wide) 구분 불가. blast 경로와 로그아웃 경로가 같은 <code>revokeByFamilyId</code>를 호출하므로 DB 상태만으로 원인 구분 불가.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <ul>
+          <li><b>V6 마이그레이션</b>: <code>refresh_tokens.blasted_at TIMESTAMPTZ NULL</code> 컬럼 추가, 부분 인덱스 생성.</li>
+          <li><b>RefreshToken 엔티티</b>: <code>blastedAt</code> 필드 + <code>markBlasted()</code> 메서드 추가.</li>
+          <li><b>TokenService.rotate()</b>: grace 초과 blast 경로에서만 <code>existing.markBlasted(); save(existing);</code> 호출. 로그아웃 <code>revoke()</code>는 미설정.</li>
+          <li><b>RefreshTokenRepository 쿼리</b>: <code>isRevoked=TRUE AND consumedAt IS NOT NULL AND consumedAt &gt; since</code> → <code>blastedAt IS NOT NULL AND blastedAt &gt; since</code>로 교체.</li>
+          <li><b>RefreshTokenBlastWindowTest</b>: helper 3종 추가(insertBlastedToken/insertNormallyRotatedToken/insertLoggedOutToken). 6개 시나리오로 확장 — 특히 "정상 회전 5회 → count=0"(false-escalation 가드), "최근 로그아웃 → count=0" 추가.</li>
+          <li><b>TokenRotationIntegrationTest</b>: escalation 테스트의 pre-seed INSERT에 <code>blasted_at</code> 포함.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">결정 이유</div>
+        <p>전용 <code>blasted_at</code> 컬럼: blast 시각을 직접 기록해 query가 blast 발생 시점 기준 window를 정확히 평가. 별도 테이블(family_blast_events) 대안도 검토했으나 토큰-blast 1:1 관계이므로 컬럼 추가로 충분. 로그아웃 경로에서 미설정이 명시적 설계 결정 — 로그아웃은 공격 신호가 아님.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">빌드 결과</div>
+        <p>./gradlew build — <b>130 tests, 0 failures, 5 skipped. BUILD SUCCESSFUL.</b> RefreshTokenBlastWindowTest 6/6 통과(신규 2건 포함).</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/resources/db/migration/V6__add_refresh_token_blasted_at.sql</span>
+          <span class="file">src/main/java/com/newscurator/domain/RefreshToken.java</span>
+          <span class="file">src/main/java/com/newscurator/service/TokenService.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/RefreshTokenRepository.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/RefreshTokenBlastWindowTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/TokenRotationIntegrationTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15 -->
+  <div class="entry" id="d0611-15" data-tags="feature test docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-docs">Docs</span>
+          signup ↔ 이메일 발송 분리 + blast window 실DB 검증 + EMAIL_NOT_VERIFIED 코드 구분 + 503 한도 단언 보강
+        </div>
+        <div class="entry-meta"><span class="session-badge">커밋 전 4-task 체크포인트</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p><b>Task 1</b>: signup 중 이메일 발송 실패 시 EmailDeliveryException이 @Transactional signup() 전체를 롤백해 계정이 DB에 남지 않음. <b>Task 2</b>: countRecentFamilyBlastsByAccountId의 5분 window 쿼리가 mock으로만 스텁되어 실제 시간 경계 미검증. <b>Task 3</b>: emailVerified=false 거부가 403만 반환하고 code=EMAIL_NOT_VERIFIED 단언 없음. <b>Task 4</b>: 이메일 503 테스트가 코드 count만 검사하고 hourly_count 미변화 미단언.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>signup()이 @Transactional 범위 안에서 외부 HTTP 호출(이메일 발송)을 포함 — 외부 실패가 전체 트랜잭션을 롤백. blast window 쿼리는 단위 테스트에서만 스텁되어 실제 DB 타임스탬프 비교 로직 미검증.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정 내용</div>
+        <ul>
+          <li><b>Task 1</b>: AuthService.signup()을 비-@Transactional로 변경. 계정+동의 생성을 TransactionTemplate.execute()로 래핑해 즉시 커밋. 이메일 발송은 트랜잭션 밖에서 호출. EmailDeliveryException 잡아 verificationEmailSent=false로 처리. signup은 항상 201 반환.</li>
+          <li><b>Task 1 계약/스펙</b>: openapi.yaml signup 201에 verificationEmailSent: boolean 필드 및 required 추가, 설명 갱신. /me 403 EMAIL_NOT_VERIFIED 응답 문서화. spec.md US9 시나리오 1 갱신, 시나리오 1a 추가, Q4 Clarification 추가.</li>
+          <li><b>Task 2</b>: RefreshTokenBlastWindowTest.java 신규 생성. Testcontainers + SpringBootTest, JdbcTemplate으로 consumedAt 타임스탬프를 직접 주입해 실DB에서 window 경계 검증. 4개 시나리오: 2건 모두 window 내→count=2, 1건 window 내/1건 밖→count=1, consumedAt=null→count=0, 다른 계정 blast→count=0.</li>
+          <li><b>Task 3</b>: RbacIntegrationTest의 emailVerified=false 케이스 2곳에 responseBodyAsString().contains("EMAIL_NOT_VERIFIED") 단언 추가.</li>
+          <li><b>Task 4</b>: EmailVerificationIntegrationTest.requestCode_emailFailure_returns503AndQuotaNotCharged에 MAX(hourly_count) 전/후 단언 추가.</li>
+          <li><b>AuthServiceTest 수정</b>: PlatformTransactionManager mock 추가, lenient 스텁으로 UnnecessaryStubbingException 해소.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">결정 이유</div>
+        <p>TransactionTemplate 방식: @Transactional(propagation=REQUIRES_NEW)보다 명시적 — 외부 호출과 트랜잭션 경계를 코드에서 직접 확인 가능. TransactionSynchronizationManager.registerSynchronization(AFTER_COMMIT) 대안도 검토했으나 테스트 환경에서 동작이 복잡해 이 접근을 선택. 실DB blast window 테스트: mock으로는 since 파라미터 계산 로직과 쿼리 타임스탬프 비교가 검증되지 않으므로 Testcontainers 통합 테스트로 격상.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">빌드 결과</div>
+        <p>./gradlew build — <b>128 tests, 0 failures, 5 skipped. BUILD SUCCESSFUL.</b> RefreshTokenBlastWindowTest 4건 포함 신규 통과. 스모크(bootRun): email-service.base-url 미설정으로 기동 불가 — 런타임/배포 시 검증으로 명시.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/java/com/newscurator/service/AuthService.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/AuthIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/RefreshTokenBlastWindowTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/RbacIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/EmailVerificationIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/service/AuthServiceTest.java</span>
+          <span class="file">.specify/specs/002-account-auth-onboarding/contracts/openapi.yaml</span>
+          <span class="file">.specify/specs/002-account-auth-onboarding/spec.md</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="entry" id="d0611-11" data-tags="test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-test">Test</span>
+          PipelineE2ETest — 002 spec 전체 인증 요구 대응, 어드민 토큰·Flyway placeholder 추가
+        </div>
+        <div class="entry-meta"><span class="session-badge">spec-002 구현 후속</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>spec 002 구현 후 SecurityConfig가 모든 엔드포인트를 인증 필수로 변경함에 따라 PipelineE2ETest의 3개 테스트가 전부 401 Unauthorized로 실패. 또한 Flyway V5 admin seed 마이그레이션이 <code>spring.flyway.placeholders.*</code> 미설정으로 실패하여 Spring 컨텍스트 자체가 뜨지 않음.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>001 파이프라인 테스트는 인증 없이 <code>/api/v1/articles</code> 등을 직접 호출하도록 작성됨. spec 002 이후 해당 엔드포인트도 authenticated 필수 경계 안에 포함. <code>@DynamicPropertySource</code>에 <code>email-service.*</code> 및 <code>spring.flyway.placeholders.admin-email/admin-password-hash</code> 없어 마이그레이션 실패.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <ul>
+          <li><code>BCryptPasswordEncoder</code>로 테스트 전용 어드민 비밀번호 해시 생성 후 <code>@DynamicPropertySource</code>에 주입 (해시값만 전달, 평문 미로깅)</li>
+          <li><code>email-service.base-url</code>, <code>email-service.api-key</code> placeholder 추가</li>
+          <li><code>@BeforeEach</code>에서 Flyway 시드 어드민으로 로그인해 <code>adminAccessToken</code> 획득</li>
+          <li>3개 테스트 전부 <code>Authorization: Bearer ${adminAccessToken}</code> 헤더 추가</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>001 E2E 테스트를 별도 mock user 없이 재사용 — Flyway 시드 어드민이 ADMIN 역할을 가지므로 001의 모든 피드/상세 엔드포인트 접근 가능. 신규 계정 생성 없이 기존 흐름 최소 수정으로 재활용.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/test/java/com/newscurator/integration/PipelineE2ETest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="entry" id="d0611-10" data-tags="test bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-medium">MEDIUM</span>
+          EmailVerificationIntegrationTest — JWT stateless 재로그인 필요·503 예외 타입 오류 수정
+        </div>
+        <div class="entry-meta"><span class="session-badge">spec-002 구현 후속</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>(1) <code>verifyCode_success_allowsMeAccess</code>: 이메일 인증 성공 후 기존 액세스 토큰으로 <code>/me</code> 호출 시 403 반환. (2) <code>requestCode_emailFailure_returns503AndQuotaNotCharged</code>: 503 응답 검증에서 <code>HttpClientErrorException</code> 타입 단언 실패.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p>(1) JWT는 stateless — DB에 <code>emailVerified=true</code>로 업데이트되어도 기존 토큰의 <code>emailVerified</code> claim은 여전히 <code>false</code>. 새 토큰 없이 <code>/me</code> 호출 시 게이팅에서 403 반환. (2) 503은 5xx 서버 오류이므로 <code>HttpServerErrorException</code>이 throw됨. <code>HttpClientErrorException</code>은 4xx 전용.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <ul>
+          <li>(1) 인증 성공 후 <code>/me</code> 직접 호출 제거 → 재로그인으로 신규 토큰 발급 후 <code>emailVerified=true</code> 확인</li>
+          <li>(2) <code>isInstanceOf(HttpClientErrorException.class)</code> → <code>isInstanceOf(HttpServerErrorException.class)</code>, import 추가</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>재로그인 흐름이 실제 사용자 시나리오와 일치 — 인증 후 재로그인 없이 기존 토큰으로 상태 전환을 기대하는 것 자체가 JWT stateless 모델에 위배됨. 테스트가 올바른 UX 흐름을 검증하도록 수정.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/test/java/com/newscurator/integration/EmailVerificationIntegrationTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="entry" id="d0611-9" data-tags="bugfix config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="tag tag-config">Config</span>
+          <span class="sev sev-medium">MEDIUM</span>
+          AppConfig ObjectMapper — JavaTimeModule 미등록으로 OffsetDateTime 직렬화 실패
+        </div>
+        <div class="entry-meta"><span class="session-badge">spec-002 구현 후속</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>SecurityConfig의 인증 실패 핸들러에서 <code>ErrorResponse</code>(OffsetDateTime timestamp 포함) 직렬화 시 <code>InvalidDefinitionException: Java 8 date/time type java.time.OffsetDateTime not supported by default</code> 발생. 401/403 에러 응답 대신 500이 반환.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p><code>AppConfig.objectMapper()</code>에서 <code>new ObjectMapper()</code>만 생성하고 <code>JavaTimeModule</code> 미등록. <code>@ConditionalOnMissingBean</code>으로 먼저 등록되면 Spring Boot 자동 구성의 JSR310 지원 ObjectMapper가 생성되지 않음.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <ul>
+          <li><code>mapper.registerModule(new JavaTimeModule())</code> 추가</li>
+          <li><code>mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)</code> 추가 (ISO-8601 문자열 출력)</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>애플리케이션이 단일 ObjectMapper 빈을 사용하므로 해당 빈에 JavaTimeModule을 직접 등록하는 것이 가장 단순하고 확실한 수정. <code>spring.jackson.serialization.write-dates-as-timestamps=false</code> 설정보다 코드 레벨 명시가 빈 의존성을 자기 완결적으로 관리.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/java/com/newscurator/config/AppConfig.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="entry" id="d0611-8" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-high">HIGH</span>
+          SecurityConfig — JwtAuthenticationFilter @Bean 이중등록으로 USER 역할 /admin/** 401 반환
+        </div>
+        <div class="entry-meta"><span class="session-badge">spec-002 RBAC 통합 테스트 실패</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">문제</div>
+        <p>RBAC 통합 테스트에서 USER 역할 계정이 <code>/api/v1/admin/**</code> 접근 시 기대값 403이 아닌 401 반환. ADMIN은 200 정상. 미인증은 401 정상.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인</div>
+        <p><code>JwtAuthenticationFilter</code>를 <code>@Bean</code>으로 선언하면 Spring Boot가 서블릿 필터로 자동 등록 + SecurityConfig의 <code>addFilterBefore()</code>로 보안 체인에도 등록 — 이중 등록 발생. <code>OncePerRequestFilter</code>는 첫 번째 호출(서블릿 컨텍스트, 보안 체인 진입 전)에서 "already filtered" 마킹. 보안 체인 내 두 번째 호출은 skip → <code>SecurityContextHolderFilter</code>가 컨텍스트 클리어 → 익명 사용자 → 401.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">수정</div>
+        <ul>
+          <li><code>@Bean public JwtAuthenticationFilter jwtAuthenticationFilter()</code> 메서드 완전 제거</li>
+          <li><code>filterChain()</code> 내부에서 <code>new JwtAuthenticationFilter(jwtTokenProvider, objectMapper)</code>로 plain Java 객체 생성 후 <code>addFilterBefore()</code>에 전달</li>
+          <li>결과: Spring Boot 서블릿 자동 등록 없음, 보안 체인에서만 단일 실행 보장</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>Plain object 방식이 근본 원인(이중 등록)을 제거하는 유일한 수정. 대안인 <code>FilterRegistrationBean(enabled=false)</code>는 등록 자체를 비활성화하는 우회책이라 의도가 불명확하고 미래 리팩토링 시 삭제될 위험. <code>@Component</code> 제거만으로는 <code>@Bean</code>이 남아있어 불충분.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/java/com/newscurator/config/SecurityConfig.java</span>
+          <span class="file">src/main/java/com/newscurator/security/JwtAuthenticationFilter.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="entry" id="d0611-7" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          spec 002 T001~T045 구현 완료 — 계정 가입·이메일 인증·로그인·Token Rotation·RBAC (123 테스트 통과)
+        </div>
+        <div class="entry-meta"><span class="session-badge">speckit-implement MVP Phase 1~6</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">구현 내용</div>
+        <ul>
+          <li><b>Phase 1~2 (Setup·Foundational)</b>: Flyway V2/V3/V4/V5 마이그레이션 (accounts, social_connections, terms_versions, consent_records, refresh_tokens, verification_codes), EmailServiceClient(WireMock 호환), JwtTokenProvider, SecurityConfig(stateless JWT)</li>
+          <li><b>Phase 3 (이메일 가입, T015~T027)</b>: AccountRepository, AccountService(signup·가입 직후 인증코드 발송), AuthController(POST /api/v1/auth/signup), GlobalExceptionHandler 확장, 409/422 에러 처리</li>
+          <li><b>Phase 4 (이메일 인증, T028~T034)</b>: VerificationCodeRepository, EmailVerificationService(request·verify·5회 오입력 무효화), EmailVerificationController</li>
+          <li><b>Phase 5 (로그인·Token Rotation, T035~T042a)</b>: RefreshTokenRepository, TokenService(rotation grace 30초 멱등·family blast·5분 2회 에스컬레이션), AuthService(login·refresh·logout), TokenServiceTest 6시나리오</li>
+          <li><b>Phase 6 (RBAC·게이팅, T043~T045)</b>: MeController(GET /api/v1/me, emailVerified 게이팅), SecurityConfig RBAC 규칙, RbacIntegrationTest(미인증 401·USER 403·ADMIN 200·미인증계정 /me 차단)</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">테스트 결과</div>
+        <p><code>./gradlew build</code> → <b>BUILD SUCCESSFUL</b>. 123 테스트 완료, 0 실패, 5 skipped(사전 존재, Docker 미환경 skip). 신규 통합 테스트: AuthIntegrationTest 5/5, TokenRotationIntegrationTest 4/4, EmailVerificationIntegrationTest 4/4, PipelineE2ETest 3/3, RbacIntegrationTest 5/5. TokenServiceTest 6/6.</p>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>Phase 7 이후(비밀번호 재설정·소셜 OAuth·온보딩·프로필·약관)는 이번 실행 범위 밖. T045(RbacIntegrationTest)에서 멈추고 빌드 검증만 수행 후 커밋 보류. 001의 /admin/** 보안 부재 해소 및 이메일 가입·로그인·인증 E2E 동작이 MVP 목표.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/java/com/newscurator/config/SecurityConfig.java</span>
+          <span class="file">src/main/java/com/newscurator/config/AppConfig.java</span>
+          <span class="file">src/main/java/com/newscurator/security/JwtTokenProvider.java</span>
+          <span class="file">src/main/java/com/newscurator/security/JwtAuthenticationFilter.java</span>
+          <span class="file">src/main/java/com/newscurator/service/AuthService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/TokenService.java</span>
+          <span class="file">src/main/java/com/newscurator/service/EmailVerificationService.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/AuthController.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/MeController.java</span>
+          <span class="file">src/main/resources/db/migration/V2~V5__*.sql</span>
+          <span class="file">src/test/java/com/newscurator/integration/RbacIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/AuthIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/TokenRotationIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/service/TokenServiceTest.java</span>
+          <span class="file">.specify/specs/002-account-auth-onboarding/tasks.md</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="entry" id="d0611-6" data-tags="docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-docs">Docs</span>
+          spec 002 analyze 2차 잔여 이슈 N1·N2 수정 (AccountSummary requiresReConsent 계약 반영)
+        </div>
+        <div class="entry-meta"><span class="session-badge">speckit-analyze 2차 후속</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <p><b>N1 (openapi.yaml)</b>: AccountSummary 스키마에 `requiresReConsent: boolean` 필드 추가 + required 목록 반영. 단일 스키마 수정으로 $ref를 사용하는 5개 응답(POST /auth/signup 201, POST /auth/login 200, POST /auth/social/{provider}/callback 200·201, GET /me 200) 자동 반영 확인.</p>
+      <p><b>N2 (tasks.md T019)</b>: TermsVersionRepository에 `findByIsActiveTrueAndIsRequiredTrue()` 메서드 명시. requiresReConsent 계산 시 DB에서 직접 "활성 AND 필수" 약관을 쿼리(서비스 레이어 stream 필터 불필요). CLAUDE.md "openapi.yaml 선반영 후 구현" 원칙 준수.</p>
+      <p><b>영향 파일</b>: contracts/openapi.yaml, tasks.md, CHANGELOG.html</p>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="entry" id="d0611-5" data-tags="docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-docs">Docs</span>
+          spec 002 speckit-analyze 이슈 C1~C6 수정 (Constitution IV · requiresReConsent · Redis 제거 외)
+        </div>
+        <div class="entry-meta"><span class="session-badge">speckit-analyze 후속</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <p><b>C1 (spec.md Key Entities)</b>: PasswordResetCode·EmailVerificationCode 별도 엔티티 "설계 시 결정" 문구 제거 → "단일 VerificationCode 엔티티(purpose=EMAIL_VERIFY|PASSWORD_RESET), plan.md 결정"으로 교체.</p>
+      <p><b>C2 (plan.md Technical Context)</b>: Storage에서 Redis 제거("OAuth state = HMAC JWT stateless, Redis 불필요"), Testcontainers 목록에서 Redis 제거.</p>
+      <p><b>C3 (tasks.md T042a 추가)</b>: Constitution Principle IV 위반 해소 — TokenServiceTest.java 단위 테스트 태스크 신규 추가. 6개 시나리오: 정상 rotation, grace 멱등, grace 초과→family blast(다른 family 격리 확인), 5분 내 2회→account-wide, 에스컬레이션 window 리셋, 만료/revoked 토큰 blast 미트리거.</p>
+      <p><b>C4 (tasks.md T022/T039/T044)</b>: AccountSummaryResponse에 requiresReConsent: boolean 필드 추가. T039 login()에 활성 필수 TermsVersion vs ConsentRecord 비교 계산 + buildAccountSummary() 공통 메서드 분리 명시. T044 GET /me도 동일 계산 재사용(라이브 세션 30일 내 새 약관 surface). SC-001 성능 목표는 k6 post-deploy SLO로 트래킹.</p>
+      <p><b>C5 (spec.md Clarifications)</b>: Q5 답변 "전체 세션 즉시 무효화"(구) → "FR-020 참조: grace 30초 멱등→family blast→5분 내 2회 에스컬레이션"으로 갱신.</p>
+      <p><b>C6 (tasks.md T043/T044)</b>: T043에 [P] 마커 추가, "MeController용" 문구 제거(SecurityConfig는 MeController 생성 전에도 경로 인증 규칙 설정 가능). T044에 [P] 마커 추가. 병렬 실행 가능 명시, T045(RbacIntegrationTest) 의존 순서 주석.</p>
+      <p><b>영향 파일</b>: spec.md, plan.md, tasks.md, CHANGELOG.html</p>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="entry" id="d0611-4" data-tags="docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-docs">Docs</span>
+          spec 002 tasks.md 생성 — 82개 태스크, 12 Phase, US1~US9 전체 커버
+        </div>
+        <div class="entry-meta"><span class="session-badge">speckit-tasks</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <p><b>생성 파일</b>: .specify/specs/002-account-auth-onboarding/tasks.md</p>
+      <p><b>구성</b>: Phase 1(Setup, 4개) → Phase 2(Foundational, 10개) → Phase 3~11(US1~US9, 66개) → Phase 12(Polish, 5개). 총 82개 태스크.</p>
+      <p><b>User Story 매핑</b>: US1 이메일 가입(T015~T027), US9 이메일 인증(T028~T034), US2 로그인/Token Rotation(T035~T042), US4 RBAC(T043~T045), US5 비밀번호 재설정(T046~T050), US3 소셜 OAuth(T051~T060), US6 온보딩(T061~T070), US7 프로필·설정(T071~T074), US8 약관 관리(T075~T077).</p>
+      <p><b>주요 설계 결정 반영</b>: OAuth state = HMAC JWT stateless(Redis 불필요), Token Rotation = grace 30초+family blast+에스컬레이션, @DataJpaTest·@WebMvcTest 대신 @SpringBootTest+Testcontainers, WireMock 소셜 provider·이메일 서비스 stub.</p>
+      <p><b>MVP 범위</b>: Phase 1~6(Setup→RBAC) 완료 시 001 /admin/** 보안 해소 및 이메일 가입·로그인·인증 E2E 동작. REQUIRED GATE CHK001~005 충족.</p>
+      <p><b>결정 이유</b>: plan.md 우선순위 체계(P0~P3)와 spec.md User Story 의존 그래프를 교차 분석해 독립 테스트 가능한 Phase 단위로 분해. 병렬 실행 가능 태스크([P] 마커)와 순차 태스크를 명시해 구현 효율 최대화.</p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="entry" id="d0611-3" data-tags="docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-docs">Docs</span>
+          spec 002 password-reset 소셜 전용 응답을 FR-026 균일 202로 정합화
+        </div>
+        <div class="entry-meta"><span class="session-badge">수동 리뷰</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <p><b>openapi.yaml</b>: POST /auth/password-reset/request의 422(소셜 전용) 응답 제거. description을 "등록·미등록·소셜 전용 전부 202, 소셜 전용엔 안내 이메일 발송"으로 교체.</p>
+      <p><b>spec.md</b>: US5 시나리오 6 "422 반환" → "202 + 안내 이메일". FR-006에 균일 202 + 안내 이메일 메커니즘 추가. FR-026은 변경 없음(근거이므로 유지).</p>
+      <p><b>research.md / quickstart.md</b>: password-reset 소셜 422 참조 없음 — 변경 없음.</p>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="entry" id="d0611-2" data-tags="docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-docs">Docs</span>
+          spec 002 plan 산출물 수술적 수정 4건 (OAuth state JWT화, FR-020 family-first, 소셜 열거정책, 이메일인증 auth)
+        </div>
+        <div class="entry-meta"><span class="session-badge">수동 리뷰</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <p><b>변경 1 (research.md R1)</b>: OAuth state를 Redis 임시 저장 → HMAC 서명 JWT(stateless)로 교체. Redis 미프로비저닝·미사용 근거 명시. docker-compose redis 미사용 1줄 추가. Alternatives에 Redis 방식도 기록.</p>
+      <p><b>변경 2 (spec.md FR-020 + Edge Cases)</b>: "재사용→전체 즉시 무효화"를 (a) grace 30초 멱등 (b) family-first blast (c) 5분 내 2회→계정 전체 에스컬레이션 3단계로 교체. Edge Cases 해당 항목도 동일하게 갱신.</p>
+      <p><b>변경 3 (openapi.yaml)</b>: login 401 description에서 소셜 전용 케이스 제외 명확화. 422 SOCIAL_ONLY_ACCOUNT 응답 추가(FR-026 수용 예외). info.description 공개 화이트리스트에서 "이메일 인증" 제거 및 authenticated 명시.</p>
+      <p><b>변경 4 (research.md R2)</b>: permitAll 목록에서 이메일 인증 엔드포인트 제거. emailVerified 게이팅 메커니즘(/me/**=emailVerified=true 필요, /auth/email-verification/**=false 허용) 상세화. 001 기존 엔드포인트도 전역 authenticated 적용됨 명시.</p>
+      <p><b>영향 파일</b>: research.md, spec.md, contracts/openapi.yaml</p>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <div class="entry" id="d0611-1" data-tags="docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-docs">Docs</span>
+          spec 002 계획 산출물 생성 (research / data-model / openapi / quickstart / plan)
+        </div>
+        <div class="entry-meta"><span class="session-badge">speckit-plan</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <p><b>작업 내용</b>: spec 002 "계정·인증·온보딩·인가"의 기술 계획 산출물 5개를 생성했다.</p>
+      <ul>
+        <li><b>research.md</b>: OAuth provider 플로우(Kakao/Google/Apple), Spring Security JWT stateless 설정, Refresh Token Rotation grace period 전략, VerificationCode 통합 엔티티 설계, Email service client WireMock 호환성</li>
+        <li><b>data-model.md</b>: accounts·social_connections·terms_versions·consent_records·refresh_tokens·verification_codes·user_profiles·user_interests·follow_keywords·reading_preferences·briefing_settings 11개 테이블 DDL 개념, 마이그레이션 전략(V2/V3), ADMIN seed</li>
+        <li><b>contracts/openapi.yaml</b>: 인증(가입·로그인·소셜·refresh·logout), 비번재설정 3단계, 이메일 인증, Me(프로필·관심사·키워드·설정), 온보딩, 약관, Admin 전체 엔드포인트</li>
+        <li><b>quickstart.md</b>: 7개 검증 시나리오 (이메일인증 게이팅, 계정잠금, Token Rotation, RBAC, 비번재설정+세션무효화, 이메일장애 503, 소셜 CSRF)</li>
+        <li><b>plan.md</b>: Constitution Check 7개 원칙 모두 PASS, REQUIRED GATE CHK001~005 사전 해소, 소스 구조, Phase 계획, Complexity Tracking</li>
+      </ul>
+      <p><b>결정 이유</b>: VerificationCode 단일 엔티티+purpose 방식 — 이메일 인증과 비번재설정 코드의 라이프사이클이 동일(15분 만료, 5회/시간 재전송, 5회 오입력 무효화)하여 중복 로직 제거. Refresh Token Rotation grace period 30초 — 모바일 네트워크 재시도 오탐 방지. resetToken DB 미저장 JWT 방식 — TTL 10분 단기 토큰에 DB 라이프사이클 관리 불필요, VerificationCode.is_used로 이중 검증.</p>
+      <p><b>영향 파일</b>: .specify/specs/002-account-auth-onboarding/plan.md, research.md, data-model.md, quickstart.md, contracts/openapi.yaml, CLAUDE.md</p>
+    </div>
+  </div>
+
+</div>
 
 <!-- ═══════ 2026-06-10 ═══════ -->
 <div class="date-group" id="date-0610">

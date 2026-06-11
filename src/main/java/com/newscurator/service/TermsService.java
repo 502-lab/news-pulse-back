@@ -1,0 +1,100 @@
+package com.newscurator.service;
+
+import com.newscurator.domain.Account;
+import com.newscurator.domain.ConsentRecord;
+import com.newscurator.domain.TermsVersion;
+import com.newscurator.dto.request.ConsentInput;
+import com.newscurator.dto.request.CreateTermsVersionRequest;
+import com.newscurator.dto.response.ConsentRecordResponse;
+import com.newscurator.dto.response.TermsVersionResponse;
+import com.newscurator.repository.ConsentRecordRepository;
+import com.newscurator.repository.TermsVersionRepository;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+@Service
+public class TermsService {
+
+    private final TermsVersionRepository termsVersionRepository;
+    private final ConsentRecordRepository consentRecordRepository;
+
+    public TermsService(TermsVersionRepository termsVersionRepository,
+                        ConsentRecordRepository consentRecordRepository) {
+        this.termsVersionRepository = termsVersionRepository;
+        this.consentRecordRepository = consentRecordRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<TermsVersion> getActiveTerms() {
+        return termsVersionRepository.findByIsActiveTrue();
+    }
+
+    @Transactional
+    public TermsVersionResponse createVersion(CreateTermsVersionRequest req) {
+        if (termsVersionRepository.existsByTypeAndVersion(req.type(), req.version())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "해당 타입·버전 조합이 이미 존재합니다: " + req.type() + " " + req.version());
+        }
+        // deactivate previous active versions of same type
+        termsVersionRepository.findByTypeAndIsActiveTrue(req.type())
+                .forEach(tv -> {
+                    tv.deactivate();
+                    termsVersionRepository.save(tv);
+                });
+
+        TermsVersion newVersion = TermsVersion.builder()
+                .type(req.type())
+                .version(req.version())
+                .effectiveDate(req.effectiveDate())
+                .isRequired(req.required())
+                .isActive(true)
+                .build();
+        termsVersionRepository.save(newVersion);
+
+        return toResponse(newVersion);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ConsentRecordResponse> getConsentHistory(UUID accountId) {
+        return consentRecordRepository.findByAccountId(accountId).stream()
+                .map(cr -> new ConsentRecordResponse(
+                        cr.getId(),
+                        cr.getTermsVersion().getId(),
+                        cr.getTermsVersion().getType(),
+                        cr.getTermsVersion().getVersion(),
+                        cr.isAgreed(),
+                        cr.getAgreedAt()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public void submitConsents(Account account, List<ConsentInput> consents) {
+        for (ConsentInput ci : consents) {
+            UUID tvId = ci.termsVersionId();
+            // idempotent — skip if already consented to this version
+            if (consentRecordRepository.findByAccountIdAndTermsVersionId(account.getId(), tvId).isPresent()) {
+                continue;
+            }
+            termsVersionRepository.findById(tvId).ifPresent(tv -> {
+                ConsentRecord cr = ConsentRecord.builder()
+                        .account(account)
+                        .termsVersion(tv)
+                        .agreed(ci.agreed())
+                        .build();
+                consentRecordRepository.save(cr);
+            });
+        }
+    }
+
+    private TermsVersionResponse toResponse(TermsVersion tv) {
+        return new TermsVersionResponse(
+                tv.getId(), tv.getType(), tv.getVersion(),
+                tv.getEffectiveDate(), tv.isRequired(), tv.isActive()
+        );
+    }
+}

@@ -1,0 +1,2 @@
+ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS personalization_active BOOLEAN NOT NULL DEFAULT FALSE;
