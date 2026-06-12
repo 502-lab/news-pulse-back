@@ -301,18 +301,20 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">39</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">40</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">6</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">7</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-12</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-13</div>
+  <a class="toc-item" href="#d0613-1">US2 검색 구현 — pg_bigm + 커서 페이지네이션 (226/226 GREEN)</a>
   <div class="toc-date">2026-06-12</div>
   <a class="toc-item" href="#d0612-4">US1 테스트 정합 보강 + pg_bigm 컨테이너 전체 통일</a>
   <a class="toc-item" href="#d0612-3">spec 003 US1 개인화 피드 구현 5/5 GREEN</a>
@@ -356,6 +358,88 @@
 </nav>
 
 <div class="content">
+
+<!-- ═══════ 2026-06-13 ═══════ -->
+<div class="date-group" id="date-0613">
+  <div class="date-heading">
+    <h2>2026-06-13</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 1 -->
+  <div class="entry" id="d0613-1" data-tags="feature test db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-db">DB</span>
+          US2 검색 구현 — pg_bigm GREATEST 유사도 + 커서 페이지네이션 (T016~T023, 226/226 GREEN)
+        </div>
+        <div class="entry-meta"><span class="session-badge">226/226 GREEN (22 신규 테스트)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><strong>T016</strong> — <code>ArticleRepositorySearchTest</code> 작성: bigram 매칭·GREATEST 랭킹·LIKE 바인딩·90일 필터 4개 테스트 (리포지터리 레이어)</li>
+          <li><strong>T017</strong> — <code>SearchServiceTest</code> 작성: 빈/1자/101자 쿼리 → IllegalArgumentException, 커서 round-trip, 빈 결과 6개 단위 테스트</li>
+          <li><strong>T018</strong> — <code>SearchIntegrationTest</code> 작성: 7 crown-jewel 포함 12개 통합 테스트 (BigmPostgresImage 사용, FR-013 검증)</li>
+          <li><strong>T019</strong> — <code>ArticleSearchRequest</code> DTO (record, Swagger @Schema)</li>
+          <li><strong>T020</strong> — <code>ArticleSearchResponse</code> DTO (record, nextCursor·hasNext)</li>
+          <li><strong>T021</strong> — <code>ArticleRepository</code>에 <code>searchByQuery</code> + <code>searchByQueryWithCursor</code> 네이티브 쿼리 추가</li>
+          <li><strong>T022</strong> — <code>SearchService</code> 신규: FR-013 준수(관심사 미참조), 쿼리 검증, Base64 커서 codec, Hibernate 6 Instant 타입 처리</li>
+          <li><strong>T023</strong> — <code>ArticleSearchController</code> 신규: <code>GET /api/v1/articles/search</code>, JWT+이메일인증 게이팅, 전체 Swagger 어노테이션</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인 (버그 픽스 포함)</div>
+        <ul>
+          <li><strong>Hibernate 6 Instant 타입 오류</strong> — Spring Boot 4 / Hibernate 6에서 PostgreSQL TIMESTAMPTZ 컬럼을 네이티브 쿼리 <code>Object[]</code>로 받으면 <code>java.sql.Timestamp</code> 대신 <code>java.time.Instant</code>이 반환됨. <code>toOffsetDateTime()</code> 헬퍼에 <code>instanceof Instant</code> 분기 추가로 근본 수정.</li>
+          <li><strong>LIKE 바인딩 패턴</strong> — <code>'%:q%'</code>는 JPA가 <code>:q</code>를 바인딩하지 않고 리터럴로 취급해 결과 0건. <code>'%' || :q || '%'</code>로 수정.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (대안 대비 근거)</div>
+        <ul>
+          <li><strong>Object[] 반환 vs Projection 인터페이스</strong> — Spring Data JPA native query Projection은 <code>OffsetDateTime</code> 타입 매핑 이슈가 있어 Object[]로 직접 받고 서비스에서 캐스팅. 타입 유연성과 Hibernate 6 호환성 우선.</li>
+          <li><strong>CTE 사용 (searchByQueryWithCursor)</strong> — 커서 쿼리에서 <code>relevance_score</code>를 두 번 계산하지 않도록 <code>WITH scored AS (...)</code> CTE로 단일 계산. PostgreSQL 최적화기에서 CTE materialization 비용이 없는 케이스.</li>
+          <li><strong>FR-013 준수 — 관심사 미참조</strong> — 검색은 개인화 없는 순수 relevance 정렬이 스펙(FR-013) 요건. <code>SearchService</code>에서 <code>user_interests</code>/<code>follow_keywords</code> 조회 완전 배제 후 통합 테스트로 동일 정렬 단언.</li>
+          <li><strong>IllegalArgumentException → 422</strong> — <code>GlobalExceptionHandler</code>가 <code>IllegalArgumentException</code>을 <code>UNPROCESSABLE_ENTITY</code>(422)로 매핑하므로, Controller @Size 대신 Service에서 직접 검증해 422 응답 보장.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">Crown-Jewel 테스트 검증 결과</div>
+        <ul>
+          <li>[SRT1/SI1] "경제" bigram → "경제성장" 포함, "날씨 소식" 미포함 ✓</li>
+          <li>[SRT2/SI2] GREATEST(bigm_similarity): 요약 강한 기사 > 제목만 기사 (랭킹 순서) ✓</li>
+          <li>[SRT3/SI3] LIKE 바인딩 결과 > 0 ('%:q%' 리터럴 버그 방지) ✓</li>
+          <li>[SRT4/SI4] 90일 초과 기사 → 검색 제외 ✓</li>
+          <li>[SI5-a/b/c] 빈 쿼리·1자·101자 → 422 ✓</li>
+          <li>[SI6] FR-013: 관심사 유무 무관 동일 relevance 정렬 ✓</li>
+          <li>[SI7/SI8] 0건 200·커서 2페이지 중복 없음 ✓ / [BigmPostgresImage 사용 ✓]</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/test/…/repository/ArticleRepositorySearchTest.java</span>
+          <span class="file">src/test/…/service/SearchServiceTest.java</span>
+          <span class="file">src/test/…/integration/SearchIntegrationTest.java</span>
+          <span class="file">src/main/…/dto/request/ArticleSearchRequest.java</span>
+          <span class="file">src/main/…/dto/response/ArticleSearchResponse.java</span>
+          <span class="file">src/main/…/repository/ArticleRepository.java</span>
+          <span class="file">src/main/…/service/SearchService.java</span>
+          <span class="file">src/main/…/controller/ArticleSearchController.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /date-group 0613 -->
 
 <!-- ═══════ 2026-06-12 ═══════ -->
 <div class="date-group" id="date-0612">

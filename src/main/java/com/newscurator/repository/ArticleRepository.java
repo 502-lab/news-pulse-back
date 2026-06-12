@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 public interface ArticleRepository extends JpaRepository<Article, Long> {
 
@@ -144,5 +145,81 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("category") com.newscurator.domain.enums.Category category,
             @Param("windowStart") OffsetDateTime windowStart,
             @Param("refTs") OffsetDateTime refTs,
-            org.springframework.data.domain.Pageable pageable);
+            Pageable pageable);
+
+    // spec 003 검색: pg_bigm GREATEST(bigm_similarity) relevance 정렬 — 첫 페이지
+    // 주의: '%' || :q || '%' 패턴 필수 (리터럴 '%:q%' 사용 시 JPA가 :q를 바인딩하지 않고 결과 0건 발생)
+    // Object[] 행: [0]=id(Long), [1]=relevance_score(Float), [2]=source_name(String|null), [3]=published_at(Timestamp)
+    @Query(value = """
+            SELECT a.id,
+                   GREATEST(
+                       bigm_similarity(a.title, :q),
+                       COALESCE((SELECT MAX(bigm_similarity(s.content, :q))
+                                 FROM summaries s
+                                 WHERE s.article_id = a.id AND s.status = 'COMPLETED'), 0.0)
+                   ) AS relevance_score,
+                   (SELECT src.name FROM article_sources asrc
+                    JOIN sources src ON src.id = asrc.source_id
+                    WHERE asrc.article_id = a.id
+                    ORDER BY asrc.collected_at ASC
+                    LIMIT 1) AS source_name,
+                   a.published_at
+            FROM articles a
+            WHERE a.feed_visible = true
+              AND a.category_status IN ('COMPLETED', 'FAILED')
+              AND a.published_at >= NOW() - INTERVAL '90 days'
+              AND (
+                  a.title LIKE '%' || :q || '%'
+                  OR EXISTS (SELECT 1 FROM summaries s2
+                             WHERE s2.article_id = a.id
+                             AND s2.content LIKE '%' || :q || '%')
+              )
+            ORDER BY relevance_score DESC, a.published_at DESC, a.id DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Object[]> searchByQuery(@Param("q") String q, @Param("limit") int limit);
+
+    // spec 003 검색 — 커서 기반 (CTE로 relevance_score 한 번만 계산)
+    // Object[] 행: [0]=id(Long), [1]=relevance_score(Float), [2]=source_name(String|null), [3]=published_at(Timestamp)
+    @Query(value = """
+            WITH scored AS (
+                SELECT a.id,
+                       GREATEST(
+                           bigm_similarity(a.title, :q),
+                           COALESCE((SELECT MAX(bigm_similarity(s.content, :q))
+                                     FROM summaries s
+                                     WHERE s.article_id = a.id AND s.status = 'COMPLETED'), 0.0)
+                       ) AS relevance_score,
+                       (SELECT src.name FROM article_sources asrc
+                        JOIN sources src ON src.id = asrc.source_id
+                        WHERE asrc.article_id = a.id
+                        ORDER BY asrc.collected_at ASC
+                        LIMIT 1) AS source_name,
+                       a.published_at
+                FROM articles a
+                WHERE a.feed_visible = true
+                  AND a.category_status IN ('COMPLETED', 'FAILED')
+                  AND a.published_at >= NOW() - INTERVAL '90 days'
+                  AND (
+                      a.title LIKE '%' || :q || '%'
+                      OR EXISTS (SELECT 1 FROM summaries s2
+                                 WHERE s2.article_id = a.id
+                                 AND s2.content LIKE '%' || :q || '%')
+                  )
+            )
+            SELECT id, relevance_score, source_name, published_at
+            FROM scored
+            WHERE (relevance_score < :cursorScore
+                   OR (relevance_score = :cursorScore
+                       AND (published_at < :cursorPublishedAt
+                            OR (published_at = :cursorPublishedAt AND id < :cursorId))))
+            ORDER BY relevance_score DESC, published_at DESC, id DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Object[]> searchByQueryWithCursor(
+            @Param("q") String q,
+            @Param("cursorScore") double cursorScore,
+            @Param("cursorPublishedAt") OffsetDateTime cursorPublishedAt,
+            @Param("cursorId") Long cursorId,
+            @Param("limit") int limit);
 }
