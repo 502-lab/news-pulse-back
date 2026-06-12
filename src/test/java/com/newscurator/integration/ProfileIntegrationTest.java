@@ -169,6 +169,25 @@ class ProfileIntegrationTest {
     }
 
     @Test
+    @DisplayName("PUT /me/interests 비정본 카테고리(TECH/ECONOMY) → 422 VALIDATION_ERROR")
+    void interests_invalidCategory_returns422() {
+        String token = signupAndGetToken("profile_badcat@example.com");
+        submitOnboarding(token);
+
+        assertThatThrownBy(() -> restClient.put().uri("/api/v1/me/interests")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("categories", List.of("TECH", "ECONOMY", "LIFESTYLE")))
+                .retrieve().toBodilessEntity())
+                .isInstanceOf(HttpClientErrorException.class)
+                .satisfies(e -> {
+                    HttpClientErrorException ex = (HttpClientErrorException) e;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(422);
+                    assertThat(ex.getResponseBodyAsString()).contains("VALIDATION_ERROR");
+                });
+    }
+
+    @Test
     @DisplayName("PUT /me/reading-preference → GET 라운드트립 DB 단언")
     void readingPreference_putThenGet_roundTrip() {
         String token = signupAndGetToken("profile3@example.com");

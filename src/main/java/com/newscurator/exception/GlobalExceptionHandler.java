@@ -96,7 +96,7 @@ public class GlobalExceptionHandler {
                         .map(e -> e.getField() + ": " + e.getDefaultMessage())
                         .findFirst()
                         .orElse("Validation failed");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(ErrorResponse.of("VALIDATION_ERROR", message));
     }
 

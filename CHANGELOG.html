@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">37</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">15</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">5</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">38</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">6</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-12</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-12</div>
+  <a class="toc-item" href="#d0612-2">002 카테고리 검증 누락 수정</a>
   <a class="toc-item" href="#d0612-1">T061~T082 온보딩·프로필·약관·감사로그 구현</a>
   <div class="toc-date">2026-06-11</div>
   <a class="toc-item" href="#d0611-17">T046~T060 비밀번호 재설정·소셜 OAuth 구현</a>
@@ -360,6 +361,39 @@
     <h2>2026-06-12</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 2 -->
+  <div class="entry" id="d0612-2" data-tags="bugfix feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bugfix</span>
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          <span class="sev sev-medium">Medium</span>
+          spec 003 사전 검증 — 002 관심 카테고리 미검증 수정
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <ul>
+        <li><b>발견 경위</b>: spec 003 구현 진입 전 사전 검증 — <code>OnboardingRequest.categories</code>와 <code>UserInterestsRequest.categories</code>가 <code>List&lt;String&gt;</code>이고 <code>@Size(min=3)</code>만 있어 TECH·ECONOMY 등 001 정본에 없는 값이 저장될 수 있었음.</li>
+        <li><b>근본 원인</b>: 001의 <code>Category</code> enum 정의 후 002 구현 시 DTO를 <code>String</code>으로 유지하면서 enum 일치 검증을 추가하지 않음.</li>
+        <li><b>수정 내용</b>:
+          <ul>
+            <li>신규: <code>@ValidCategory</code> 커스텀 Bean Validation 어노테이션 + <code>CategoryValidator</code> — <code>Category</code> enum 이름과 비교, 비정본 값 포함 시 메시지에 무효값 명시.</li>
+            <li><code>OnboardingRequest.categories</code>, <code>UserInterestsRequest.categories</code> 양쪽에 <code>@ValidCategory</code> 적용.</li>
+            <li><code>GlobalExceptionHandler.handleValidation</code>: <code>MethodArgumentNotValidException</code> 응답 코드를 400 → 422(Unprocessable Entity)로 변경 — 비즈니스 규칙 위반은 422가 의미론적으로 정확.</li>
+            <li><code>002 openapi.yaml</code> <code>UserInterests.categories.items.enum</code>: 잘못된 값(ECONOMY/TECH/CULTURE/HEALTH/ENTERTAINMENT/LIFESTYLE) → 001 정본(POLITICS/ECONOMY_FINANCE/ENTERTAINMENT_CULTURE/SPORTS/WORLD/SCIENCE/HEALTH_MEDICINE/AUTOMOTIVE/IT/OTHER)으로 수정.</li>
+          </ul>
+        </li>
+        <li><b>결정 이유</b>: 001 enum을 새로 복제하지 않고 <code>com.newscurator.domain.enums.Category</code>를 직접 참조해 단일 정본 유지. <code>@Pattern</code>보다 커스텀 validator가 오류 메시지에 실제 무효값을 포함시킬 수 있어 디버그 용이.</li>
+        <li><b>영향 파일</b>: <code>validation/ValidCategory.java</code>(신규), <code>validation/CategoryValidator.java</code>(신규), <code>dto/request/OnboardingRequest.java</code>, <code>dto/request/UserInterestsRequest.java</code>, <code>exception/GlobalExceptionHandler.java</code>, <code>specs/002-.../contracts/openapi.yaml</code>, <code>test/.../validation/CategoryValidatorTest.java</code>(신규, 5개 케이스).</li>
+        <li><b>테스트 결과</b>: 기존 162 → 신규 189 통과, 실패 0.</li>
+      </ul>
+    </div>
   </div>
 
   <!-- 1 -->

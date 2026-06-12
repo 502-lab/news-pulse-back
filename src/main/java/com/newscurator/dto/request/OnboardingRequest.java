@@ -4,6 +4,7 @@ import com.newscurator.domain.enums.AgeGroup;
 import com.newscurator.domain.enums.ConsumeMode;
 import com.newscurator.domain.enums.KeywordType;
 import com.newscurator.domain.enums.SummaryDepth;
+import com.newscurator.validation.ValidCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -23,9 +24,10 @@ public record OnboardingRequest(
         @Schema(description = "직업", example = "개발자")
         String occupation,
 
-        @Schema(description = "관심 카테고리 목록 (최소 3개 필수)", example = "[\"IT\",\"ECONOMY_FINANCE\",\"SCIENCE\"]")
+        @Schema(description = "관심 카테고리 목록 (최소 3개 필수). 허용값: ECONOMY_FINANCE, SCIENCE, POLITICS, SPORTS, WORLD, ENTERTAINMENT_CULTURE, HEALTH_MEDICINE, AUTOMOTIVE, IT, OTHER", example = "[\"IT\",\"ECONOMY_FINANCE\",\"SCIENCE\"]")
         @NotNull
         @Size(min = 3, message = "관심 카테고리는 최소 3개 이상이어야 합니다")
+        @ValidCategory
         List<String> categories,
 
         @Schema(description = "팔로우 키워드 목록")
