@@ -282,7 +282,7 @@ components:
           description: 관심 카테고리 목록. 최소 3개 유지 필수.
           items:
             type: string
-            enum: [POLITICS, ECONOMY, TECH, CULTURE, SPORTS, WORLD, SCIENCE, HEALTH, ENTERTAINMENT, LIFESTYLE]
+            enum: [POLITICS, ECONOMY_FINANCE, ENTERTAINMENT_CULTURE, SPORTS, WORLD, SCIENCE, HEALTH_MEDICINE, AUTOMOTIVE, IT, OTHER]
           minItems: 3
       required: [categories]
 

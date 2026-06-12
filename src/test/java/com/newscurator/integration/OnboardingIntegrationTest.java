@@ -212,6 +212,33 @@ class OnboardingIntegrationTest {
     }
 
     @Test
+    @DisplayName("비정본 카테고리(TECH/ECONOMY) 포함 → 422 VALIDATION_ERROR")
+    void onboarding_invalidCategory_returns422() {
+        String token = signupAndGetToken("onboard_badcat@example.com");
+
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("categories", List.of("TECH", "ECONOMY", "SCIENCE")); // 비정본 값
+        body.put("summaryDepth", "BALANCED");
+        body.put("consumeMode", "READ");
+        body.put("briefingTime", "08:00");
+        body.put("timezoneOffset", 540);
+        body.put("voiceEnabled", false);
+        body.put("pushAgreed", false);
+
+        assertThatThrownBy(() -> restClient.post().uri("/api/v1/me/onboarding")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve().toBodilessEntity())
+                .isInstanceOf(HttpClientErrorException.class)
+                .satisfies(e -> {
+                    HttpClientErrorException ex = (HttpClientErrorException) e;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(422);
+                    assertThat(ex.getResponseBodyAsString()).contains("VALIDATION_ERROR");
+                });
+    }
+
+    @Test
     @DisplayName("온보딩 미완료 상태에서 재진입 → 200 (비차단)")
     void onboarding_reEntryBeforeCompleted_succeeds() {
         String token = signupAndGetToken("onboard3@example.com");
