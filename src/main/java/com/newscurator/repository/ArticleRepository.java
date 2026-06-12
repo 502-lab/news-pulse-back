@@ -119,4 +119,30 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     // 통계: summary 완료 건수 (분자)
     @Query("SELECT COUNT(a) FROM Article a WHERE a.summaryStatus = 'COMPLETED'")
     long countSummaryCompleted();
+
+    // spec 003 개인화 피드: 시간 창 내 후보 기사 전체 조회 (Java에서 랭킹 정렬)
+    @Query("SELECT a FROM Article a "
+            + "WHERE a.feedVisible = true "
+            + "AND a.categoryStatus IN :statuses "
+            + "AND a.publishedAt >= :windowStart AND a.publishedAt <= :refTs "
+            + "ORDER BY a.id ASC")
+    List<Article> findFeedCandidates(
+            @Param("statuses") List<ProcessingStatus> statuses,
+            @Param("windowStart") OffsetDateTime windowStart,
+            @Param("refTs") OffsetDateTime refTs,
+            org.springframework.data.domain.Pageable pageable);
+
+    // spec 003 개인화 피드 (카테고리 필터)
+    @Query("SELECT a FROM Article a "
+            + "WHERE a.feedVisible = true "
+            + "AND a.categoryStatus IN :statuses "
+            + "AND a.category = :category "
+            + "AND a.publishedAt >= :windowStart AND a.publishedAt <= :refTs "
+            + "ORDER BY a.id ASC")
+    List<Article> findFeedCandidatesByCategory(
+            @Param("statuses") List<ProcessingStatus> statuses,
+            @Param("category") com.newscurator.domain.enums.Category category,
+            @Param("windowStart") OffsetDateTime windowStart,
+            @Param("refTs") OffsetDateTime refTs,
+            org.springframework.data.domain.Pageable pageable);
 }
