@@ -301,19 +301,25 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">38</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">42</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">6</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">9</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-12</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-13</div>
+  <a class="toc-item" href="#d0613-3">spec 003 Phase 6 Polish — Swagger 완성 + application-example.yaml feed 설정</a>
+  <a class="toc-item" href="#d0613-2">US3 저장 구현 — 멱등 save/unsave + 1000건 상한 + 목록 (240/240 GREEN)</a>
+  <a class="toc-item" href="#d0613-1">US2 검색 구현 — pg_bigm + 커서 페이지네이션 (226/226 GREEN)</a>
   <div class="toc-date">2026-06-12</div>
+  <a class="toc-item" href="#d0612-4">US1 테스트 정합 보강 + pg_bigm 컨테이너 전체 통일</a>
+  <a class="toc-item" href="#d0612-3">spec 003 US1 개인화 피드 구현 5/5 GREEN</a>
   <a class="toc-item" href="#d0612-2">002 카테고리 검증 누락 수정</a>
   <a class="toc-item" href="#d0612-1">T061~T082 온보딩·프로필·약관·감사로그 구현</a>
   <div class="toc-date">2026-06-11</div>
@@ -355,12 +361,347 @@
 
 <div class="content">
 
+<!-- ═══════ 2026-06-13 ═══════ -->
+<div class="date-group" id="date-0613">
+  <div class="date-heading">
+    <h2>2026-06-13</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="entry" id="d0613-3" data-tags="feature config docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-config">Config</span>
+          spec 003 Phase 6 Polish — Swagger 완성 + application-example.yaml feed.ranking 설정 추가 (T029~T032)
+        </div>
+        <div class="entry-meta"><span class="session-badge">spec 003 완료 — 개인화 피드·검색·저장 전체</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><strong>T029</strong> — <code>FeedController</code> Swagger 완성: @ApiResponses 401·403 포함, @Parameter(category/cursor/size) 상세 설명, 개인화 랭킹·fallback 동작 @Operation description</li>
+          <li><strong>T030</strong> — <code>ArticleSearchController</code> Swagger 완성: 422(빈쿼리·1자·101자) 포함 전 상태코드, pg_bigm·90일 창·FR-013 description, @Parameter(q/cursor/size)</li>
+          <li><strong>T031</strong> — <code>SavedArticleController</code> Swagger 확인: POST 201/200(멱등)·404·409, DELETE 204, GET 200 — T028에서 이미 완성</li>
+          <li><strong>T032</strong> — <code>application-example.yaml</code>에 <code>app.feed.*</code> 및 <code>app.retention.*</code> 섹션 추가 (application.yaml 기본값과 동일 구조, 오버라이드 안내 주석 포함)</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (대안 대비 근거)</div>
+        <ul>
+          <li><strong>Swagger @ApiResponses 전 상태코드 명시</strong> — OpenAPI 소비자(프론트엔드·QA)가 실제 발생 가능한 에러를 알아야 클라이언트 에러 처리를 정확히 작성할 수 있음. 200만 명시하면 4xx 응답이 문서 외 동작으로 오인됨.</li>
+          <li><strong>application-example.yaml에 feed 설정 추가</strong> — application.yaml에 기본값이 있으나, 로컬 개발자가 오버라이드 가능한 값임을 명시하지 않으면 환경별 튜닝 경로를 알기 어려움. 예시 파일에 동일 구조로 추가해 온보딩 비용 절감.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/…/controller/FeedController.java</span>
+          <span class="file">src/main/…/controller/ArticleSearchController.java</span>
+          <span class="file">src/main/resources/application-example.yaml</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="entry" id="d0613-2" data-tags="feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          US3 저장 구현 — 멱등 save/unsave · 1000건 상한 · savedAt DESC 목록 (T024~T028, 240/240 GREEN)
+        </div>
+        <div class="entry-meta"><span class="session-badge">240/240 GREEN (14 신규 테스트)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><strong>T024</strong> — <code>SavedArticleServiceTest</code> 7개 단위 테스트: 재저장 멱등·C2 엣지·상한·미존재 404·unsave no-op·list savedAt</li>
+          <li><strong>T025</strong> — <code>SavedArticleIntegrationTest</code> 7개 통합 테스트: 6 crown-jewel + 미인증 401 (BigmPostgresImage, bulkSave JDBC)</li>
+          <li><strong>T026</strong> — <code>SavedArticleItem</code> + <code>SavedArticleListResponse</code> DTO record 신규</li>
+          <li><strong>T027</strong> — <code>SavedArticleService</code> 신규: ① exists→멱등 ② 상한 ③ 기사 존재 ④ 신규 저장 순서, unsave no-op, list cursor 기반 savedAt DESC</li>
+          <li><strong>T028</strong> — <code>SavedArticleController</code> 신규: POST 201/200 · DELETE 204 · GET 200, 전체 Swagger 어노테이션</li>
+          <li><code>SavedArticleRepository</code>에 <code>findByAccountIdWithCursor</code> JPQL 커서 쿼리 추가</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">버그 픽스 — Instant JDBC 바인딩</div>
+        <ul>
+          <li>SIT6 테스트에서 <code>Instant</code>를 jdbcTemplate에 직접 파라미터로 전달 시 <code>BadSqlGrammarException</code> 발생. <code>java.sql.Timestamp.from(instant)</code>로 변환 후 해결. 근본 원인: Spring JDBC는 <code>java.time.Instant</code> 타입을 자동 변환하지 않음.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (대안 대비 근거)</div>
+        <ul>
+          <li><strong>save 순서: exists → count → existsById → save</strong> — exists 먼저 확인해 이미 저장된 기사가 상한 검사를 우회하도록 설계(C2 엣지). count를 앞에 두면 재저장 요청도 불필요한 DB count 쿼리 발생.</li>
+          <li><strong>bulkSave via JDBC batchUpdate</strong> — 통합 테스트에서 1000건 HTTP 요청은 수 분 소요. JDBC batch+generate_series로 단일 쿼리 + batchUpdate로 2쿼리에 1000건 처리.</li>
+          <li><strong>unsave: no-op via Spring Data JPA deleteByXxx</strong> — derived delete는 엔티티 없으면 0행 삭제로 no-op. 명시적 exists 체크 불필요.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">Crown-Jewel 검증 결과</div>
+        <ul>
+          <li>[SIT1] 재저장 멱등 200 + DB row 1개 ✓</li>
+          <li>[SIT2] 미저장 unsave → 204 no-op ✓</li>
+          <li>[SIT3] 1000건 + 신규 → 409 SAVE_LIMIT_EXCEEDED ✓</li>
+          <li>[SIT4] C2: 1000건 + 이미 저장 → 200(exists 단락, 409 아님) ✓</li>
+          <li>[SIT5] 미존재 articleId → 404 ARTICLE_NOT_FOUND ✓</li>
+          <li>[SIT6] savedAt DESC 정렬 + savedAt 필드 실제 반환 ✓</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/test/…/service/SavedArticleServiceTest.java</span>
+          <span class="file">src/test/…/integration/SavedArticleIntegrationTest.java</span>
+          <span class="file">src/main/…/dto/response/SavedArticleItem.java</span>
+          <span class="file">src/main/…/dto/response/SavedArticleListResponse.java</span>
+          <span class="file">src/main/…/repository/SavedArticleRepository.java</span>
+          <span class="file">src/main/…/service/SavedArticleService.java</span>
+          <span class="file">src/main/…/controller/SavedArticleController.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <div class="entry" id="d0613-1" data-tags="feature test db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-db">DB</span>
+          US2 검색 구현 — pg_bigm GREATEST 유사도 + 커서 페이지네이션 (T016~T023, 226/226 GREEN)
+        </div>
+        <div class="entry-meta"><span class="session-badge">226/226 GREEN (22 신규 테스트)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><strong>T016</strong> — <code>ArticleRepositorySearchTest</code> 작성: bigram 매칭·GREATEST 랭킹·LIKE 바인딩·90일 필터 4개 테스트 (리포지터리 레이어)</li>
+          <li><strong>T017</strong> — <code>SearchServiceTest</code> 작성: 빈/1자/101자 쿼리 → IllegalArgumentException, 커서 round-trip, 빈 결과 6개 단위 테스트</li>
+          <li><strong>T018</strong> — <code>SearchIntegrationTest</code> 작성: 7 crown-jewel 포함 12개 통합 테스트 (BigmPostgresImage 사용, FR-013 검증)</li>
+          <li><strong>T019</strong> — <code>ArticleSearchRequest</code> DTO (record, Swagger @Schema)</li>
+          <li><strong>T020</strong> — <code>ArticleSearchResponse</code> DTO (record, nextCursor·hasNext)</li>
+          <li><strong>T021</strong> — <code>ArticleRepository</code>에 <code>searchByQuery</code> + <code>searchByQueryWithCursor</code> 네이티브 쿼리 추가</li>
+          <li><strong>T022</strong> — <code>SearchService</code> 신규: FR-013 준수(관심사 미참조), 쿼리 검증, Base64 커서 codec, Hibernate 6 Instant 타입 처리</li>
+          <li><strong>T023</strong> — <code>ArticleSearchController</code> 신규: <code>GET /api/v1/articles/search</code>, JWT+이메일인증 게이팅, 전체 Swagger 어노테이션</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">근본 원인 (버그 픽스 포함)</div>
+        <ul>
+          <li><strong>Hibernate 6 Instant 타입 오류</strong> — Spring Boot 4 / Hibernate 6에서 PostgreSQL TIMESTAMPTZ 컬럼을 네이티브 쿼리 <code>Object[]</code>로 받으면 <code>java.sql.Timestamp</code> 대신 <code>java.time.Instant</code>이 반환됨. <code>toOffsetDateTime()</code> 헬퍼에 <code>instanceof Instant</code> 분기 추가로 근본 수정.</li>
+          <li><strong>LIKE 바인딩 패턴</strong> — <code>'%:q%'</code>는 JPA가 <code>:q</code>를 바인딩하지 않고 리터럴로 취급해 결과 0건. <code>'%' || :q || '%'</code>로 수정.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (대안 대비 근거)</div>
+        <ul>
+          <li><strong>Object[] 반환 vs Projection 인터페이스</strong> — Spring Data JPA native query Projection은 <code>OffsetDateTime</code> 타입 매핑 이슈가 있어 Object[]로 직접 받고 서비스에서 캐스팅. 타입 유연성과 Hibernate 6 호환성 우선.</li>
+          <li><strong>CTE 사용 (searchByQueryWithCursor)</strong> — 커서 쿼리에서 <code>relevance_score</code>를 두 번 계산하지 않도록 <code>WITH scored AS (...)</code> CTE로 단일 계산. PostgreSQL 최적화기에서 CTE materialization 비용이 없는 케이스.</li>
+          <li><strong>FR-013 준수 — 관심사 미참조</strong> — 검색은 개인화 없는 순수 relevance 정렬이 스펙(FR-013) 요건. <code>SearchService</code>에서 <code>user_interests</code>/<code>follow_keywords</code> 조회 완전 배제 후 통합 테스트로 동일 정렬 단언.</li>
+          <li><strong>IllegalArgumentException → 422</strong> — <code>GlobalExceptionHandler</code>가 <code>IllegalArgumentException</code>을 <code>UNPROCESSABLE_ENTITY</code>(422)로 매핑하므로, Controller @Size 대신 Service에서 직접 검증해 422 응답 보장.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">Crown-Jewel 테스트 검증 결과</div>
+        <ul>
+          <li>[SRT1/SI1] "경제" bigram → "경제성장" 포함, "날씨 소식" 미포함 ✓</li>
+          <li>[SRT2/SI2] GREATEST(bigm_similarity): 요약 강한 기사 > 제목만 기사 (랭킹 순서) ✓</li>
+          <li>[SRT3/SI3] LIKE 바인딩 결과 > 0 ('%:q%' 리터럴 버그 방지) ✓</li>
+          <li>[SRT4/SI4] 90일 초과 기사 → 검색 제외 ✓</li>
+          <li>[SI5-a/b/c] 빈 쿼리·1자·101자 → 422 ✓</li>
+          <li>[SI6] FR-013: 관심사 유무 무관 동일 relevance 정렬 ✓</li>
+          <li>[SI7/SI8] 0건 200·커서 2페이지 중복 없음 ✓ / [BigmPostgresImage 사용 ✓]</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/test/…/repository/ArticleRepositorySearchTest.java</span>
+          <span class="file">src/test/…/service/SearchServiceTest.java</span>
+          <span class="file">src/test/…/integration/SearchIntegrationTest.java</span>
+          <span class="file">src/main/…/dto/request/ArticleSearchRequest.java</span>
+          <span class="file">src/main/…/dto/response/ArticleSearchResponse.java</span>
+          <span class="file">src/main/…/repository/ArticleRepository.java</span>
+          <span class="file">src/main/…/service/SearchService.java</span>
+          <span class="file">src/main/…/controller/ArticleSearchController.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /date-group 0613 -->
+
 <!-- ═══════ 2026-06-12 ═══════ -->
 <div class="date-group" id="date-0612">
   <div class="date-heading">
     <h2>2026-06-12</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 4 -->
+  <div class="entry" id="d0612-4" data-tags="test config db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-config">Config</span>
+          <span class="tag tag-db">DB</span>
+          US1 테스트·마이그레이션 정합 보강 — pg_bigm 커스텀 컨테이너 전체 통일 + IT6 신규 + IT1·IT3 강화
+        </div>
+        <div class="entry-meta"><span class="session-badge">204/204 GREEN (0 failures, 5 skipped)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><b>[A] IT6 신규</b>: personalized=true 커서 2-페이지 테스트. 검증 3종: (a) page1 rank_score DESC 순서 — ECONOMY_FINANCE 3개가 POLITICS 2개보다 먼저(category+50 우위). (b) 중복 없음 + skip 없음(원래 5개 전부 커버). (c) reference_ts 격리 — page1 이후 삽입된 <code>afterCursor</code> 기사가 page2에 미포함(<code>WHERE publishedAt &lt;= :refTs</code> 조건 검증).</li>
+          <li><b>[B] IT1 보강</b>: 비관심 기사를 5분 전(더 최신)으로 조정, 관심 기사는 25시간 전으로. category +50이 recency 최대 +20을 역전함을 <code>articles.get(0).id == econId</code>로 명시 단언.</li>
+          <li><b>[C] IT3 순서 단언 추가</b>: Set 중복 체크만 하던 기존 방식에서 <code>Long[] ids[5]</code> 배열로 순서까지 정확히 단언. p1=[ids[0],ids[1],ids[2]], p2=[ids[3],ids[4]] 순서 일치 + 전체 5개 커버.</li>
+          <li><b>[D] pg_bigm 컨테이너 전체 통일</b>:
+            <ul>
+              <li>V9 마이그레이션 <code>CREATE EXTENSION pg_bigm</code> DO 블록 → 무조건 실행으로 변경. pg_bigm 없는 컨테이너에서 V9 실패 = 의도된 동작.</li>
+              <li><code>BigmPostgresImage</code> 공통 유틸 클래스 신규 생성 — <code>LazyFuture.get()</code>로 이미지 이름 한 번만 resolve, 모든 테스트에서 참조.</li>
+              <li>15개 통합 테스트 + ArticleRepositoryTest 전부 <code>postgres:16-alpine</code> → <code>BigmPostgresImage.NAME</code> 교체. Feed/Terms/Profile/Onboarding 4개는 인라인 static 블록 유지(동등한 구현).</li>
+              <li>Testcontainers 2.0.4의 <code>LazyFuture.get()</code> 시그니처 확인: checked exception 없음 → try-catch 제거.</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">버그 수정 — 근본 원인</div>
+        <ul>
+          <li><b>PostgreSQLContainer(ImageFromDockerfile) 생성자 없음</b>: Testcontainers 2.0.4에서 <code>PostgreSQLContainer(Future&lt;String&gt;)</code> deprecated 생성자 제거. <code>LazyFuture.get()</code>로 이미지 이름 먼저 resolve 후 <code>PostgreSQLContainer(DockerImageName)</code> 생성자 사용으로 수정.</li>
+          <li><b>CAP#1 캐스트 오류</b>: <code>(Map&lt;?,?&gt;)rawMap).get("data")</code>를 또 <code>(Map&lt;?,?&gt;)</code>로 캐스트 시 컴파일러가 wildcard capture 불일치 오류. 패턴 변경: raw Map에서 get → Object → Map&lt;String,Object&gt; 단일 캐스트.</li>
+          <li><b>LazyFuture checked exception 오류</b>: <code>InterruptedException/ExecutionException</code> catch가 "never thrown" 컴파일 에러. <code>LazyFuture.get()</code>는 checked 예외 없이 재정의돼 있음 — catch 블록 제거.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>V9 무조건 실행: 조건부 DO 블록은 pg_bigm 없는 환경에서 GIN 인덱스 생성을 조용히 건너뛰어 프로덕션 배포 시 문제를 숨길 수 있음 → 컨테이너 통일로 테스트 환경과 프로덕션 환경을 동일하게 보장. BigmPostgresImage 공통 클래스: 각 파일에 static 블록 중복 대신 단일 클래스에서 이미지 resolve → 이미지 빌드 로직 변경 시 한 곳만 수정.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">빌드 결과</div>
+        <p>./gradlew test --rerun-tasks — <b>204/204 PASSED (5 skipped, 0 failures). BUILD SUCCESSFUL.</b> IT1·IT2·IT3·IT4·IT5·IT6 전부 그린.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/resources/db/migration/V9__saved_articles_search_indexes.sql</span>
+          <span class="file">src/test/java/com/newscurator/testutil/BigmPostgresImage.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/FeedIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/TermsIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/ProfileIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/OnboardingIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/AiProcessingIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/AuthIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/CollectionIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/EmailVerificationIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/PasswordResetIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/PipelineE2ETest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/RbacIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/RefreshTokenBlastWindowTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/SocialAuthIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/TokenRotationIntegrationTest.java</span>
+          <span class="file">src/test/java/com/newscurator/repository/ArticleRepositoryTest.java</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="entry" id="d0612-3" data-tags="feature bugfix test db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-bugfix">Bugfix</span>
+          <span class="tag tag-test">Test</span>
+          <span class="tag tag-db">DB</span>
+          spec 003 US1 개인화 피드 구현 — FeedServiceTest 7/7 + FeedIntegrationTest 5/5 GREEN
+        </div>
+        <div class="entry-meta"><span class="session-badge">Phase 1~2 + Phase 3 (US1 T001~T015)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">구현 내용</div>
+        <ul>
+          <li><b>V9 마이그레이션</b>: <code>saved_articles</code> 테이블 + UNIQUE(account_id, article_id) 제약 + pg_bigm GIN 인덱스(DO 블록으로 conditional — 표준 postgres에서도 실패하지 않음).</li>
+          <li><b>도메인</b>: <code>SavedArticle</code> Entity(id·accountId·articleId·savedAt·@PrePersist), <code>SavedArticleRepository</code>(findSavedArticleIdsByAccountIdAndArticleIdIn 배치 쿼리), <code>SaveLimitExceededException</code>(409).</li>
+          <li><b>설정</b>: <code>FeedRankingProperties</code>(categoryMatchScore=50, keywordMatchScore=30, recencyWindowHours=30, recencyMaxScore=20, feedWindowDays=7) — <code>@ConfigurationProperties</code>, application.yaml 반영.</li>
+          <li><b>DTO</b>: <code>FeedSummarySlot</code>(text·depth·isFallback), <code>ArticleItem</code>, <code>FeedResponse</code>(articles·nextCursor·hasNext·size·personalized), <code>ApiResponse&lt;T&gt;</code> 공통 래퍼.</li>
+          <li><b>Repository 확장</b>: <code>ArticleRepository</code>에 findFeedCandidates / findFeedCandidatesByCategory 추가. <code>SummaryRepository</code>에 findCompletedByArticleIdIn. <code>ArticleSourceRepository</code>에 findWithSourceByArticleIdIn(JOIN FETCH).</li>
+          <li><b>FeedService</b>: 관심사·키워드 여부 → personalized 결정. 3-factor 랭킹(category 50·keyword 30×n·recency max 20). In-memory 정렬 후 keyset 커서(Base64 인코딩, 4-component). 요약 fallback 행렬(DEEP→BALANCED→BRIEF 등). N+1 방지 배치 쿼리.</li>
+          <li><b>FeedController</b>: <code>GET /api/v1/feed</code>, 이메일 미인증 403, <code>@Min/@Max</code> size 검증, ApiResponse 래퍼.</li>
+          <li><b>테스트</b>: FeedServiceTest 7개(카테고리 점수·키워드 점수·최신성·fallback·필터·요약 fallback·요약 없음), FeedIntegrationTest 5개(랭킹·fallback latest·커서 중복없음·401·403).</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">버그 수정 — 근본 원인</div>
+        <ul>
+          <li><b>[1] isAtOrBeforeCursor 비교 방향 역전</b>: DESC 정렬에서 커서 이전 항목을 skip해야 하는데, <code>cursor.publishedAt.compareTo(a.publishedAt)</code>와 <code>Double.compare(cursor.rankScore, sa.score)</code>가 역방향. a가 newer(publishedAt 큰) → DESC 기준 cursor 앞에 위치 → skip해야 하는데 반대로 keep하고 있었음 → 2페이지가 1페이지와 동일 기사 반환. 수정: <code>a.getPublishedAt().compareTo(cursor.publishedAt())</code> &amp; <code>Double.compare(sa.score(), cursor.rankScore())</code> &amp; <code>a.getId() &gt;= cursor.articleId()</code>로 방향 수정.</li>
+          <li><b>[2] Dockerfile pg_bigm apt 패키지 미존재</b>: 표준 Debian apt 저장소에 postgresql-16-pg-bigm 패키지 없음 → Docker 빌드 실패. FeedIntegrationTest를 <code>postgres:16-alpine</code>(pg_bigm 없음)으로 변경하고 V9 마이그레이션을 pg_bigm conditional DO 블록으로 수정.</li>
+          <li><b>[3] SummarySlot 이름 충돌</b>: spec 001에 이미 <code>SummarySlot</code> 존재(status·content·generatedAt 필드 다름). spec 003용은 <code>FeedSummarySlot</code>으로 신규 생성.</li>
+          <li><b>[4] 통합 테스트 signup 422</b>: SignupRequest의 consents(약관 동의)·ageConfirmed 필수 필드 누락. DB에서 활성 약관 조회 후 동의 payload 구성 + ageConfirmed=true 추가로 해결.</li>
+          <li><b>[5] 통합 테스트 login 토큰 null</b>: 로그인 응답 구조가 <code>{tokens: {accessToken: "..."}}</code> nested — flat <code>{accessToken: "..."}</code>로 가정해 null. 응답 중첩 구조에 맞게 <code>response.get("tokens").get("accessToken")</code>으로 수정.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유</div>
+        <p>In-memory 랭킹(SQL ORDER BY 대신): 3-factor 혼합 점수를 SQL 단일 쿼리로 표현하면 복잡한 computed column이 필요하고 인덱스 활용 불가 → 500개 후보를 Java에서 정렬. keyset cursor 4-component(rankScore|publishedAt|articleId|referenceTs): referenceTs를 포함해 새 기사 유입 시 결과 세트 고정(참조 시점 기준 window). FeedSummarySlot 분리 명명: spec 001 SummarySlot과 필드 구조가 달라 동일 클래스 재사용 불가 — 명시적 분리.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">빌드 결과</div>
+        <p>./gradlew test — <b>FeedServiceTest 7/7, FeedIntegrationTest 5/5 전부 통과. BUILD SUCCESSFUL.</b> 기존 189 테스트 회귀 없음.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/resources/db/migration/V9__saved_articles_search_indexes.sql</span>
+          <span class="file">src/main/java/com/newscurator/domain/SavedArticle.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/SavedArticleRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/exception/SaveLimitExceededException.java</span>
+          <span class="file">src/main/java/com/newscurator/exception/GlobalExceptionHandler.java</span>
+          <span class="file">src/main/java/com/newscurator/config/FeedRankingProperties.java</span>
+          <span class="file">src/main/java/com/newscurator/config/AppConfig.java</span>
+          <span class="file">src/main/resources/application.yaml</span>
+          <span class="file">src/main/java/com/newscurator/dto/response/FeedSummarySlot.java</span>
+          <span class="file">src/main/java/com/newscurator/dto/response/ArticleItem.java</span>
+          <span class="file">src/main/java/com/newscurator/dto/response/FeedResponse.java</span>
+          <span class="file">src/main/java/com/newscurator/dto/response/ApiResponse.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/ArticleRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/SummaryRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/repository/ArticleSourceRepository.java</span>
+          <span class="file">src/main/java/com/newscurator/service/FeedService.java</span>
+          <span class="file">src/main/java/com/newscurator/controller/FeedController.java</span>
+          <span class="file">src/test/java/com/newscurator/service/FeedServiceTest.java</span>
+          <span class="file">src/test/java/com/newscurator/integration/FeedIntegrationTest.java</span>
+          <span class="file">src/test/resources/postgres-bigm/Dockerfile</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 2 -->

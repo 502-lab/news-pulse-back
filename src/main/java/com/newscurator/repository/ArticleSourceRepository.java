@@ -25,4 +25,10 @@ public interface ArticleSourceRepository extends JpaRepository<ArticleSource, Lo
     long countCollectedBetween(
             @Param("startOfDay") OffsetDateTime startOfDay,
             @Param("endOfDay") OffsetDateTime endOfDay);
+
+    // spec 003 피드·검색: 기사 목록의 source_name 일괄 조회 (N+1 방지)
+    @Query("SELECT a FROM ArticleSource a JOIN FETCH a.source "
+            + "WHERE a.article.id IN :articleIds ORDER BY a.id ASC")
+    java.util.List<ArticleSource> findWithSourceByArticleIdIn(
+            @Param("articleIds") java.util.Collection<Long> articleIds);
 }

@@ -1,0 +1,404 @@
+openapi: 3.1.0
+info:
+  title: News Pulse — 개인화 피드 · 검색 · 저장 API
+  version: 1.0.0
+  description: |
+    spec 003 "개인화 피드·검색·저장" API Contract.
+    모든 시각은 UTC ISO-8601.
+    모든 엔드포인트는 JWT 인증 + 이메일 인증 완료(emailVerified=true) 필수.
+    미인증: 401, 이메일 미인증: 403.
+
+servers:
+  - url: http://localhost:8080
+    description: 로컬 개발
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      description: 공통 에러 응답
+      properties:
+        code:
+          type: string
+          example: ARTICLE_NOT_FOUND
+        message:
+          type: string
+          example: 해당 기사를 찾을 수 없습니다
+        timestamp:
+          type: string
+          format: date-time
+      required: [code, message, timestamp]
+
+    SummarySlot:
+      type: object
+      description: 기사 요약 슬롯 (선호 depth 우선, 없으면 fallback)
+      properties:
+        text:
+          type: string
+          nullable: true
+          description: 요약 본문. null이면 요약 미생성 상태
+          example: "미국 연준이 금리를 동결하면서 시장에 안도감이 퍼졌다."
+        depth:
+          type: string
+          enum: [brief, balanced, deep]
+          description: 실제 반환된 슬롯
+          example: balanced
+        isFallback:
+          type: boolean
+          description: 선호 depth와 실제 반환 depth가 다른 경우 true
+          example: true
+      required: [depth, isFallback]
+
+    ArticleItem:
+      type: object
+      description: 피드/검색 공통 기사 응답
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        title:
+          type: string
+          example: "연준, 금리 동결 결정"
+        category:
+          type: string
+          enum: [POLITICS, ECONOMY_FINANCE, ENTERTAINMENT_CULTURE, SPORTS, WORLD, SCIENCE, HEALTH_MEDICINE, AUTOMOTIVE, IT, OTHER]
+          example: ECONOMY_FINANCE
+        publishedAt:
+          type: string
+          format: date-time
+          example: "2026-06-12T03:00:00Z"
+        sourceName:
+          type: string
+          description: 출처명 (article_sources → sources.name 조인, 복수 출처 시 첫 번째 수집 출처 반환)
+          example: "조선일보"
+        summary:
+          $ref: '#/components/schemas/SummarySlot'
+        rankScore:
+          type: number
+          format: double
+          description: 개인화 랭킹 점수 (피드 응답에만 포함, 검색 응답에는 미포함)
+          example: 80.5
+        saved:
+          type: boolean
+          description: 현재 사용자가 저장한 기사 여부
+          example: false
+      required: [id, title, category, publishedAt, sourceName, summary, saved]
+
+    SavedArticleItem:
+      type: object
+      description: 저장 목록 기사 응답
+      properties:
+        savedAt:
+          type: string
+          format: date-time
+          example: "2026-06-12T10:00:00Z"
+        article:
+          $ref: '#/components/schemas/ArticleItem'
+      required: [savedAt, article]
+
+    CursorPage:
+      type: object
+      description: 커서 페이지네이션 공통 메타
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+          description: 다음 페이지 커서 (마지막 페이지면 null)
+          example: "eyJzY29yZSI6ODAuNX0="
+        hasNext:
+          type: boolean
+          example: true
+        size:
+          type: integer
+          example: 20
+      required: [hasNext, size]
+
+paths:
+  /api/v1/feed:
+    get:
+      tags: [Feed]
+      summary: 개인화 피드 조회
+      description: |
+        사용자의 관심 카테고리·팔로우 키워드·최신성 기반 규칙 가중치로 랭킹된 기사 목록 반환.
+        `category` 미지정: 전체 기사 풀에서 관심사 소프트 랭킹.
+        `category` 지정: 해당 카테고리 필터 후 랭킹.
+        매칭 기사 없거나 관심사 미설정 시: 최신순 fallback (`personalized: false`).
+      operationId: getFeed
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [POLITICS, ECONOMY_FINANCE, ENTERTAINMENT_CULTURE, SPORTS, WORLD, SCIENCE, HEALTH_MEDICINE, AUTOMOTIVE, IT, OTHER]
+          description: 카테고리 필터. 미지정 시 전체 관심사 기반 추천
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 이전 응답의 nextCursor 값
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+          description: 페이지 크기
+      responses:
+        '200':
+          description: 피드 목록
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPage'
+                  - type: object
+                    properties:
+                      articles:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ArticleItem'
+                      personalized:
+                        type: boolean
+                        description: false이면 관심사 기반 랭킹 미적용(최신순 fallback)
+                        example: true
+                    required: [articles, personalized]
+        '401':
+          description: 미인증
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 이메일 인증 미완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/articles/search:
+    get:
+      tags: [Search]
+      summary: 기사 전문 검색
+      description: |
+        기사 제목·요약·본문을 대상으로 한국어 전문 검색 수행 (pg_bigm 기반).
+        검색 대상: 최근 90일 이내 기사. relevance 순 정렬 (GREATEST bigm_similarity).
+        개인화 가중치 미적용 — 검색은 쿼리 매칭 relevance만 반영.
+        최소 검색어 2자 (bigram 하한).
+      operationId: searchArticles
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+          description: 검색어 (1~100자, 공백만 있는 값 거부)
+          example: 경제성장
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 이전 응답의 nextCursor 값
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: 검색 결과
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPage'
+                  - type: object
+                    properties:
+                      articles:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ArticleItem'
+                    required: [articles]
+        '401':
+          description: 미인증
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 이메일 인증 미완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: 검색어 유효성 오류 (빈 쿼리 또는 100자 초과)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: INVALID_SEARCH_QUERY
+                message: 검색어는 1자 이상 100자 이하이어야 합니다
+                timestamp: '2026-06-12T10:00:00Z'
+
+  /api/v1/articles/{articleId}/save:
+    post:
+      tags: [Saved Articles]
+      summary: 기사 저장
+      description: |
+        기사를 저장 목록에 추가한다. 멱등: 이미 저장된 기사 재저장 시 200 반환.
+        사용자당 최대 1,000건 저장 가능. 초과 시 409.
+      operationId: saveArticle
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 저장할 기사 ID
+      responses:
+        '201':
+          description: 저장 완료 (신규 저장)
+        '200':
+          description: 이미 저장된 기사 (멱등 응답)
+        '401':
+          description: 미인증
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 이메일 인증 미완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 기사 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ARTICLE_NOT_FOUND
+                message: 해당 기사를 찾을 수 없습니다
+                timestamp: '2026-06-12T10:00:00Z'
+        '409':
+          description: 저장 상한(1,000건) 초과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: SAVE_LIMIT_EXCEEDED
+                message: 저장 기사는 최대 1,000건까지 가능합니다
+                timestamp: '2026-06-12T10:00:00Z'
+    delete:
+      tags: [Saved Articles]
+      summary: 기사 저장 해제
+      description: |
+        저장된 기사를 목록에서 제거한다. 멱등: 저장되지 않은 기사 해제 시 204 반환.
+      operationId: unsaveArticle
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 저장 해제할 기사 ID
+      responses:
+        '204':
+          description: 저장 해제 완료 (또는 이미 저장되지 않은 상태)
+        '401':
+          description: 미인증
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 이메일 인증 미완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/me/saved-articles:
+    get:
+      tags: [Saved Articles]
+      summary: 저장된 기사 목록 조회
+      description: |
+        현재 사용자의 저장 기사 목록을 저장 시간 역순으로 반환한다.
+        만료/삭제된 기사는 목록에서 자동 제외된다.
+      operationId: getSavedArticles
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 이전 응답의 nextCursor 값
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: 저장 기사 목록
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPage'
+                  - type: object
+                    properties:
+                      articles:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SavedArticleItem'
+                    required: [articles]
+        '401':
+          description: 미인증
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 이메일 인증 미완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Feed
+    description: 개인화 뉴스 피드
+  - name: Search
+    description: 기사 전문 검색
+  - name: Saved Articles
+    description: 기사 저장·목록·해제

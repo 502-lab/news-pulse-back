@@ -89,6 +89,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("ARTICLE_NOT_FOUND", ex.getMessage()));
     }
 
+    @ExceptionHandler(SaveLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleSaveLimitExceeded(SaveLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("SAVE_LIMIT_EXCEEDED", ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         String message =

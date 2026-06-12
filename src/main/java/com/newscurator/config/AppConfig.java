@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
     CollectionProperties.class,
     RetentionProperties.class,
     FeedProperties.class,
+    FeedRankingProperties.class,
     AiProperties.class,
     JwtConfig.class,
     OAuthConfig.class
