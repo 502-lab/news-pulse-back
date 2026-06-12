@@ -380,8 +380,17 @@ class SearchIntegrationTest {
 
         // No duplicates between pages
         assertThat(p2Ids).doesNotContainAnyElementsOf(p1Ids);
-        // Together cover all 3 articles
+        // Together cover all 3 articles (skip 없음)
         assertThat(p1Ids.size() + p2Ids.size()).isEqualTo(3);
+
+        // (c) relevance 순서: 경제정책·경제지표 동률(bigm 1/3) → published_at DESC 타이브레이크
+        //     경제성장률 score=1/4 < 1/3 → page2로 밀림
+        List<Long> p1OrderedIds = p1.stream()
+                .map(a -> ((Number) a.get("id")).longValue())
+                .toList();
+        assertThat(p1OrderedIds.get(0)).isEqualTo(id2); // 경제정책 (minusHours(2), newer)
+        assertThat(p1OrderedIds.get(1)).isEqualTo(id3); // 경제지표 (minusHours(3))
+        assertThat(p2Ids).containsExactly(id1);         // 경제성장률 (score 낮아 page2)
     }
 
     // ── [SI9] 미인증 → 401 ───────────────────────────────────────────────────
