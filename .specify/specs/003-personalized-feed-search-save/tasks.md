@@ -116,12 +116,12 @@
 
 **Purpose**: Swagger 문서, 설정 예시, CHANGELOG 업데이트, 빌드 검증
 
-- [ ] T029 [P] `FeedController` Swagger 완성 (@Tag, @Operation summary/description, @ApiResponses 200/400/401/403/422, @Parameter on ?category/?cursor/?size) in `src/main/java/com/newscurator/controller/FeedController.java`
-- [ ] T030 [P] `ArticleSearchController` Swagger 완성 (@Tag, @Operation, @ApiResponses 200/401/403/422, @Parameter on ?q/?cursor/?size) in `src/main/java/com/newscurator/controller/ArticleSearchController.java`
-- [ ] T031 [P] `SavedArticleController` Swagger 완성 (@Tag, @Operation, @ApiResponses 200/201/204/401/403/404/409, @PathVariable articleId @Parameter) in `src/main/java/com/newscurator/controller/SavedArticleController.java`
-- [ ] T032 [P] `application-example.yaml` 에 `feed.ranking.*` 예시 항목 추가 (application.yaml 기본값과 동일 구조) in `src/main/resources/application-example.yaml`
-- [ ] T033 `CHANGELOG.html` 에 003 feature 항목 추가 (tag-feature, 피드·검색·저장 구현 내용, 영향 파일 목록)
-- [ ] T034 `./gradlew build` 실행 — 기존 테스트 회귀 없음 + 003 신규 테스트 전체 통과 확인 (Testcontainers Docker 필요)
+- [x] T029 [P] `FeedController` Swagger 완성 (@Tag, @Operation summary/description, @ApiResponses 200/400/401/403/422, @Parameter on ?category/?cursor/?size) in `src/main/java/com/newscurator/controller/FeedController.java`
+- [x] T030 [P] `ArticleSearchController` Swagger 완성 (@Tag, @Operation, @ApiResponses 200/401/403/422, @Parameter on ?q/?cursor/?size) in `src/main/java/com/newscurator/controller/ArticleSearchController.java`
+- [x] T031 [P] `SavedArticleController` Swagger 완성 (@Tag, @Operation, @ApiResponses 200/201/204/401/403/404/409, @PathVariable articleId @Parameter) in `src/main/java/com/newscurator/controller/SavedArticleController.java`
+- [x] T032 [P] `application-example.yaml` 에 `feed.ranking.*` 예시 항목 추가 (application.yaml 기본값과 동일 구조) in `src/main/resources/application-example.yaml`
+- [x] T033 `CHANGELOG.html` 에 003 feature 항목 추가 (tag-feature, 피드·검색·저장 구현 내용, 영향 파일 목록)
+- [x] T034 `./gradlew build` 실행 — 기존 테스트 회귀 없음 + 003 신규 테스트 전체 통과 확인 (Testcontainers Docker 필요)
 
 ---
 
