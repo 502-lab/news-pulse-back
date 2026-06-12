@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.*;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.newscurator.domain.TermsVersion;
 import com.newscurator.repository.TermsVersionRepository;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,9 +24,12 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers(disabledWithoutDocker = true)
@@ -34,9 +38,23 @@ class OnboardingIntegrationTest {
     @RegisterExtension
     static WireMockExtension wireMock = WireMockExtension.newInstance().build();
 
+    private static final DockerImageName BIGM_IMAGE_NAME;
+
+    static {
+        if (DockerClientFactory.instance().isDockerAvailable()) {
+            String resolved = new ImageFromDockerfile("postgres-bigm-test", false)
+                    .withDockerfile(Path.of("src/test/resources/postgres-bigm/Dockerfile"))
+                    .get();
+            BIGM_IMAGE_NAME =
+                    DockerImageName.parse(resolved).asCompatibleSubstituteFor("postgres");
+        } else {
+            BIGM_IMAGE_NAME = DockerImageName.parse("postgres:16-alpine");
+        }
+    }
+
     @Container
     static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
+            new PostgreSQLContainer<>(BIGM_IMAGE_NAME)
                     .withDatabaseName("newscurator_onboarding_it")
                     .withUsername("test")
                     .withPassword("test");

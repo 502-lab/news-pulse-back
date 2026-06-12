@@ -24,6 +24,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
+import com.newscurator.testutil.BigmPostgresImage;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -37,7 +38,7 @@ class PasswordResetIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
+            new PostgreSQLContainer<>(BigmPostgresImage.NAME)
                     .withDatabaseName("newscurator_pwreset_it")
                     .withUsername("test")
                     .withPassword("test");
