@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">41</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">42</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">8</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">9</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-13</div>
+  <a class="toc-item" href="#d0613-3">spec 003 Phase 6 Polish — Swagger 완성 + application-example.yaml feed 설정</a>
   <a class="toc-item" href="#d0613-2">US3 저장 구현 — 멱등 save/unsave + 1000건 상한 + 목록 (240/240 GREEN)</a>
   <a class="toc-item" href="#d0613-1">US2 검색 구현 — pg_bigm + 커서 페이지네이션 (226/226 GREEN)</a>
   <div class="toc-date">2026-06-12</div>
@@ -366,6 +367,47 @@
     <h2>2026-06-13</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="entry" id="d0613-3" data-tags="feature config docs">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-config">Config</span>
+          spec 003 Phase 6 Polish — Swagger 완성 + application-example.yaml feed.ranking 설정 추가 (T029~T032)
+        </div>
+        <div class="entry-meta"><span class="session-badge">spec 003 완료 — 개인화 피드·검색·저장 전체</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><strong>T029</strong> — <code>FeedController</code> Swagger 완성: @ApiResponses 401·403 포함, @Parameter(category/cursor/size) 상세 설명, 개인화 랭킹·fallback 동작 @Operation description</li>
+          <li><strong>T030</strong> — <code>ArticleSearchController</code> Swagger 완성: 422(빈쿼리·1자·101자) 포함 전 상태코드, pg_bigm·90일 창·FR-013 description, @Parameter(q/cursor/size)</li>
+          <li><strong>T031</strong> — <code>SavedArticleController</code> Swagger 확인: POST 201/200(멱등)·404·409, DELETE 204, GET 200 — T028에서 이미 완성</li>
+          <li><strong>T032</strong> — <code>application-example.yaml</code>에 <code>app.feed.*</code> 및 <code>app.retention.*</code> 섹션 추가 (application.yaml 기본값과 동일 구조, 오버라이드 안내 주석 포함)</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (대안 대비 근거)</div>
+        <ul>
+          <li><strong>Swagger @ApiResponses 전 상태코드 명시</strong> — OpenAPI 소비자(프론트엔드·QA)가 실제 발생 가능한 에러를 알아야 클라이언트 에러 처리를 정확히 작성할 수 있음. 200만 명시하면 4xx 응답이 문서 외 동작으로 오인됨.</li>
+          <li><strong>application-example.yaml에 feed 설정 추가</strong> — application.yaml에 기본값이 있으나, 로컬 개발자가 오버라이드 가능한 값임을 명시하지 않으면 환경별 튜닝 경로를 알기 어려움. 예시 파일에 동일 구조로 추가해 온보딩 비용 절감.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/main/…/controller/FeedController.java</span>
+          <span class="file">src/main/…/controller/ArticleSearchController.java</span>
+          <span class="file">src/main/resources/application-example.yaml</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 2 -->

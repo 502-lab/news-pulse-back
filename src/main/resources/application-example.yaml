@@ -57,3 +57,19 @@ app:
       client-id: ${NAVER_CLIENT_ID}
       client-secret: ${NAVER_CLIENT_SECRET}
       base-url: https://openapi.naver.com
+
+# 피드·검색 설정 (application.yaml 기본값과 동일 구조 — 필요 시 오버라이드)
+  feed:
+    default-page-size: 20     # 기본 페이지 크기
+    max-page-size: 100        # 최대 허용 페이지 크기
+    ranking:
+      category-match-score: 50   # 관심 카테고리 일치 점수
+      keyword-match-score: 30    # 팔로우 키워드 일치 점수
+      recency-window-hours: 30   # 최신성 점수 구간 (시간)
+      recency-max-score: 20      # 최신성 최대 점수
+      feed-window-days: 7        # 피드 노출 기사 기간 (일)
+
+# 데이터 보존 정책
+  retention:
+    days: 90                  # 기사 보존 일수
+    grace-period-days: 7      # 만료 후 추가 유예 기간
