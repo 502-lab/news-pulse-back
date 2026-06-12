@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">40</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">41</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">7</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">8</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-13</div>
+  <a class="toc-item" href="#d0613-2">US3 저장 구현 — 멱등 save/unsave + 1000건 상한 + 목록 (240/240 GREEN)</a>
   <a class="toc-item" href="#d0613-1">US2 검색 구현 — pg_bigm + 커서 페이지네이션 (226/226 GREEN)</a>
   <div class="toc-date">2026-06-12</div>
   <a class="toc-item" href="#d0612-4">US1 테스트 정합 보강 + pg_bigm 컨테이너 전체 통일</a>
@@ -365,6 +366,71 @@
     <h2>2026-06-13</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 2 -->
+  <div class="entry" id="d0613-2" data-tags="feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          US3 저장 구현 — 멱등 save/unsave · 1000건 상한 · savedAt DESC 목록 (T024~T028, 240/240 GREEN)
+        </div>
+        <div class="entry-meta"><span class="session-badge">240/240 GREEN (14 신규 테스트)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><strong>T024</strong> — <code>SavedArticleServiceTest</code> 7개 단위 테스트: 재저장 멱등·C2 엣지·상한·미존재 404·unsave no-op·list savedAt</li>
+          <li><strong>T025</strong> — <code>SavedArticleIntegrationTest</code> 7개 통합 테스트: 6 crown-jewel + 미인증 401 (BigmPostgresImage, bulkSave JDBC)</li>
+          <li><strong>T026</strong> — <code>SavedArticleItem</code> + <code>SavedArticleListResponse</code> DTO record 신규</li>
+          <li><strong>T027</strong> — <code>SavedArticleService</code> 신규: ① exists→멱등 ② 상한 ③ 기사 존재 ④ 신규 저장 순서, unsave no-op, list cursor 기반 savedAt DESC</li>
+          <li><strong>T028</strong> — <code>SavedArticleController</code> 신규: POST 201/200 · DELETE 204 · GET 200, 전체 Swagger 어노테이션</li>
+          <li><code>SavedArticleRepository</code>에 <code>findByAccountIdWithCursor</code> JPQL 커서 쿼리 추가</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">버그 픽스 — Instant JDBC 바인딩</div>
+        <ul>
+          <li>SIT6 테스트에서 <code>Instant</code>를 jdbcTemplate에 직접 파라미터로 전달 시 <code>BadSqlGrammarException</code> 발생. <code>java.sql.Timestamp.from(instant)</code>로 변환 후 해결. 근본 원인: Spring JDBC는 <code>java.time.Instant</code> 타입을 자동 변환하지 않음.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (대안 대비 근거)</div>
+        <ul>
+          <li><strong>save 순서: exists → count → existsById → save</strong> — exists 먼저 확인해 이미 저장된 기사가 상한 검사를 우회하도록 설계(C2 엣지). count를 앞에 두면 재저장 요청도 불필요한 DB count 쿼리 발생.</li>
+          <li><strong>bulkSave via JDBC batchUpdate</strong> — 통합 테스트에서 1000건 HTTP 요청은 수 분 소요. JDBC batch+generate_series로 단일 쿼리 + batchUpdate로 2쿼리에 1000건 처리.</li>
+          <li><strong>unsave: no-op via Spring Data JPA deleteByXxx</strong> — derived delete는 엔티티 없으면 0행 삭제로 no-op. 명시적 exists 체크 불필요.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">Crown-Jewel 검증 결과</div>
+        <ul>
+          <li>[SIT1] 재저장 멱등 200 + DB row 1개 ✓</li>
+          <li>[SIT2] 미저장 unsave → 204 no-op ✓</li>
+          <li>[SIT3] 1000건 + 신규 → 409 SAVE_LIMIT_EXCEEDED ✓</li>
+          <li>[SIT4] C2: 1000건 + 이미 저장 → 200(exists 단락, 409 아님) ✓</li>
+          <li>[SIT5] 미존재 articleId → 404 ARTICLE_NOT_FOUND ✓</li>
+          <li>[SIT6] savedAt DESC 정렬 + savedAt 필드 실제 반환 ✓</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">src/test/…/service/SavedArticleServiceTest.java</span>
+          <span class="file">src/test/…/integration/SavedArticleIntegrationTest.java</span>
+          <span class="file">src/main/…/dto/response/SavedArticleItem.java</span>
+          <span class="file">src/main/…/dto/response/SavedArticleListResponse.java</span>
+          <span class="file">src/main/…/repository/SavedArticleRepository.java</span>
+          <span class="file">src/main/…/service/SavedArticleService.java</span>
+          <span class="file">src/main/…/controller/SavedArticleController.java</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 1 -->
