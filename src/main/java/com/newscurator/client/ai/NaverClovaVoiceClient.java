@@ -39,6 +39,25 @@ public class NaverClovaVoiceClient {
     }
 
     /**
+     * Clova Voice Premium API 1콜당 2000자 제한 대응 트런케이터.
+     * 1900자를 초과하면 마지막 문장 경계(. ? !) 이후에서 잘라 "…"를 붙인다.
+     * 문장 경계가 없으면 1900자에서 하드컷 + "…".
+     */
+    public static String truncateTtsText(String text) {
+        if (text.length() <= 1900) {
+            return text;
+        }
+        String sub = text.substring(0, 1900);
+        int lastBoundary = Math.max(
+                Math.max(sub.lastIndexOf('.'), sub.lastIndexOf('?')),
+                sub.lastIndexOf('!'));
+        if (lastBoundary > 0) {
+            return sub.substring(0, lastBoundary + 1) + "…";
+        }
+        return sub + "…";
+    }
+
+    /**
      * 주어진 텍스트를 지정 음성으로 TTS 변환하여 MP3 bytes를 반환한다.
      *
      * @param voiceId Naver Clova Voice speaker ID — TODO(V1): NCP 콘솔 확인 후 실제 ID 사용
@@ -49,7 +68,7 @@ public class NaverClovaVoiceClient {
     public byte[] generate(String voiceId, String text) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("speaker", voiceId);
-        formData.add("text", text);
+        formData.add("text", truncateTtsText(text));
         formData.add("volume", "0");
         formData.add("speed", "0");
         formData.add("pitch", "0");
