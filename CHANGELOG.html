@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">45</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">46</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">11</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">12</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-13</div>
+  <a class="toc-item" href="#d0613-7">spec 004 US4+Polish — listenable 필터·SavedArticleControllerTest·Swagger·CHANGELOG</a>
   <a class="toc-item" href="#d0613-6">spec 004 US3 — BriefingService·BriefingController·BriefingServiceTest·BriefingControllerTest·DailyBriefRepositoryTest (294/294 GREEN)</a>
   <a class="toc-item" href="#d0613-5">spec 004 US2 수정 — resolveTtsText orElseThrow·truncateTtsText·TtsAudioClaimerTest (284/284 GREEN)</a>
   <a class="toc-item" href="#d0613-3">spec 003 Phase 6 Polish — Swagger 완성 + application-example.yaml feed 설정</a>
@@ -369,6 +370,31 @@
     <h2>2026-06-13</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 7 -->
+  <div class="entry" id="d0613-7" data-tags="feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          spec 004 US4 listenable 필터 + Polish (T043~T050)
+        </div>
+        <div class="entry-meta"><span class="session-badge">미커밋</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>구현 내용</dt>
+        <dd>T043 SavedArticleRepository에 네이티브 쿼리 2개 추가 — findListenableOrderBySavedAtDesc / findListenableWithCursor. tts_audios 테이블과 EXISTS 서브쿼리로 조인 (CAST(ref_id AS BIGINT) = article_id AND status='READY' AND owner_type='ARTICLE'). voiceId NULL 시 모든 음성 허용 (:voiceId IS NULL OR ta.voice_id = :voiceId). T044 SavedArticleService.list() 시그니처 확장 — (accountId, cursor, size, listenable, voiceId). listenable=false이면 기존 쿼리 사용(회귀 없음). T045 SavedArticleController GET /api/v1/me/saved-articles에 listenable(defaultValue=false)·voiceId(required=false) @RequestParam 추가 + @Parameter(description) Swagger 주석. T046 SavedArticleControllerTest(신규, standaloneSetup) 3건 — (1)listenable=true→READY 기사 반환 (2)listenable 미지정→기존 동작 회귀 없음 (3)listenable=true&amp;voiceId=harin→해당 음성 필터 확인. T047 Swagger 주석 기존 컨트롤러·DTO 일제 점검 — VoiceController·TtsController·BriefingController @Tag/@Operation/@ApiResponses, VoiceResponse·TtsRequest·TtsStatusResponse·BriefingResponse @Schema 모두 완비 확인. T048 application-example.yaml TTS 섹션(naver.clova.voice / app.tts.briefing.article-count / app.tts.scheduler.cron / app.tts.default-voice-id / cloud.aws.cloudfront.domain) 이미 완비 확인. T049 CHANGELOG 갱신(현 항목). T050 ./gradlew build 전체 실행.</dd>
+        <dt>결정 이유</dt>
+        <dd>listenable 필터에 JOIN 대신 EXISTS 서브쿼리 사용 — tts_audios에 동일 (ref_id, voice_id) 조합으로 복수 레코드가 존재할 경우 JOIN이 saved_articles 행을 중복 반환하는 문제 방지. native query 선택 이유: JPQL은 VARCHAR → BIGINT 타입 캐스트(CAST(ref_id AS BIGINT))를 직접 지원하지 않음. voiceId=null → :voiceId IS NULL 조건으로 any-voice 동작 구현 — 서비스 레이어 분기 없이 단일 쿼리로 처리.</dd>
+        <dt>영향 파일</dt>
+        <dd>SavedArticleRepository.java · SavedArticleService.java · SavedArticleController.java · SavedArticleServiceTest.java(시그니처 갱신) · SavedArticleControllerTest.java(신규) · CHANGELOG.html</dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 6 -->

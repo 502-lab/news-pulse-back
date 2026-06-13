@@ -79,15 +79,25 @@ public class SavedArticleService {
     }
 
     @Transactional(readOnly = true)
-    public SavedArticleListResponse list(UUID accountId, String cursor, int size) {
+    public SavedArticleListResponse list(
+            UUID accountId, String cursor, int size, boolean listenable, String voiceId) {
         int pageSize = Math.max(1, Math.min(size, MAX_SIZE));
         PageRequest pageable = PageRequest.of(0, pageSize + 1);
 
         SaveCursor sc = decodeCursor(cursor);
-        List<SavedArticle> rows = (sc != null)
-                ? savedArticleRepository.findByAccountIdWithCursor(
-                        accountId, sc.savedAt(), sc.id(), pageable)
-                : savedArticleRepository.findByAccountIdOrderBySavedAtDesc(accountId, pageable);
+        List<SavedArticle> rows;
+        if (listenable) {
+            rows = (sc != null)
+                    ? savedArticleRepository.findListenableWithCursor(
+                            accountId, sc.savedAt(), sc.id(), voiceId, pageable)
+                    : savedArticleRepository.findListenableOrderBySavedAtDesc(
+                            accountId, voiceId, pageable);
+        } else {
+            rows = (sc != null)
+                    ? savedArticleRepository.findByAccountIdWithCursor(
+                            accountId, sc.savedAt(), sc.id(), pageable)
+                    : savedArticleRepository.findByAccountIdOrderBySavedAtDesc(accountId, pageable);
+        }
 
         boolean hasNext = rows.size() > pageSize;
         List<SavedArticle> page = rows.subList(0, Math.min(pageSize, rows.size()));
