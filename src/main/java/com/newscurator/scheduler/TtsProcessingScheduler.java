@@ -1,6 +1,6 @@
 package com.newscurator.scheduler;
 
-import com.newscurator.client.ai.NaverClovaVoiceClient;
+import com.newscurator.client.ai.TtsProvider;
 import com.newscurator.domain.TtsAudio;
 import com.newscurator.domain.enums.SummaryDepth;
 import com.newscurator.domain.enums.SummarySlotStatus;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * <p>트랜잭션 경계 설계:
  * Phase 1 — TtsAudioClaimer.claimBatch() (@Transactional 별도 빈): PENDING → PROCESSING 마킹 + save.
  *            TX 커밋 시 FOR UPDATE SKIP LOCKED 락 해제 → 멀티 인스턴스 중복 처리 방지.
- * Phase 2 — Naver HTTP 호출 + S3 업로드: 락 해제 후 실행 (5~15초 외부 호출, DB 락 불점유).
+ * Phase 2 — Polly HTTP 호출 + S3 업로드: 락 해제 후 실행 (외부 호출, DB 락 불점유).
  * Phase 3 — TtsAudioClaimer.persistResult() (@Transactional 별도 빈): 결과 저장 (READY/FAILED).
  */
 @Component
@@ -30,19 +30,19 @@ public class TtsProcessingScheduler {
     private static final Logger log = LoggerFactory.getLogger(TtsProcessingScheduler.class);
 
     private final TtsAudioClaimer claimer;
-    private final NaverClovaVoiceClient naverClovaVoiceClient;
+    private final TtsProvider ttsProvider;
     private final S3AudioUploader s3AudioUploader;
     private final SummaryRepository summaryRepository;
     private final int batchSize;
 
     public TtsProcessingScheduler(
             TtsAudioClaimer claimer,
-            NaverClovaVoiceClient naverClovaVoiceClient,
+            TtsProvider ttsProvider,
             S3AudioUploader s3AudioUploader,
             SummaryRepository summaryRepository,
             @Value("${app.tts.scheduler.batch-size:10}") int batchSize) {
         this.claimer = claimer;
-        this.naverClovaVoiceClient = naverClovaVoiceClient;
+        this.ttsProvider = ttsProvider;
         this.s3AudioUploader = s3AudioUploader;
         this.summaryRepository = summaryRepository;
         this.batchSize = batchSize;
@@ -62,7 +62,7 @@ public class TtsProcessingScheduler {
             String audioKey = buildAudioKey(tts);
             try {
                 String ttsText = resolveTtsText(tts);
-                byte[] mp3 = naverClovaVoiceClient.generate(tts.getVoiceId(), ttsText);
+                byte[] mp3 = ttsProvider.generate(tts.getVoiceId(), ttsText);
                 s3AudioUploader.upload(mp3, audioKey);
                 tts.complete(audioKey, null);
                 log.info("[TTS] READY: id={}, key={}", tts.getId(), audioKey);

@@ -5,18 +5,15 @@
 -- voices: 음성 캐릭터 목록 (시스템 고정, Flyway 시드)
 -- ================================================================
 CREATE TABLE IF NOT EXISTS voices (
-    id          VARCHAR(50)  PRIMARY KEY,       -- Naver Clova Voice speaker ID
-    name        VARCHAR(100) NOT NULL,           -- 표시명 ('하린', '준서')
+    id          VARCHAR(50)  PRIMARY KEY,       -- AWS Polly VoiceId
+    name        VARCHAR(100) NOT NULL,           -- 표시명 ('서연')
     gender      VARCHAR(10)  NOT NULL,           -- 'FEMALE' | 'MALE'
     preview_url TEXT,                            -- 미리듣기 정적 샘플 URL (CDN)
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
--- TODO(V1): 배포 전 NCP Clova Voice 콘솔에서 실제 speaker ID 확인 후 아래 id 값 교체 필요
---           https://api.ncloud-docs.com/docs/ai-naver-clovavoice-ttspremium
 INSERT INTO voices (id, name, gender, preview_url) VALUES
-    ('harin', '하린', 'FEMALE', NULL),   -- TODO(V1): 실제 speaker ID로 교체 전 임시값
-    ('junho', '준서', 'MALE',   NULL);   -- TODO(V1): 실제 speaker ID로 교체 전 임시값
+    ('Seoyeon', '서연', 'FEMALE', NULL);
 
 -- ================================================================
 -- tts_audios: TTS 오디오 작업 (기사 전용, 전 사용자 공유 캐시)

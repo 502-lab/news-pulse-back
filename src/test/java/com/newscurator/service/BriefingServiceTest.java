@@ -51,7 +51,7 @@ class BriefingServiceTest {
     private BriefingService briefingService;
 
     private static final UUID ACCOUNT_ID = UUID.randomUUID();
-    private static final String DEFAULT_VOICE = "harin";
+    private static final String DEFAULT_VOICE = "Seoyeon";
 
     @BeforeEach
     void setUp() {

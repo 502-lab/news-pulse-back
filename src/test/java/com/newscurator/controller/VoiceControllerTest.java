@@ -38,11 +38,10 @@ class VoiceControllerTest {
     }
 
     @Test
-    @DisplayName("200: 음성 목록 2건 반환 (previewUrl=null 허용)")
+    @DisplayName("200: 음성 목록 1건 반환 (Seoyeon, previewUrl=null 허용)")
     void getVoices_returns200WithList() throws Exception {
         List<VoiceResponse> voices = List.of(
-                new VoiceResponse("harin", "하린", "FEMALE", null),
-                new VoiceResponse("junho", "준서", "MALE", null)
+                new VoiceResponse("Seoyeon", "서연", "FEMALE", null)
         );
         when(voiceService.findAll()).thenReturn(voices);
 
@@ -50,10 +49,9 @@ class VoiceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[0].id").value("harin"))
-                .andExpect(jsonPath("$.data[0].gender").value("FEMALE"))
-                .andExpect(jsonPath("$.data[1].id").value("junho"));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value("Seoyeon"))
+                .andExpect(jsonPath("$.data[0].gender").value("FEMALE"));
         // 401 미인증은 JWT 필터 체인에 의해 처리 — SecurityIntegration 테스트에서 검증
     }
 }

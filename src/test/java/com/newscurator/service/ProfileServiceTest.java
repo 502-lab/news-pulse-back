@@ -71,33 +71,33 @@ class ProfileServiceTest {
     @Test
     @DisplayName("(a) voiceId 지정 PUT → 응답 voiceId 포함")
     void updateReadingPreference_withVoiceId_voiceIdReflectedInResponse() {
-        when(voiceRepository.existsById("harin")).thenReturn(true);
+        when(voiceRepository.existsById("Seoyeon")).thenReturn(true);
         when(readingPreferenceRepository.findByAccountId(any())).thenReturn(Optional.empty());
 
         ReadingPreferenceRequest req =
-                new ReadingPreferenceRequest(SummaryDepth.BALANCED, ConsumeMode.LISTEN, "harin");
+                new ReadingPreferenceRequest(SummaryDepth.BALANCED, ConsumeMode.LISTEN, "Seoyeon");
         ReadingPreferenceResponse response = profileService.updateReadingPreference(testAccount, req);
 
-        assertThat(response.voiceId()).isEqualTo("harin");
+        assertThat(response.voiceId()).isEqualTo("Seoyeon");
         assertThat(response.summaryDepth()).isEqualTo(SummaryDepth.BALANCED);
         assertThat(response.consumeMode()).isEqualTo(ConsumeMode.LISTEN);
     }
 
     // ─────────────────────────────────────────────────────────
-    // (b) 기존 voiceId='harin' + voiceId null PUT → voiceId 'harin' 보존
+    // (b) 기존 voiceId='Seoyeon' + voiceId null PUT → voiceId 'Seoyeon' 보존
     //     (full-replace wipe 버그 방지 핵심 케이스)
     // ─────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("(b) 기존 voiceId='harin' + voiceId null PUT → 기존 voiceId 보존(wipe 없음)")
+    @DisplayName("(b) 기존 voiceId='Seoyeon' + voiceId null PUT → 기존 voiceId 보존(wipe 없음)")
     void updateReadingPreference_nullVoiceId_preservesExistingVoiceId() {
-        // 기존 행: summaryDepth=BRIEF, consumeMode=LISTEN, voiceId='harin'
+        // 기존 행: summaryDepth=BRIEF, consumeMode=LISTEN, voiceId='Seoyeon'
         ReadingPreference existing = ReadingPreference.builder()
                 .account(testAccount)
                 .summaryDepth(SummaryDepth.BRIEF)
                 .consumeMode(ConsumeMode.LISTEN)
                 .build();
-        existing.update(SummaryDepth.BRIEF, ConsumeMode.LISTEN, "harin"); // voiceId 초기 세팅
+        existing.update(SummaryDepth.BRIEF, ConsumeMode.LISTEN, "Seoyeon"); // voiceId 초기 세팅
         when(readingPreferenceRepository.findByAccountId(any())).thenReturn(Optional.of(existing));
 
         // voiceId 없이 summaryDepth만 변경하는 PUT
@@ -105,8 +105,8 @@ class ProfileServiceTest {
                 new ReadingPreferenceRequest(SummaryDepth.BALANCED, ConsumeMode.LISTEN, null);
         ReadingPreferenceResponse response = profileService.updateReadingPreference(testAccount, req);
 
-        // voiceId는 wipe되지 않고 'harin' 그대로 보존되어야 함
-        assertThat(response.voiceId()).isEqualTo("harin");
+        // voiceId는 wipe되지 않고 'Seoyeon' 그대로 보존되어야 함
+        assertThat(response.voiceId()).isEqualTo("Seoyeon");
         assertThat(response.summaryDepth()).isEqualTo(SummaryDepth.BALANCED); // 변경됨
         assertThat(response.consumeMode()).isEqualTo(ConsumeMode.LISTEN);     // 유지됨
     }

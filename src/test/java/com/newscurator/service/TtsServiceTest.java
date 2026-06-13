@@ -44,7 +44,7 @@ class TtsServiceTest {
     private TtsService ttsService;
 
     private static final Long ARTICLE_ID = 1L;
-    private static final String VOICE_ID = "harin";
+    private static final String VOICE_ID = "Seoyeon";
     private static final String REF_ID = "1";
 
     @BeforeEach
@@ -70,7 +70,7 @@ class TtsServiceTest {
                 .refId(REF_ID)
                 .voiceId(VOICE_ID)
                 .build();
-        existingReady.complete("tts/article/1/harin.mp3", null);
+        existingReady.complete("tts/article/1/Seoyeon.mp3", null);
         when(ttsAudioRepository.findByOwnerTypeAndRefIdAndVoiceId(TtsOwnerType.ARTICLE, REF_ID, VOICE_ID))
                 .thenReturn(Optional.of(existingReady));
 

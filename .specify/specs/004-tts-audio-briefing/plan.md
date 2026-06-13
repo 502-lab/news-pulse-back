@@ -8,7 +8,7 @@
 
 ## Summary
 
-기사 요약 텍스트를 Naver Clova Voice API(하린/준서 스피커)로 음성 변환하고, S3+CloudFront로 오디오를 저장·배포한다. **브리핑은 단일 합성 오디오 아닌 기사 TTS 재생 큐(Model B)**로 구현한다. TTS 생성은 001의 비동기 PENDING→PROCESSING→READY/FAILED 상태 머신(SELECT…FOR UPDATE SKIP LOCKED 포함)을 그대로 재사용하고, `(owner_type, ref_id, voice_id)` UNIQUE 제약으로 멱등 캐시를 구현한다. FAILED 재시도는 새 행 INSERT가 아닌 기존 행 UPDATE(PENDING 리셋)로 처리한다. 신규 테이블 `voices`, `tts_audios`, `daily_briefs`와 `reading_preferences.voice_id` 컬럼 추가를 Flyway V10 단일 마이그레이션으로 처리한다(read_mode 신설 없음 — 기존 consume_mode 재사용).
+기사 요약 텍스트를 AWS Polly Neural TTS(Seoyeon 스피커)로 음성 변환하고, S3+CloudFront로 오디오를 저장·배포한다. *(2026-06-13: TTS 제공자를 Naver Clova Voice → AWS Polly로 교체)* **브리핑은 단일 합성 오디오 아닌 기사 TTS 재생 큐(Model B)**로 구현한다. TTS 생성은 001의 비동기 PENDING→PROCESSING→READY/FAILED 상태 머신(SELECT…FOR UPDATE SKIP LOCKED 포함)을 그대로 재사용하고, `(owner_type, ref_id, voice_id)` UNIQUE 제약으로 멱등 캐시를 구현한다. FAILED 재시도는 새 행 INSERT가 아닌 기존 행 UPDATE(PENDING 리셋)로 처리한다. 신규 테이블 `voices`, `tts_audios`, `daily_briefs`와 `reading_preferences.voice_id` 컬럼 추가를 Flyway V10 단일 마이그레이션으로 처리한다(read_mode 신설 없음 — 기존 consume_mode 재사용).
 
 ---
 

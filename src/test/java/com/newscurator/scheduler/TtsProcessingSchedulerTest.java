@@ -7,7 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.newscurator.client.ai.NaverClovaVoiceClient;
+import com.newscurator.client.ai.TtsProvider;
 import com.newscurator.domain.Summary;
 import com.newscurator.domain.TtsAudio;
 import com.newscurator.domain.enums.SummaryDepth;
@@ -33,7 +33,7 @@ import org.mockito.quality.Strictness;
 class TtsProcessingSchedulerTest {
 
     @Mock private TtsAudioClaimer claimer;
-    @Mock private NaverClovaVoiceClient naverClovaVoiceClient;
+    @Mock private TtsProvider ttsProvider;
     @Mock private S3AudioUploader s3AudioUploader;
     @Mock private SummaryRepository summaryRepository;
     @Mock private Summary mockSummary;
@@ -42,7 +42,7 @@ class TtsProcessingSchedulerTest {
 
     @BeforeEach
     void setUp() {
-        scheduler = new TtsProcessingScheduler(claimer, naverClovaVoiceClient, s3AudioUploader, summaryRepository, 10);
+        scheduler = new TtsProcessingScheduler(claimer, ttsProvider, s3AudioUploader, summaryRepository, 10);
         // 기본: 요약 조회 → 빈 결과 (resolveTtsText가 IllegalStateException → FAILED)
         when(summaryRepository.findByArticleIdAndDepth(any(), eq(SummaryDepth.BALANCED)))
                 .thenReturn(Optional.empty());
@@ -71,7 +71,7 @@ class TtsProcessingSchedulerTest {
     @Test
     @DisplayName("(1) 정상 처리: Naver·S3 성공 → TtsAudio status=READY, audioKey != null")
     void process_success_ttsAudioBecomesReady() {
-        TtsAudio tts = buildProcessingTtsAudio("1", "harin");
+        TtsAudio tts = buildProcessingTtsAudio("1", "Seoyeon");
         assertThat(tts.getStatus()).isEqualTo(TtsStatus.PROCESSING); // claimer 완료 후 상태 확인
 
         // 완료 요약 반환 — resolveTtsText가 orElseThrow를 통과하도록
@@ -79,22 +79,22 @@ class TtsProcessingSchedulerTest {
                 .thenReturn(Optional.of(mockSummary));
 
         when(claimer.claimBatch(10)).thenReturn(List.of(tts));
-        when(naverClovaVoiceClient.generate(eq("harin"), any()))
+        when(ttsProvider.generate(eq("Seoyeon"), any()))
                 .thenReturn(new byte[]{1, 2, 3});
-        when(s3AudioUploader.upload(any(), eq("tts/article/1/harin.mp3")))
-                .thenReturn("tts/article/1/harin.mp3");
+        when(s3AudioUploader.upload(any(), eq("tts/article/1/Seoyeon.mp3")))
+                .thenReturn("tts/article/1/Seoyeon.mp3");
 
         scheduler.process();
 
         // Naver TTS 1회 호출
-        verify(naverClovaVoiceClient).generate(eq("harin"), any());
+        verify(ttsProvider).generate(eq("Seoyeon"), any());
         // S3 업로드 1회 호출
-        verify(s3AudioUploader).upload(any(), eq("tts/article/1/harin.mp3"));
+        verify(s3AudioUploader).upload(any(), eq("tts/article/1/Seoyeon.mp3"));
         // 결과 저장 호출
         verify(claimer).persistResult(tts);
         // 도메인 객체 상태: READY, audioKey 설정
         assertThat(tts.getStatus()).isEqualTo(TtsStatus.READY);
-        assertThat(tts.getAudioKey()).isEqualTo("tts/article/1/harin.mp3");
+        assertThat(tts.getAudioKey()).isEqualTo("tts/article/1/Seoyeon.mp3");
     }
 
     // ─────────────────────────────────────────────────────────
@@ -104,14 +104,14 @@ class TtsProcessingSchedulerTest {
     @Test
     @DisplayName("(2) Naver API 실패: TtsAudio status=FAILED, errorMsg != null, S3 미호출")
     void process_naverFails_ttsAudioBecomesFailed() {
-        TtsAudio tts = buildProcessingTtsAudio("2", "junho");
+        TtsAudio tts = buildProcessingTtsAudio("2", "Seoyeon");
 
         // 완료 요약 반환 — Naver 실패를 제대로 테스트하기 위해 summary는 정상 반환
         when(summaryRepository.findByArticleIdAndDepth(eq(2L), eq(SummaryDepth.BALANCED)))
                 .thenReturn(Optional.of(mockSummary));
 
         when(claimer.claimBatch(10)).thenReturn(List.of(tts));
-        when(naverClovaVoiceClient.generate(any(), any()))
+        when(ttsProvider.generate(any(), any()))
                 .thenThrow(new AiProviderException("Naver error: HTTP 503"));
 
         scheduler.process();
@@ -133,7 +133,7 @@ class TtsProcessingSchedulerTest {
 
         scheduler.process();
 
-        verify(naverClovaVoiceClient, never()).generate(any(), any());
+        verify(ttsProvider, never()).generate(any(), any());
         verify(s3AudioUploader, never()).upload(any(), any());
         verify(claimer, never()).persistResult(any());
     }

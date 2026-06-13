@@ -35,9 +35,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
             "app.client.naver.client-secret=test-secret",
             "app.client.naver.base-url=http://localhost:9999",
             "app.scheduler.enabled=false",
-            "naver.clova.voice.api-key-id=test-clova-key-id",
-            "naver.clova.voice.api-key=test-clova-key",
-            "naver.clova.voice.base-url=http://localhost:9999",
             "cloud.aws.s3.bucket=test-bucket",
             "cloud.aws.cloudfront.domain=http://localhost",
             "cloud.aws.region=us-east-1"
@@ -82,7 +79,7 @@ class DailyBriefRepositoryTest {
                 .account(account)
                 .briefDate(date)
                 .articleIds(new Long[]{1L, 2L, 3L})
-                .voiceId("harin")
+                .voiceId("Seoyeon")
                 .build();
     }
 
@@ -120,7 +117,7 @@ class DailyBriefRepositoryTest {
         assertThat(found).isPresent();
         assertThat(found.get().getId()).isEqualTo(saved.getId());
         assertThat(found.get().getBriefDate()).isEqualTo(TEST_DATE);
-        assertThat(found.get().getVoiceId()).isEqualTo("harin");
+        assertThat(found.get().getVoiceId()).isEqualTo("Seoyeon");
 
         assertThat(notFound).isEmpty();
     }

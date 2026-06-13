@@ -119,24 +119,24 @@ class SavedArticleControllerTest {
     }
 
     // ─────────────────────────────────────────────────────────
-    // (3) listenable=true&voiceId=harin → 해당 음성 READY TTS만 포함
+    // (3) listenable=true&voiceId=Seoyeon → 해당 음성 READY TTS만 포함
     // ─────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("(3) listenable=true&voiceId=harin → service에 voiceId=harin 전달")
+    @DisplayName("(3) listenable=true&voiceId=Seoyeon → service에 voiceId=Seoyeon 전달")
     void list_listenableTrueWithVoiceId_filtersToGivenVoice() throws Exception {
         SavedArticleListResponse response = new SavedArticleListResponse(
                 List.of(buildItem(5L)), null, false);
-        when(savedArticleService.list(eq(ACCOUNT_ID), isNull(), eq(20), eq(true), eq("harin")))
+        when(savedArticleService.list(eq(ACCOUNT_ID), isNull(), eq(20), eq(true), eq("Seoyeon")))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/v1/me/saved-articles")
                         .param("listenable", "true")
-                        .param("voiceId", "harin")
+                        .param("voiceId", "Seoyeon")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.articles[0].article.id").value(5));
 
-        verify(savedArticleService).list(eq(ACCOUNT_ID), isNull(), eq(20), eq(true), eq("harin"));
+        verify(savedArticleService).list(eq(ACCOUNT_ID), isNull(), eq(20), eq(true), eq("Seoyeon"));
     }
 }

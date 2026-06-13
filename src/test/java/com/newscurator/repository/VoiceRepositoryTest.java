@@ -27,9 +27,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
             "app.client.naver.client-secret=test-secret",
             "app.client.naver.base-url=http://localhost:9999",
             "app.scheduler.enabled=false",
-            "naver.clova.voice.api-key-id=test-clova-key-id",
-            "naver.clova.voice.api-key=test-clova-key",
-            "naver.clova.voice.base-url=http://localhost:9999",
             "cloud.aws.s3.bucket=test-bucket",
             "cloud.aws.cloudfront.domain=http://localhost",
             "cloud.aws.region=us-east-1"
@@ -54,15 +51,15 @@ class VoiceRepositoryTest {
     VoiceRepository voiceRepository;
 
     @Test
-    @DisplayName("V10 시드 후 findAll() → 하린·준서 2건 반환 (previewUrl=null 허용)")
-    void findAll_afterV10Migration_returnsTwoSeededVoices() {
+    @DisplayName("V10 시드 후 findAll() → 서연(Seoyeon) 1건 반환 (previewUrl=null 허용)")
+    void findAll_afterV10Migration_returnsSeoyeonVoice() {
         List<Voice> voices = voiceRepository.findAll();
 
-        assertThat(voices).hasSize(2);
+        assertThat(voices).hasSize(1);
         assertThat(voices).extracting(Voice::getId)
-                .containsExactlyInAnyOrder("harin", "junho");
+                .containsExactly("Seoyeon");
         assertThat(voices).extracting(Voice::getGender)
-                .containsExactlyInAnyOrder("FEMALE", "MALE");
+                .containsExactly("FEMALE");
         // previewUrl은 시드 NULL — non-null을 단언하지 않음
         assertThat(voices).allSatisfy(v -> assertThat(v.getPreviewUrl()).isNull());
     }
@@ -70,8 +67,7 @@ class VoiceRepositoryTest {
     @Test
     @DisplayName("existsById: 시드된 ID → true, 없는 ID → false")
     void existsById_seedId_returnsTrue_unknownId_returnsFalse() {
-        assertThat(voiceRepository.existsById("harin")).isTrue();
-        assertThat(voiceRepository.existsById("junho")).isTrue();
+        assertThat(voiceRepository.existsById("Seoyeon")).isTrue();
         assertThat(voiceRepository.existsById("nonexistent-speaker")).isFalse();
     }
 }

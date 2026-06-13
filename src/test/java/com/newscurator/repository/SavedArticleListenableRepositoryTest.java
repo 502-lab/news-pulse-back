@@ -38,9 +38,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
             "app.client.naver.client-secret=test-secret",
             "app.client.naver.base-url=http://localhost:9999",
             "app.scheduler.enabled=false",
-            "naver.clova.voice.api-key-id=test-clova-key-id",
-            "naver.clova.voice.api-key=test-clova-key",
-            "naver.clova.voice.base-url=http://localhost:9999",
             "cloud.aws.s3.bucket=test-bucket",
             "cloud.aws.cloudfront.domain=http://localhost",
             "cloud.aws.region=us-east-1"
@@ -137,34 +134,39 @@ class SavedArticleListenableRepositoryTest {
                 Timestamp.from(now), idSaD);
 
         // ── 5. TTS rows 구성 ──────────────────────────────────────────────────────
-        // A: READY, voice=harin
+        // voices FK 충족: Seoyeon은 V10 시드, test-voice-b는 테스트 전용 삽입(@Transactional 롤백)
+        jdbcTemplate.update(
+                "INSERT INTO voices (id, name, gender) VALUES (?, ?, ?)",
+                "test-voice-b", "테스트B", "MALE");
+
+        // A: READY, voice=Seoyeon
         TtsAudio ttsA =
                 TtsAudio.builder()
                         .ownerType(TtsOwnerType.ARTICLE)
                         .refId(String.valueOf(artA))
-                        .voiceId("harin")
+                        .voiceId("Seoyeon")
                         .build();
-        ttsA.complete("tts/" + artA + "/harin.mp3", null);
+        ttsA.complete("tts/" + artA + "/Seoyeon.mp3", null);
         ttsAudioRepository.saveAndFlush(ttsA);
 
-        // B: PENDING (기본값), voice=harin
+        // B: PENDING (기본값), voice=Seoyeon
         ttsAudioRepository.saveAndFlush(
                 TtsAudio.builder()
                         .ownerType(TtsOwnerType.ARTICLE)
                         .refId(String.valueOf(artB))
-                        .voiceId("harin")
+                        .voiceId("Seoyeon")
                         .build());
 
         // C: TTS 행 없음
 
-        // D: READY, voice=junho
+        // D: READY, voice=test-voice-b
         TtsAudio ttsD =
                 TtsAudio.builder()
                         .ownerType(TtsOwnerType.ARTICLE)
                         .refId(String.valueOf(artD))
-                        .voiceId("junho")
+                        .voiceId("test-voice-b")
                         .build();
-        ttsD.complete("tts/" + artD + "/junho.mp3", null);
+        ttsD.complete("tts/" + artD + "/test-voice-b.mp3", null);
         ttsAudioRepository.saveAndFlush(ttsD);
 
         // native query 실행 전 Hibernate 캐시 재정리
@@ -177,7 +179,7 @@ class SavedArticleListenableRepositoryTest {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("(1) voiceId=null: READY TTS 존재 기사만 — A(harin READY)·D(junho READY), B(PENDING)·C(없음) 제외")
+    @DisplayName("(1) voiceId=null: READY TTS 존재 기사만 — A(Seoyeon READY)·D(test-voice-b READY), B(PENDING)·C(없음) 제외")
     void findListenable_voiceIdNull_returnsAllReadyArticles() {
         List<SavedArticle> result =
                 savedArticleRepository.findListenableOrderBySavedAtDesc(
@@ -191,15 +193,15 @@ class SavedArticleListenableRepositoryTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // (2) voiceId="harin" → harin READY만 → A만 반환, D(junho)·B(PENDING)·C(없음) 제외
+    // (2) voiceId="Seoyeon" → Seoyeon READY만 → A만 반환, D(test-voice-b)·B(PENDING)·C(없음) 제외
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("(2) voiceId=harin: harin READY TTS 기사만 — A만, D(junho READY)·B(PENDING)·C(없음) 제외")
-    void findListenable_voiceIdHarin_returnsOnlyHarinReadyArticle() {
+    @DisplayName("(2) voiceId=Seoyeon: Seoyeon READY TTS 기사만 — A만, D(test-voice-b READY)·B(PENDING)·C(없음) 제외")
+    void findListenable_voiceIdSeoyeon_returnsOnlySeoyeonReadyArticle() {
         List<SavedArticle> result =
                 savedArticleRepository.findListenableOrderBySavedAtDesc(
-                        ACCOUNT_ID, "harin", PageRequest.of(0, 10));
+                        ACCOUNT_ID, "Seoyeon", PageRequest.of(0, 10));
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getArticleId()).isEqualTo(artA);
@@ -213,7 +215,7 @@ class SavedArticleListenableRepositoryTest {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("(3) savedAt DESC 정렬: D(최신 saved_at)가 [0], A(가장 오래된 saved_at)가 [1]")
+    @DisplayName("(3) savedAt DESC 정렬: D(test-voice-b, 최신 saved_at)가 [0], A(Seoyeon, 가장 오래된 saved_at)가 [1]")
     void findListenable_voiceIdNull_orderedBySavedAtDesc() {
         List<SavedArticle> result =
                 savedArticleRepository.findListenableOrderBySavedAtDesc(

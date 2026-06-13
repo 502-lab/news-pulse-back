@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">46</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">47</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">12</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">13</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-13</div>
+  <a class="toc-item" href="#d0613-8">spec 004 TTS 제공자 Naver Clova → AWS Polly (Seoyeon, Neural) 교체</a>
   <a class="toc-item" href="#d0613-7">spec 004 US4+Polish — listenable 필터·SavedArticleControllerTest·Swagger·CHANGELOG</a>
   <a class="toc-item" href="#d0613-6">spec 004 US3 — BriefingService·BriefingController·BriefingServiceTest·BriefingControllerTest·DailyBriefRepositoryTest (294/294 GREEN)</a>
   <a class="toc-item" href="#d0613-5">spec 004 US2 수정 — resolveTtsText orElseThrow·truncateTtsText·TtsAudioClaimerTest (284/284 GREEN)</a>
@@ -370,6 +371,43 @@
     <h2>2026-06-13</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 8 -->
+  <div class="entry" id="d0613-8" data-tags="feature config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-config">Config</span>
+          spec 004 TTS 제공자 교체: Naver Clova Voice → AWS Polly (Seoyeon, Neural)
+        </div>
+        <div class="entry-meta">
+          <span>2026-06-13</span>
+          <span>미커밋</span>
+        </div>
+      </div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="entry-body">
+      <div class="entry-section"><strong>문제(배경):</strong> NaverClovaVoiceClient는 NCP API 인증(X-NCP-APIGW-API-KEY-ID/KEY)을 별도로 관리해야 하고, 한국어 음성이 하린/준서 두 캐릭터뿐이었음. AWS Polly는 기존 S3와 동일한 DefaultCredentialsProvider(EC2 인스턴스 프로파일)로 인증 통합이 가능하고, Seoyeon 한국어 Neural 음성의 품질이 우수함.</div>
+      <div class="entry-section"><strong>근본 원인(결정 이유):</strong> 인증 단순화(NCP 별도 키 제거), 기존 AWS SDK v2 BOM 재사용으로 의존성 추가 최소화, Neural 엔진으로 음질 향상. Polly 1요청당 약 3000자 한도(NaverClova 2000자 대비 상향). 대안인 Google Cloud TTS는 별도 GCP 인증 필요로 제외.</div>
+      <div class="entry-section"><strong>수정 내용:</strong>
+        <ul>
+          <li>TtsProvider 인터페이스 신설, PollyTtsProvider(@Service)로 구현 — TtsProcessingScheduler는 인터페이스에만 의존</li>
+          <li>NaverClovaVoiceClient 삭제, application.yaml naver.clova.voice.* 블록 제거</li>
+          <li>V10 시드: harin/junho 2건 → Seoyeon 1건 (FEMALE, AWS Polly VoiceId)</li>
+          <li>application.yaml app.tts.default-voice-id: Seoyeon, app.tts.polly.engine: neural</li>
+          <li>테스트 전체: harin/junho → Seoyeon, voice count 2→1, NaverClovaVoiceClientTest 삭제 → PollyTtsProviderTest 4건 신설</li>
+          <li>SavedArticleListenableRepositoryTest: voices FK 대응으로 test-voice-b 삽입 로직 추가</li>
+        </ul>
+      </div>
+      <div class="entry-section"><strong>영향 파일:</strong>
+        NEW: TtsProvider.java, PollyTtsProvider.java, PollyTtsProviderTest.java |
+        DEL: NaverClovaVoiceClient.java, NaverClovaVoiceClientTest.java |
+        MOD: build.gradle, TtsProcessingScheduler.java, application.yaml, application-example.yaml, V10__add_tts_tables.sql, TtsProcessingSchedulerTest.java + 다수 테스트 파일
+      </div>
+    </div>
   </div>
 
   <!-- 7 -->

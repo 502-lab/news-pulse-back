@@ -68,7 +68,7 @@ class BriefingControllerTest {
     private TtsStatusResponse buildTts(TtsStatus status) {
         String audioUrl = status == TtsStatus.READY ? "https://cdn.example.com/tts/1.mp3" : null;
         return new TtsStatusResponse(
-                UUID.randomUUID(), TtsOwnerType.ARTICLE, "1", "harin",
+                UUID.randomUUID(), TtsOwnerType.ARTICLE, "1", "Seoyeon",
                 status, audioUrl, null, null);
     }
 
@@ -85,7 +85,7 @@ class BriefingControllerTest {
 
         TtsStatusResponse ttsItem = buildTts(TtsStatus.PENDING);
         BriefingResponse response = new BriefingResponse(
-                LocalDate.now(), List.of(1L), "harin", List.of(ttsItem));
+                LocalDate.now(), List.of(1L), "Seoyeon", List.of(ttsItem));
         when(briefingService.getOrCreateTodayBrief(any(Account.class))).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/briefing/today"))
@@ -93,7 +93,7 @@ class BriefingControllerTest {
                 .andExpect(jsonPath("$.data.ttsItems").isArray())
                 .andExpect(jsonPath("$.data.ttsItems[0].status").value("PENDING"))
                 .andExpect(jsonPath("$.data.articleIds[0]").value(1))
-                .andExpect(jsonPath("$.data.voiceId").value("harin"));
+                .andExpect(jsonPath("$.data.voiceId").value("Seoyeon"));
     }
 
     // ─────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ class BriefingControllerTest {
 
         TtsStatusResponse readyItem = buildTts(TtsStatus.READY);
         BriefingResponse response = new BriefingResponse(
-                LocalDate.now(), List.of(1L), "harin", List.of(readyItem));
+                LocalDate.now(), List.of(1L), "Seoyeon", List.of(readyItem));
         when(briefingService.getOrCreateTodayBrief(any(Account.class))).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/briefing/today"))

@@ -30,9 +30,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
             "app.client.naver.client-secret=test-secret",
             "app.client.naver.base-url=http://localhost:9999",
             "app.scheduler.enabled=false",
-            "naver.clova.voice.api-key-id=test-clova-key-id",
-            "naver.clova.voice.api-key=test-clova-key",
-            "naver.clova.voice.base-url=http://localhost:9999",
             "cloud.aws.s3.bucket=test-bucket",
             "cloud.aws.cloudfront.domain=http://localhost",
             "cloud.aws.region=us-east-1"
@@ -77,7 +74,7 @@ class TtsAudioClaimerTest {
             ttsAudioRepository.save(TtsAudio.builder()
                     .ownerType(TtsOwnerType.ARTICLE)
                     .refId(String.valueOf(i * 10))
-                    .voiceId("harin")
+                    .voiceId("Seoyeon")
                     .build());
         }
 

@@ -79,19 +79,19 @@ class MeControllerTest {
     @DisplayName("PUT reading-preference: voiceId 포함 → 200, 응답에 voiceId 포함")
     void updateReadingPreference_withVoiceId_returns200AndVoiceId() throws Exception {
         ReadingPreferenceResponse response =
-                new ReadingPreferenceResponse(SummaryDepth.BALANCED, ConsumeMode.LISTEN, "harin");
+                new ReadingPreferenceResponse(SummaryDepth.BALANCED, ConsumeMode.LISTEN, "Seoyeon");
         when(profileService.updateReadingPreference(eq(mockAccount), any(ReadingPreferenceRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(put("/api/v1/me/reading-preference")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"summaryDepth":"BALANCED","consumeMode":"LISTEN","voiceId":"harin"}
+                                {"summaryDepth":"BALANCED","consumeMode":"LISTEN","voiceId":"Seoyeon"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summaryDepth").value("BALANCED"))
                 .andExpect(jsonPath("$.consumeMode").value("LISTEN"))
-                .andExpect(jsonPath("$.voiceId").value("harin"));
+                .andExpect(jsonPath("$.voiceId").value("Seoyeon"));
     }
 
     @Test

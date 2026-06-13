@@ -29,9 +29,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
             "app.client.naver.client-secret=test-secret",
             "app.client.naver.base-url=http://localhost:9999",
             "app.scheduler.enabled=false",
-            "naver.clova.voice.api-key-id=test-clova-key-id",
-            "naver.clova.voice.api-key=test-clova-key",
-            "naver.clova.voice.base-url=http://localhost:9999",
             "cloud.aws.s3.bucket=test-bucket",
             "cloud.aws.cloudfront.domain=http://localhost",
             "cloud.aws.region=us-east-1"
@@ -59,13 +56,12 @@ class V10MigrationSmokeTest {
     TtsAudioRepository ttsAudioRepository;
 
     @Test
-    @DisplayName("V10 시드: voices 테이블에 하린·준서 2건 존재")
+    @DisplayName("V10 시드: voices 테이블에 서연(Seoyeon) 1건 존재")
     void voicesSeedApplied() {
         List<Voice> voices = voiceRepository.findAll();
-        assertThat(voices).hasSize(2);
-        assertThat(voices).extracting(Voice::getId).containsExactlyInAnyOrder("harin", "junho");
-        assertThat(voices).extracting(Voice::getGender)
-                .containsExactlyInAnyOrder("FEMALE", "MALE");
+        assertThat(voices).hasSize(1);
+        assertThat(voices).extracting(Voice::getId).containsExactly("Seoyeon");
+        assertThat(voices).extracting(Voice::getGender).containsExactly("FEMALE");
     }
 
     @Test
@@ -74,7 +70,7 @@ class V10MigrationSmokeTest {
         var ttsAudio = com.newscurator.domain.TtsAudio.builder()
                 .ownerType(TtsOwnerType.ARTICLE)
                 .refId("99999")
-                .voiceId("harin")
+                .voiceId("Seoyeon")
                 .build();
         var saved = ttsAudioRepository.save(ttsAudio);
         assertThat(saved.getId()).isNotNull();
@@ -88,7 +84,7 @@ class V10MigrationSmokeTest {
         var ttsAudio = com.newscurator.domain.TtsAudio.builder()
                 .ownerType(TtsOwnerType.ARTICLE)
                 .refId("88888")
-                .voiceId("harin")
+                .voiceId("Seoyeon")
                 .build();
         ttsAudio.fail("Naver API timeout");
         var saved = ttsAudioRepository.save(ttsAudio);

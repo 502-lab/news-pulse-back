@@ -36,7 +36,7 @@ public class S3AudioUploader {
      * MP3 bytes를 S3에 업로드하고 audio_key를 반환한다.
      *
      * @param mp3Bytes  MP3 바이너리
-     * @param audioKey  S3 키 (예: tts/article/12345/harin.mp3)
+     * @param audioKey  S3 키 (예: tts/article/12345/Seoyeon.mp3)
      * @return 저장된 audioKey (입력과 동일)
      */
     public String upload(byte[] mp3Bytes, String audioKey) {

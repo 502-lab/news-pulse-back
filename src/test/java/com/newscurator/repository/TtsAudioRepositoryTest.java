@@ -32,9 +32,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
             "app.client.naver.client-secret=test-secret",
             "app.client.naver.base-url=http://localhost:9999",
             "app.scheduler.enabled=false",
-            "naver.clova.voice.api-key-id=test-clova-key-id",
-            "naver.clova.voice.api-key=test-clova-key",
-            "naver.clova.voice.base-url=http://localhost:9999",
             "cloud.aws.s3.bucket=test-bucket",
             "cloud.aws.cloudfront.domain=http://localhost",
             "cloud.aws.region=us-east-1"
@@ -74,10 +71,10 @@ class TtsAudioRepositoryTest {
     @Test
     @DisplayName("(1) 동일 (ownerType, refId, voiceId) 두 번 save → DataIntegrityViolationException")
     void save_duplicateOwnerTypeRefIdVoiceId_throwsDataIntegrityViolationException() {
-        TtsAudio first = buildPending("42", "harin");
+        TtsAudio first = buildPending("42", "Seoyeon");
         ttsAudioRepository.saveAndFlush(first);
 
-        TtsAudio second = buildPending("42", "harin");
+        TtsAudio second = buildPending("42", "Seoyeon");
 
         assertThatThrownBy(() -> ttsAudioRepository.saveAndFlush(second))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -90,16 +87,16 @@ class TtsAudioRepositoryTest {
     @Test
     @DisplayName("(2) findPendingWithLock: PENDING 2건·PROCESSING 1건·READY 1건 → PENDING 2건만 반환")
     void findPendingWithLock_returnsOnlyPendingItems() {
-        TtsAudio pending1 = buildPending("10", "harin");
-        TtsAudio pending2 = buildPending("11", "junho");
-        TtsAudio processing = buildPending("12", "harin");
-        TtsAudio ready = buildPending("13", "junho");
+        TtsAudio pending1 = buildPending("10", "Seoyeon");
+        TtsAudio pending2 = buildPending("11", "Seoyeon");
+        TtsAudio processing = buildPending("12", "Seoyeon");
+        TtsAudio ready = buildPending("13", "Seoyeon");
 
         ttsAudioRepository.saveAndFlush(pending1);
         ttsAudioRepository.saveAndFlush(pending2);
         processing.markProcessing();
         ttsAudioRepository.saveAndFlush(processing);
-        ready.complete("tts/article/13/junho.mp3", null);
+        ready.complete("tts/article/13/Seoyeon.mp3", null);
         ttsAudioRepository.saveAndFlush(ready);
 
         List<TtsAudio> result = ttsAudioRepository.findPendingWithLock(10);
@@ -120,7 +117,7 @@ class TtsAudioRepositoryTest {
     @Test
     @DisplayName("(3) FAILED resetToPending(): 행 수 불변(1), 동일 id, status=PENDING, audioKey=null")
     void resetToPending_failedTtsAudio_updatesInPlaceWithoutNewInsert() {
-        TtsAudio tts = buildPending("20", "harin");
+        TtsAudio tts = buildPending("20", "Seoyeon");
         tts = ttsAudioRepository.saveAndFlush(tts);
         tts.fail("처리 실패");
         tts = ttsAudioRepository.saveAndFlush(tts);
@@ -134,7 +131,7 @@ class TtsAudioRepositoryTest {
 
         // 행 수 불변 (INSERT 아닌 UPDATE)
         long count = ttsAudioRepository.countByOwnerTypeAndRefIdAndVoiceId(
-                TtsOwnerType.ARTICLE, "20", "harin");
+                TtsOwnerType.ARTICLE, "20", "Seoyeon");
         assertThat(count).isEqualTo(1);
 
         // 동일 id, status=PENDING, audioKey=null

@@ -29,17 +29,16 @@ class VoiceServiceTest {
     }
 
     @Test
-    @DisplayName("findAll: 2건 VoiceResponse 반환")
-    void findAll_returnsTwoVoiceResponses() {
-        Voice harin = Voice.builder().id("harin").name("하린").gender("FEMALE").previewUrl(null).build();
-        Voice junho = Voice.builder().id("junho").name("준서").gender("MALE").previewUrl(null).build();
-        when(voiceRepository.findAll()).thenReturn(List.of(harin, junho));
+    @DisplayName("findAll: 1건 VoiceResponse 반환 (Seoyeon)")
+    void findAll_returnsSeoyeonVoiceResponse() {
+        Voice seoyeon = Voice.builder().id("Seoyeon").name("서연").gender("FEMALE").previewUrl(null).build();
+        when(voiceRepository.findAll()).thenReturn(List.of(seoyeon));
 
         List<VoiceResponse> result = voiceService.findAll();
 
-        assertThat(result).hasSize(2);
-        assertThat(result).extracting(VoiceResponse::id).containsExactlyInAnyOrder("harin", "junho");
-        assertThat(result).extracting(VoiceResponse::gender).containsExactlyInAnyOrder("FEMALE", "MALE");
+        assertThat(result).hasSize(1);
+        assertThat(result).extracting(VoiceResponse::id).containsExactly("Seoyeon");
+        assertThat(result).extracting(VoiceResponse::gender).containsExactly("FEMALE");
         // previewUrl은 시드 NULL이므로 null 허용
         assertThat(result).extracting(VoiceResponse::previewUrl).containsOnlyNulls();
     }
@@ -47,9 +46,9 @@ class VoiceServiceTest {
     @Test
     @DisplayName("validateVoiceId: 유효한 ID → exception 없음")
     void validateVoiceId_validId_noException() {
-        when(voiceRepository.existsById("harin")).thenReturn(true);
+        when(voiceRepository.existsById("Seoyeon")).thenReturn(true);
 
-        voiceService.validateVoiceId("harin"); // must not throw
+        voiceService.validateVoiceId("Seoyeon"); // must not throw
     }
 
     @Test

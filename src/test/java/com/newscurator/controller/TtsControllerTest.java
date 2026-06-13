@@ -35,7 +35,7 @@ class TtsControllerTest {
     private MockMvc mockMvc;
 
     private static final Long ARTICLE_ID = 1L;
-    private static final String VOICE_ID = "harin";
+    private static final String VOICE_ID = "Seoyeon";
 
     @BeforeEach
     void setUp() {
@@ -54,7 +54,7 @@ class TtsControllerTest {
 
         mockMvc.perform(post("/api/v1/articles/{articleId}/tts", ARTICLE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"voiceId\":\"harin\"}"))
+                        .content("{\"voiceId\":\"Seoyeon\"}"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
                 .andExpect(jsonPath("$.data.audioUrl").doesNotExist());
@@ -65,12 +65,12 @@ class TtsControllerTest {
     void postTts_readyStatus_returns200WithAudioUrl() throws Exception {
         TtsStatusResponse response = new TtsStatusResponse(
                 UUID.randomUUID(), TtsOwnerType.ARTICLE, "1", VOICE_ID,
-                TtsStatus.READY, "https://cdn.example.com/tts/article/1/harin.mp3", null, null);
+                TtsStatus.READY, "https://cdn.example.com/tts/article/1/Seoyeon.mp3", null, null);
         when(ttsService.requestArticleTts(eq(ARTICLE_ID), eq(VOICE_ID))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/articles/{articleId}/tts", ARTICLE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"voiceId\":\"harin\"}"))
+                        .content("{\"voiceId\":\"Seoyeon\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("READY"))
                 .andExpect(jsonPath("$.data.audioUrl").isNotEmpty());
@@ -84,7 +84,7 @@ class TtsControllerTest {
 
         mockMvc.perform(post("/api/v1/articles/{articleId}/tts", ARTICLE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"voiceId\":\"harin\"}"))
+                        .content("{\"voiceId\":\"Seoyeon\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("SUMMARY_NOT_READY"));
     }
@@ -105,7 +105,7 @@ class TtsControllerTest {
     void getTtsStatus_ready_returns200WithAudioUrl() throws Exception {
         TtsStatusResponse response = new TtsStatusResponse(
                 UUID.randomUUID(), TtsOwnerType.ARTICLE, "1", VOICE_ID,
-                TtsStatus.READY, "https://cdn.example.com/tts/article/1/harin.mp3", 30, null);
+                TtsStatus.READY, "https://cdn.example.com/tts/article/1/Seoyeon.mp3", 30, null);
         when(ttsService.getArticleTtsStatus(eq(ARTICLE_ID), eq(VOICE_ID))).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/articles/{articleId}/tts", ARTICLE_ID)

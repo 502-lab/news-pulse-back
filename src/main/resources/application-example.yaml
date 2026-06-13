@@ -80,16 +80,9 @@ app:
       article-count: 5        # 브리핑 기사 수 (최대 10)
     scheduler:
       cron: "*/30 * * * * *"  # TTS 처리 스케줄러 주기 (cron)
-    # TODO(V1): NCP Clova Voice 콘솔에서 실제 speaker ID 확인 후 교체
-    default-voice-id: "harin" # TODO(V1): 실제 speaker ID로 교체 필요
-
-# Naver Clova Voice API (NCP 인증 — Naver Developers X-Naver-Client-* 와 완전히 별개)
-naver:
-  clova:
-    voice:
-      api-key-id: ${NAVER_CLOVA_VOICE_API_KEY_ID}   # NCP API Gateway Key ID
-      api-key: ${NAVER_CLOVA_VOICE_API_KEY}          # NCP API Gateway Key
-      base-url: https://naveropenapi.apigw.ntruss.com
+    default-voice-id: "Seoyeon"
+    polly:
+      engine: neural
 
 # AWS S3 + CloudFront (오디오 파일 저장·배포)
 cloud:

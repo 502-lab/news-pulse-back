@@ -5,33 +5,33 @@
 
 ---
 
-## Decision 1: TTS 제공자 — Naver Clova Voice API
+## Decision 1: TTS 제공자 — AWS Polly (Seoyeon, Neural)
 
-**Decision**: Naver Clova Voice Premium API 사용
+> **2026-06-13 업데이트**: 최초 결정(Naver Clova Voice)에서 AWS Polly로 교체. 아래는 최종 결정값.
+
+**Decision**: AWS Polly Neural TTS 사용 — VoiceId: `Seoyeon` (한국어 여성, Neural 엔진)
 
 **Rationale**:
-- 스펙의 "하린(여)"·"준서(남)" 캐릭터명이 Naver Clova Voice API 화자 라인업에 대응 (실제 화자 ID는 V1 참고)
-- 한국어 뉴스 기사 텍스트에 특화된 NLP 모델로 자연스러운 뉴스 낭독체 지원
-- Pay-per-character 과금: 200단어 기사 요약(≈1,200자) ≈ ₩15~20로 저렴
-- Google Cloud TTS 대비: ko-KR Neural2 음성은 표준적이나 뉴스 낭독체 브랜딩 없음, SDK 의존성 추가 필요
-
-> **인증 주의**: Clova Voice는 NCP(Naver Cloud Platform) 인증(`X-NCP-APIGW-API-KEY-ID` / `X-NCP-APIGW-API-KEY`)을 사용한다. 뉴스 수집에 사용하는 Naver Developers API(`X-Naver-Client-Id`) 인증과 **완전히 별개**이며, 재사용 불가. 별도 NCP 계정·API 게이트웨이 키 발급 필요.
+- 기존 S3 연동과 동일한 `DefaultCredentialsProvider`(EC2 인스턴스 프로파일)로 인증 통합 — 별도 키 관리 불필요
+- build.gradle에 이미 AWS SDK v2 BOM 선언 → `software.amazon.awssdk:polly` 한 줄 추가만으로 충족
+- Polly 한도 ≈3,000자(Naver 2,000자 대비 상향), Neural 엔진으로 자연스러운 한국어 뉴스 낭독체
+- Seoyeon: AWS Polly 공식 한국어(ko-KR) Neural 음성, 여성
 
 **API 계약 요약**:
 ```
-POST https://naveropenapi.apigw.ntruss.com/tts-premium/v1/tts
-Headers: X-NCP-APIGW-API-KEY-ID: {key-id}
-         X-NCP-APIGW-API-KEY: {key}
-Body (form): speaker={voiceId}&text=...&volume=0&speed=0&pitch=0&format=mp3
-Response: audio/mpeg binary (HTTP 200)
-Error: 4xx/5xx JSON {errorCode, errorMessage}
+AWS SDK v2: pollyClient.synthesizeSpeech(SynthesizeSpeechRequest)
+  .voiceId(VoiceId.SEOYEON)
+  .engine(Engine.NEURAL)
+  .outputFormat(OutputFormat.MP3)
+  .text(truncatedText)
+→ ResponseInputStream<SynthesizeSpeechResponse> → byte[]
+인증: DefaultCredentialsProvider (환경변수 AWS_ACCESS_KEY_ID 또는 EC2 인스턴스 프로파일)
 ```
 
-> **[V1] 화자 ID 미확인**: 표시명(하린/준서)은 디자인 확정값이나, Clova Voice 콘솔에서 실제 할당된 `speaker` 파라미터값을 확인해야 한다. 현재 문서에서 `[TBD]`로 표시. 구현 전 NCP Clova Voice 콘솔 접속 후 교체 필요.
-
 **Alternatives Considered**:
-- Google Cloud TTS: 신뢰성 높지만 Korean 브랜딩 음성 없음, Google SDK 의존성 추가
-- Kakao i Voice: B2B 위주, 독립 개발자 API 미공개, 문서 불충분
+- Naver Clova Voice Premium: NCP 별도 인증 키 필요, 화자 ID 미확인([TBD]), 한도 2,000자
+- Google Cloud TTS: GCP 별도 인증 필요, Google SDK 의존성 추가
+- Kakao i Voice: B2B 위주, 독립 개발자 API 미공개
 
 ---
 
