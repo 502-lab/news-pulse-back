@@ -186,6 +186,6 @@ specs/ ← news-curator-spec submodule (수정 금지)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `.specify/specs/003-personalized-feed-search-save/plan.md`.
+at `.specify/specs/004-tts-audio-briefing/plan.md`.
 
 <!-- SPECKIT END -->

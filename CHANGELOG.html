@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">42</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">47</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">9</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">13</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,10 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-13</div>
+  <a class="toc-item" href="#d0613-8">spec 004 TTS 제공자 Naver Clova → AWS Polly (Seoyeon, Neural) 교체</a>
+  <a class="toc-item" href="#d0613-7">spec 004 US4+Polish — listenable 필터·SavedArticleControllerTest·Swagger·CHANGELOG</a>
+  <a class="toc-item" href="#d0613-6">spec 004 US3 — BriefingService·BriefingController·BriefingServiceTest·BriefingControllerTest·DailyBriefRepositoryTest (294/294 GREEN)</a>
+  <a class="toc-item" href="#d0613-5">spec 004 US2 수정 — resolveTtsText orElseThrow·truncateTtsText·TtsAudioClaimerTest (284/284 GREEN)</a>
   <a class="toc-item" href="#d0613-3">spec 003 Phase 6 Polish — Swagger 완성 + application-example.yaml feed 설정</a>
   <a class="toc-item" href="#d0613-2">US3 저장 구현 — 멱등 save/unsave + 1000건 상한 + 목록 (240/240 GREEN)</a>
   <a class="toc-item" href="#d0613-1">US2 검색 구현 — pg_bigm + 커서 페이지네이션 (226/226 GREEN)</a>
@@ -367,6 +371,200 @@
     <h2>2026-06-13</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 8 -->
+  <div class="entry" id="d0613-8" data-tags="feature config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-config">Config</span>
+          spec 004 TTS 제공자 교체: Naver Clova Voice → AWS Polly (Seoyeon, Neural)
+        </div>
+        <div class="entry-meta">
+          <span>2026-06-13</span>
+          <span>미커밋</span>
+        </div>
+      </div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="entry-body">
+      <div class="entry-section"><strong>문제(배경):</strong> NaverClovaVoiceClient는 NCP API 인증(X-NCP-APIGW-API-KEY-ID/KEY)을 별도로 관리해야 하고, 한국어 음성이 하린/준서 두 캐릭터뿐이었음. AWS Polly는 기존 S3와 동일한 DefaultCredentialsProvider(EC2 인스턴스 프로파일)로 인증 통합이 가능하고, Seoyeon 한국어 Neural 음성의 품질이 우수함.</div>
+      <div class="entry-section"><strong>근본 원인(결정 이유):</strong> 인증 단순화(NCP 별도 키 제거), 기존 AWS SDK v2 BOM 재사용으로 의존성 추가 최소화, Neural 엔진으로 음질 향상. Polly 1요청당 약 3000자 한도(NaverClova 2000자 대비 상향). 대안인 Google Cloud TTS는 별도 GCP 인증 필요로 제외.</div>
+      <div class="entry-section"><strong>수정 내용:</strong>
+        <ul>
+          <li>TtsProvider 인터페이스 신설, PollyTtsProvider(@Service)로 구현 — TtsProcessingScheduler는 인터페이스에만 의존</li>
+          <li>NaverClovaVoiceClient 삭제, application.yaml naver.clova.voice.* 블록 제거</li>
+          <li>V10 시드: harin/junho 2건 → Seoyeon 1건 (FEMALE, AWS Polly VoiceId)</li>
+          <li>application.yaml app.tts.default-voice-id: Seoyeon, app.tts.polly.engine: neural</li>
+          <li>테스트 전체: harin/junho → Seoyeon, voice count 2→1, NaverClovaVoiceClientTest 삭제 → PollyTtsProviderTest 4건 신설</li>
+          <li>SavedArticleListenableRepositoryTest: voices FK 대응으로 test-voice-b 삽입 로직 추가</li>
+        </ul>
+      </div>
+      <div class="entry-section"><strong>영향 파일:</strong>
+        NEW: TtsProvider.java, PollyTtsProvider.java, PollyTtsProviderTest.java |
+        DEL: NaverClovaVoiceClient.java, NaverClovaVoiceClientTest.java |
+        MOD: build.gradle, TtsProcessingScheduler.java, application.yaml, application-example.yaml, V10__add_tts_tables.sql, TtsProcessingSchedulerTest.java + 다수 테스트 파일
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="entry" id="d0613-7" data-tags="feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          spec 004 US4 listenable 필터 + Polish (T043~T050)
+        </div>
+        <div class="entry-meta"><span class="session-badge">미커밋</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>구현 내용</dt>
+        <dd>T043 SavedArticleRepository에 네이티브 쿼리 2개 추가 — findListenableOrderBySavedAtDesc / findListenableWithCursor. tts_audios 테이블과 EXISTS 서브쿼리로 조인 (CAST(ref_id AS BIGINT) = article_id AND status='READY' AND owner_type='ARTICLE'). voiceId NULL 시 모든 음성 허용 (:voiceId IS NULL OR ta.voice_id = :voiceId). T044 SavedArticleService.list() 시그니처 확장 — (accountId, cursor, size, listenable, voiceId). listenable=false이면 기존 쿼리 사용(회귀 없음). T045 SavedArticleController GET /api/v1/me/saved-articles에 listenable(defaultValue=false)·voiceId(required=false) @RequestParam 추가 + @Parameter(description) Swagger 주석. T046 SavedArticleControllerTest(신규, standaloneSetup) 3건 — (1)listenable=true→READY 기사 반환 (2)listenable 미지정→기존 동작 회귀 없음 (3)listenable=true&amp;voiceId=harin→해당 음성 필터 확인. T047 Swagger 주석 기존 컨트롤러·DTO 일제 점검 — VoiceController·TtsController·BriefingController @Tag/@Operation/@ApiResponses, VoiceResponse·TtsRequest·TtsStatusResponse·BriefingResponse @Schema 모두 완비 확인. T048 application-example.yaml TTS 섹션(naver.clova.voice / app.tts.briefing.article-count / app.tts.scheduler.cron / app.tts.default-voice-id / cloud.aws.cloudfront.domain) 이미 완비 확인. T049 CHANGELOG 갱신(현 항목). T050 ./gradlew build 전체 실행.</dd>
+        <dt>결정 이유</dt>
+        <dd>listenable 필터에 JOIN 대신 EXISTS 서브쿼리 사용 — tts_audios에 동일 (ref_id, voice_id) 조합으로 복수 레코드가 존재할 경우 JOIN이 saved_articles 행을 중복 반환하는 문제 방지. native query 선택 이유: JPQL은 VARCHAR → BIGINT 타입 캐스트(CAST(ref_id AS BIGINT))를 직접 지원하지 않음. voiceId=null → :voiceId IS NULL 조건으로 any-voice 동작 구현 — 서비스 레이어 분기 없이 단일 쿼리로 처리.</dd>
+        <dt>영향 파일</dt>
+        <dd>SavedArticleRepository.java · SavedArticleService.java · SavedArticleController.java · SavedArticleServiceTest.java(시그니처 갱신) · SavedArticleControllerTest.java(신규) · CHANGELOG.html</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="entry" id="d0613-6" data-tags="feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          spec 004 US3 — BriefingService·BriefingController·BriefingResponse·DailyBriefRepositoryTest
+        </div>
+        <div class="entry-meta"><span class="session-badge">294/294 GREEN (+10 vs US2 베이스 284)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>구현 내용</dt>
+        <dd>T037 BriefingResponse record (briefDate·articleIds·voiceId·ttsItems + @Schema). T038 BriefingService.getOrCreateTodayBrief — 캐시 히트 시 requestArticleTts 재호출(stale 금지), 캐시 미스 시 FeedService.getRankedBriefingCandidates → summaryStatus=COMPLETED 필터 → N건 선정 → DailyBrief 저장 → TTS 요청. COMPLETED 0건 → NoFeedArticlesException. T039 BriefingController GET /api/v1/briefing/today — 전체 READY이면 200, 처리 중 있으면 202. T040 BriefingServiceTest 4건(캐시 히트·신규·혼합 필터·0건). T041 BriefingControllerTest 4건(standaloneSetup + AuthenticationPrincipalArgumentResolver + SecurityContextHolder — 202·200·401·404). T042 DailyBriefRepositoryTest 2건(UNIQUE 위반·findByAccountIdAndBriefDate).</dd>
+        <dt>결정 이유</dt>
+        <dd>FeedService에 getRankedBriefingCandidates(후보 3N 반환, summaryStatus 필터 없음) 추가하고 BriefingService에서 COMPLETED 필터를 분리 적용 — 테스트에서 혼합 상태를 mock으로 주입해 필터 로직을 직접 단언할 수 있도록 설계. 401 테스트는 standaloneSetup에 AuthenticationPrincipalArgumentResolver를 수동 등록하고 SecurityContextHolder를 비워 null principal → BadCredentialsException → 401 경로를 검증. ResponseStatusException이 GlobalExceptionHandler.handleGeneral에 삼켜지는 문제를 BadCredentialsException으로 교체해 회피.</dd>
+        <dt>영향 파일</dt>
+        <dd>FeedService.java · BriefingResponse.java(신규) · BriefingService.java(신규) · BriefingController.java(신규) · BriefingServiceTest.java(신규) · BriefingControllerTest.java(신규) · DailyBriefRepositoryTest.java(신규)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="entry" id="d0613-5" data-tags="feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          spec 004 US2 수정 — resolveTtsText orElseThrow · truncateTtsText 2000자 가드 · TtsAudioClaimerTest
+        </div>
+        <div class="entry-meta"><span class="session-badge">284/284 GREEN (신규 2건: truncation 단위 + claimer TX 정합)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><strong>resolveTtsText orElseThrow</strong> — <code>.orElse("기사 요약을 불러올 수 없습니다.")</code> 제거. COMPLETED 요약 없으면 <code>IllegalStateException("처리 가능한 완료 요약 없음: refId=…")</code> 발생 → 스케줄러 catch(Exception)에서 FAILED 저장. TTS 음성으로 읽혀서는 안 되는 fallback 텍스트 제거.</li>
+          <li><strong>NaverClovaVoiceClient.truncateTtsText</strong> — Clova Voice Premium API 1콜 2000자 제한 대응. 1900자 초과 시 마지막 문장 경계(. ? !) 직후에서 커트 + "…". 경계 없으면 1900자 하드컷 + "…". <code>generate()</code>에서 자동 적용.</li>
+          <li><strong>TtsAudioClaimerTest</strong> — PENDING 3건 → <code>claimBatch(10)</code> → 3건 반환·전부 PROCESSING, 직후 재클레임 → 빈 리스트 단언. FOR UPDATE SKIP LOCKED 커밋 후 이중 처리 없음 검증. (Testcontainers)</li>
+          <li><strong>TtsProcessingSchedulerTest 업데이트</strong> — 정상·Naver실패 테스트에 완료 요약 stub 추가 (orElseThrow 대응). 빈배치 테스트는 summary 미조회이므로 영향 없음.</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (대안 대비 근거)</div>
+        <ul>
+          <li><strong>orElseThrow vs fallback 문자열</strong> — fallback 문자열을 TTS로 내보내면 "처리 가능한 완료 요약 없음" 같은 시스템 메시지가 사용자 귀에 들림. orElseThrow→FAILED 저장으로 명시적 실패 처리가 운영 관찰성에도 유리.</li>
+          <li><strong>1900자 커트 기준</strong> — Clova 제한은 2000자지만 100자 여유를 두어 URL-encoding overhead와 멀티바이트 경계 문제 흡수. 분할 호출(split-and-concat)은 오디오 이음새 품질 문제 + 비용 2배 → 현 스코프에서 트런케이트 선택.</li>
+          <li><strong>truncateTtsText public static</strong> — 테스트 패키지가 <code>client</code>(test) vs <code>client.ai</code>(prod)로 달라 package-private으로는 접근 불가. 순수 텍스트 변환 유틸이므로 public 노출에 보안 위험 없음.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">client/ai/NaverClovaVoiceClient.java</span>
+          <span class="file">scheduler/TtsProcessingScheduler.java</span>
+          <span class="file">test/…/client/NaverClovaVoiceClientTest.java</span>
+          <span class="file">test/…/scheduler/TtsProcessingSchedulerTest.java</span>
+          <span class="file">test/…/scheduler/TtsAudioClaimerTest.java (신규)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="entry" id="d0613-4" data-tags="feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          spec 004 US2 — 기사 TTS 요청·폴링·스케줄러 (T024~T036)
+        </div>
+        <div class="entry-meta"><span class="session-badge">282/282 GREEN (US2 27 신규 테스트 포함)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="section">
+        <div class="section-title">변경 내용</div>
+        <ul>
+          <li><strong>T024</strong> — <code>SummaryNotReadyException</code>(409)·<code>NoFeedArticlesException</code>(404)·<code>TtsAudioNotFoundException</code>(404) 추가, <code>GlobalExceptionHandler</code>에 핸들러 등록</li>
+          <li><strong>T025</strong> — <code>TtsRequest</code> record(@NotBlank voiceId)</li>
+          <li><strong>T026</strong> — <code>TtsStatusResponse</code> record — audioKey==null이면 generateUrl 미호출, audioUrl=null(null 가드)</li>
+          <li><strong>T027+T028</strong> — <code>TtsService</code>: 멱등 4분기(READY→no-save / PENDING·PROCESSING→no-save / FAILED→resetToPending+save same row / null→신규 INSERT) + getArticleTtsStatus</li>
+          <li><strong>T029</strong> — <code>TtsController</code>: POST 200(READY)/202(non-READY) + GET, Swagger 완성</li>
+          <li><strong>T031</strong> — <code>TtsProcessingScheduler</code> + <code>TtsAudioClaimer</code>: 짧은 @Transactional claimBatch(FOR UPDATE 락 해제) → Naver HTTP 호출 → 결과 저장. 락 밖 HTTP 분리 설계.</li>
+          <li><strong>T032</strong> — <code>TtsServiceTest</code>: 멱등 4분기 verify(never/times.save) 단언 9건</li>
+          <li><strong>T033</strong> — <code>NaverClovaVoiceClientTest</code>: WireMock 200→bytes·4xx→예외·X-NCP-* 헤더·API 키 로그 미포함 단언 6건</li>
+          <li><strong>T034</strong> — <code>TtsAudioRepositoryTest</code>: UNIQUE 위반·findPendingWithLock 필터·FAILED resetToPending 행수 불변 단언 3건 (Docker Testcontainers)</li>
+          <li><strong>T035</strong> — <code>TtsControllerTest</code>: POST 202/200/409 + GET 404 5건</li>
+          <li><strong>T036</strong> — <code>TtsProcessingSchedulerTest</code>: 정상→READY+audioKey / Naver실패→FAILED+S3미호출 3건</li>
+          <li><code>TtsAudioRepository</code>에 <code>countByOwnerTypeAndRefIdAndVoiceId</code> 파생 쿼리 추가</li>
+        </ul>
+      </div>
+      <div class="section why">
+        <div class="section-title">결정 이유 (대안 대비 근거)</div>
+        <ul>
+          <li><strong>TtsAudioClaimer 별도 빈 분리</strong> — 스케줄러 자체 @Transactional 자기호출은 AOP 프록시를 우회하여 TX가 적용되지 않음. 별도 Spring 빈으로 분리해 FOR UPDATE 락이 claim TX 커밋 즉시 해제되도록 보장 — Naver HTTP 호출(5~15초) 동안 락 점유 방지.</li>
+          <li><strong>FAILED 재사용 (resetToPending, no INSERT)</strong> — 동일 (ownerType,refId,voiceId)에 UNIQUE 제약 존재. 새 INSERT 시 DataIntegrityViolationException 발생. resetToPending()으로 기존 행을 재사용하여 이중 과금 위험 없이 재시도.</li>
+          <li><strong>audioUrl null 가드</strong> — PENDING/PROCESSING/FAILED 상태에서는 audioKey가 null이므로 generateUrl 미호출. 호출 시 CloudFront URL이 잘못 생성되어 프론트가 null-safety 없이 접근하면 런타임 오류 발생.</li>
+        </ul>
+      </div>
+      <div class="section">
+        <div class="section-title">영향 파일</div>
+        <div class="files">
+          <span class="file">exception/SummaryNotReadyException.java</span>
+          <span class="file">exception/NoFeedArticlesException.java</span>
+          <span class="file">exception/TtsAudioNotFoundException.java</span>
+          <span class="file">exception/GlobalExceptionHandler.java</span>
+          <span class="file">dto/request/TtsRequest.java</span>
+          <span class="file">dto/response/TtsStatusResponse.java</span>
+          <span class="file">service/TtsService.java</span>
+          <span class="file">controller/TtsController.java</span>
+          <span class="file">scheduler/TtsAudioClaimer.java</span>
+          <span class="file">scheduler/TtsProcessingScheduler.java</span>
+          <span class="file">repository/TtsAudioRepository.java</span>
+          <span class="file">test/…/service/TtsServiceTest.java</span>
+          <span class="file">test/…/client/NaverClovaVoiceClientTest.java</span>
+          <span class="file">test/…/repository/TtsAudioRepositoryTest.java</span>
+          <span class="file">test/…/controller/TtsControllerTest.java</span>
+          <span class="file">test/…/scheduler/TtsProcessingSchedulerTest.java</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 3 -->

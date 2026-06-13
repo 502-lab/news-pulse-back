@@ -89,3 +89,19 @@ app:
   retention:
     days: 90
     grace-period-days: 7
+  tts:
+    briefing:
+      article-count: 5           # 브리핑 기사 수 (최대 10)
+    scheduler:
+      cron: "*/30 * * * * *"     # TTS 처리 스케줄러 주기 (30초)
+    default-voice-id: "Seoyeon"
+    polly:
+      engine: neural
+
+cloud:
+  aws:
+    region: ${AWS_REGION:ap-northeast-2}
+    s3:
+      bucket: ${AWS_S3_BUCKET:placeholder-bucket}
+    cloudfront:
+      domain: ${AWS_CLOUDFRONT_DOMAIN:https://placeholder.cloudfront.net}

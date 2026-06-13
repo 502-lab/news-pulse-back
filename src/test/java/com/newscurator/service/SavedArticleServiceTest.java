@@ -168,7 +168,7 @@ class SavedArticleServiceTest {
         when(readingPreferenceRepository.findByAccountId(accountId))
                 .thenReturn(Optional.empty());
 
-        SavedArticleListResponse response = savedArticleService.list(accountId, null, 20);
+        SavedArticleListResponse response = savedArticleService.list(accountId, null, 20, false, null);
 
         assertThat(response.articles()).hasSize(1);
         assertThat(response.articles().get(0).savedAt()).isEqualTo(savedAt);

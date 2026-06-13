@@ -82,7 +82,9 @@ public class SavedArticleController {
     @Operation(
             summary = "저장 기사 목록 조회",
             description = "현재 사용자의 저장 기사 목록을 savedAt 역순으로 반환한다. "
-                    + "cursor 기반 페이지네이션 지원.")
+                    + "cursor 기반 페이지네이션 지원. "
+                    + "listenable=true이면 READY TTS가 존재하는 기사만 반환(들을 수 있음 필터). "
+                    + "voiceId 지정 시 해당 음성의 READY TTS가 있는 기사만 포함.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "목록 조회 성공 (0건 포함)"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "미인증"),
@@ -95,11 +97,15 @@ public class SavedArticleController {
             @RequestParam(required = false) String cursor,
             @Parameter(description = "페이지 크기 (1~50, 기본값 20)")
             @Min(1) @Max(50)
-            @RequestParam(required = false, defaultValue = "20") int size) {
+            @RequestParam(required = false, defaultValue = "20") int size,
+            @Parameter(description = "READY TTS가 존재하는 기사만 반환 (들을 수 있음 필터, 기본값 false)")
+            @RequestParam(defaultValue = "false") boolean listenable,
+            @Parameter(description = "특정 음성 ID의 READY TTS만 포함 (listenable=true 시 유효, 미지정 시 모든 음성)")
+            @RequestParam(required = false) String voiceId) {
 
         verifyEmail(userDetails);
         SavedArticleListResponse response =
-                savedArticleService.list(userDetails.getAccountId(), cursor, size);
+                savedArticleService.list(userDetails.getAccountId(), cursor, size, listenable, voiceId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

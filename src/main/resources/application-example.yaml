@@ -73,3 +73,21 @@ app:
   retention:
     days: 90                  # 기사 보존 일수
     grace-period-days: 7      # 만료 후 추가 유예 기간
+
+# TTS 설정 (004)
+  tts:
+    briefing:
+      article-count: 5        # 브리핑 기사 수 (최대 10)
+    scheduler:
+      cron: "*/30 * * * * *"  # TTS 처리 스케줄러 주기 (cron)
+    default-voice-id: "Seoyeon"
+    polly:
+      engine: neural
+
+# AWS S3 + CloudFront (오디오 파일 저장·배포)
+cloud:
+  aws:
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+    cloudfront:
+      domain: ${AWS_CLOUDFRONT_DOMAIN}               # CloudFront 배포 도메인 (https://xxx.cloudfront.net)

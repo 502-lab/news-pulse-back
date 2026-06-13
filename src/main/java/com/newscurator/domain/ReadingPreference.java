@@ -31,6 +31,10 @@ public class ReadingPreference {
     @Column(name = "consume_mode", nullable = false, length = 20)
     private ConsumeMode consumeMode = ConsumeMode.READ;
 
+    // 004: voice_id 추가 (readMode 신설 없음 — 기존 consumeMode 재사용)
+    @Column(name = "voice_id", length = 50)
+    private String voiceId; // nullable — voices.id FK (선호 음성 미설정 시 null)
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
@@ -45,6 +49,15 @@ public class ReadingPreference {
     public void update(SummaryDepth summaryDepth, ConsumeMode consumeMode) {
         this.summaryDepth = summaryDepth;
         this.consumeMode = consumeMode;
+        this.updatedAt = Instant.now();
+    }
+
+    public void update(SummaryDepth summaryDepth, ConsumeMode consumeMode, String voiceId) {
+        this.summaryDepth = summaryDepth;
+        this.consumeMode = consumeMode;
+        if (voiceId != null) {
+            this.voiceId = voiceId;
+        }
         this.updatedAt = Instant.now();
     }
 }
