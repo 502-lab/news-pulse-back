@@ -89,3 +89,25 @@ app:
   retention:
     days: 90
     grace-period-days: 7
+  tts:
+    briefing:
+      article-count: 5           # 브리핑 기사 수 (최대 10)
+    scheduler:
+      cron: "*/30 * * * * *"     # TTS 처리 스케줄러 주기 (30초)
+    # TODO(V1): 배포 전 NCP Clova Voice 콘솔에서 실제 speaker ID 확인 후 교체
+    default-voice-id: "harin"    # TODO(V1): 실제 speaker ID로 교체 필요
+
+naver:
+  clova:
+    voice:
+      api-key-id: ${NAVER_CLOVA_VOICE_API_KEY_ID:placeholder-key-id}
+      api-key: ${NAVER_CLOVA_VOICE_API_KEY:placeholder-key}
+      base-url: ${NAVER_CLOVA_VOICE_BASE_URL:https://naveropenapi.apigw.ntruss.com}
+
+cloud:
+  aws:
+    region: ${AWS_REGION:ap-northeast-2}
+    s3:
+      bucket: ${AWS_S3_BUCKET:placeholder-bucket}
+    cloudfront:
+      domain: ${AWS_CLOUDFRONT_DOMAIN:https://placeholder.cloudfront.net}
