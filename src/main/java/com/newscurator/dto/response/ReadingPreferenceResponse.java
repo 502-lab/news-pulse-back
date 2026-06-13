@@ -7,5 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "읽기 방식 응답")
 public record ReadingPreferenceResponse(
         @Schema(description = "요약 깊이") SummaryDepth summaryDepth,
-        @Schema(description = "소비 방식") ConsumeMode consumeMode
+        @Schema(description = "소비 방식") ConsumeMode consumeMode,
+        @Schema(description = "선호 음성 ID. 미설정 시 null.") String voiceId
 ) {}
