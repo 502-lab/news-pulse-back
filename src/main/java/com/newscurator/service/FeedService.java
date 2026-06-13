@@ -124,6 +124,30 @@ public class FeedService {
         return new FeedResponse(items, nextCursor, hasNext, items.size(), personalized);
     }
 
+    /**
+     * 브리핑용 피드 후보 — 전체 피드 순위 기준, candidateLimit개 반환.
+     * summaryStatus 필터는 호출자(BriefingService) 책임으로 분리.
+     */
+    @Transactional(readOnly = true)
+    public List<Article> getRankedBriefingCandidates(UUID accountId, int candidateLimit) {
+        List<String> userCategories = userInterestsRepository.findByAccountId(accountId).stream()
+                .map(UserInterests::getCategory).toList();
+        List<String> userKeywords = followKeywordRepository.findByAccountId(accountId).stream()
+                .map(FollowKeyword::getKeyword).toList();
+        boolean personalized = !userCategories.isEmpty() || !userKeywords.isEmpty();
+
+        Instant now = Instant.now();
+        OffsetDateTime windowStart = now.minus(Duration.ofDays(rankingProps.feedWindowDays()))
+                .atOffset(ZoneOffset.UTC);
+        OffsetDateTime refTs = now.atOffset(ZoneOffset.UTC);
+
+        List<Article> candidates = fetchCandidates(null, windowStart, refTs);
+        return rankArticles(candidates, userCategories, userKeywords, now, personalized).stream()
+                .map(ScoredArticle::article)
+                .limit(candidateLimit)
+                .toList();
+    }
+
     // ── Ranking ──────────────────────────────────────────────────────────────
 
     private List<Article> fetchCandidates(Category categoryFilter, OffsetDateTime windowStart, OffsetDateTime refTsODT) {

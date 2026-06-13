@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">44</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">45</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">10</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">11</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-13</div>
+  <a class="toc-item" href="#d0613-6">spec 004 US3 — BriefingService·BriefingController·BriefingServiceTest·BriefingControllerTest·DailyBriefRepositoryTest (294/294 GREEN)</a>
   <a class="toc-item" href="#d0613-5">spec 004 US2 수정 — resolveTtsText orElseThrow·truncateTtsText·TtsAudioClaimerTest (284/284 GREEN)</a>
   <a class="toc-item" href="#d0613-3">spec 003 Phase 6 Polish — Swagger 완성 + application-example.yaml feed 설정</a>
   <a class="toc-item" href="#d0613-2">US3 저장 구현 — 멱등 save/unsave + 1000건 상한 + 목록 (240/240 GREEN)</a>
@@ -368,6 +369,31 @@
     <h2>2026-06-13</h2>
     <div class="date-bar"></div>
     <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <!-- 6 -->
+  <div class="entry" id="d0613-6" data-tags="feature test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-test">Test</span>
+          spec 004 US3 — BriefingService·BriefingController·BriefingResponse·DailyBriefRepositoryTest
+        </div>
+        <div class="entry-meta"><span class="session-badge">294/294 GREEN (+10 vs US2 베이스 284)</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>구현 내용</dt>
+        <dd>T037 BriefingResponse record (briefDate·articleIds·voiceId·ttsItems + @Schema). T038 BriefingService.getOrCreateTodayBrief — 캐시 히트 시 requestArticleTts 재호출(stale 금지), 캐시 미스 시 FeedService.getRankedBriefingCandidates → summaryStatus=COMPLETED 필터 → N건 선정 → DailyBrief 저장 → TTS 요청. COMPLETED 0건 → NoFeedArticlesException. T039 BriefingController GET /api/v1/briefing/today — 전체 READY이면 200, 처리 중 있으면 202. T040 BriefingServiceTest 4건(캐시 히트·신규·혼합 필터·0건). T041 BriefingControllerTest 4건(standaloneSetup + AuthenticationPrincipalArgumentResolver + SecurityContextHolder — 202·200·401·404). T042 DailyBriefRepositoryTest 2건(UNIQUE 위반·findByAccountIdAndBriefDate).</dd>
+        <dt>결정 이유</dt>
+        <dd>FeedService에 getRankedBriefingCandidates(후보 3N 반환, summaryStatus 필터 없음) 추가하고 BriefingService에서 COMPLETED 필터를 분리 적용 — 테스트에서 혼합 상태를 mock으로 주입해 필터 로직을 직접 단언할 수 있도록 설계. 401 테스트는 standaloneSetup에 AuthenticationPrincipalArgumentResolver를 수동 등록하고 SecurityContextHolder를 비워 null principal → BadCredentialsException → 401 경로를 검증. ResponseStatusException이 GlobalExceptionHandler.handleGeneral에 삼켜지는 문제를 BadCredentialsException으로 교체해 회피.</dd>
+        <dt>영향 파일</dt>
+        <dd>FeedService.java · BriefingResponse.java(신규) · BriefingService.java(신규) · BriefingController.java(신규) · BriefingServiceTest.java(신규) · BriefingControllerTest.java(신규) · DailyBriefRepositoryTest.java(신규)</dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 5 -->
