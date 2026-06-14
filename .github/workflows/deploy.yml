@@ -12,27 +12,20 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '25' }
       - run: chmod +x gradlew && ./gradlew clean bootJar
-      - name: Write SSH key to file
+      - name: Deploy via SCP & SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-      - uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key_path: ~/.ssh/deploy_key
-          source: "build/libs/*.jar"
-          target: "/home/ubuntu/app"
-          strip_components: 2
-      - uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key_path: ~/.ssh/deploy_key
-          script: |
-            mv -f /home/ubuntu/app/*.jar /home/ubuntu/app/news-pulse-back.jar
-            cd /home/ubuntu/app
-            pm2 reload newsift-back || pm2 start ecosystem.config.js
-            pm2 save
+          echo "$EC2_SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          scp -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            build/libs/*.jar \
+            ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/news-pulse-back.jar
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            ${EC2_USER}@${EC2_HOST} \
+            "cd /home/ubuntu/app && pm2 reload newsift-back || pm2 start ecosystem.config.js && pm2 save"
+          rm -f /tmp/deploy_key
