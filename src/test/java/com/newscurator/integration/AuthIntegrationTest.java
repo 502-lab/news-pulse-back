@@ -83,8 +83,8 @@ class AuthIntegrationTest {
                 .baseUrl("http://localhost:" + port)
                 .build();
 
-        // Stub email service to succeed by default
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        // Stub Resend API to succeed by default
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
 
         // Clean data
@@ -130,15 +130,15 @@ class AuthIntegrationTest {
         // verificationEmailSent must be true when email stub returns 200
         assertThat(response.get("verificationEmailSent")).isEqualTo(true);
 
-        // Verify email send was called
-        wireMock.verify(1, postRequestedFor(urlPathEqualTo("/send-verification-code")));
+        // Verify email send was called via Resend API
+        wireMock.verify(1, postRequestedFor(urlPathEqualTo("/emails")));
     }
 
     @Test
     @DisplayName("가입 중 이메일 발송 503 → 계정 생성됨(rollback X), 201 + verificationEmailSent=false, orphan 코드 없음, 재발송 가능")
     void signup_emailDeliveryFails_accountCreated_verificationEmailSentFalse() {
-        // Stub email to fail
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        // Stub Resend API to fail
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(503)));
 
         Map<String, Object> body = Map.of(
@@ -183,7 +183,7 @@ class AuthIntegrationTest {
         assertThat(maxHourly).isEqualTo(0);
 
         // (d) 재발송 가능: 이메일 서비스 복구 후 request 성공
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
         String accessToken = (String) ((Map<?, ?>) response.get("tokens")).get("accessToken");
         var resendResp = restClient.post()
@@ -194,7 +194,7 @@ class AuthIntegrationTest {
                 .retrieve()
                 .toBodilessEntity();
         assertThat(resendResp.getStatusCode().value()).isEqualTo(200);
-        wireMock.verify(postRequestedFor(urlPathEqualTo("/send-verification-code")));
+        wireMock.verify(postRequestedFor(urlPathEqualTo("/emails")));
     }
 
     @Test
