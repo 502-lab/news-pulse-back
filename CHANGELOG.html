@@ -301,18 +301,20 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">38</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">39</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">6</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">7</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-12</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-14</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-14</div>
+  <a class="toc-item" href="#d0614-1">OpenAPI 자동 동기화 파이프라인</a>
   <div class="toc-date">2026-06-12</div>
   <a class="toc-item" href="#d0612-2">002 카테고리 검증 누락 수정</a>
   <a class="toc-item" href="#d0612-1">T061~T082 온보딩·프로필·약관·감사로그 구현</a>
@@ -354,6 +356,49 @@
 </nav>
 
 <div class="content">
+
+<!-- ═══════ 2026-06-14 ═══════ -->
+<div class="date-group" id="date-0614">
+  <div class="date-heading">
+    <h2>2026-06-14</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋</div>
+  </div>
+
+  <div class="entry" id="d0614-1">
+    <div class="entry-header">
+      <span class="tag tag-feature">Feature</span>
+      <span class="entry-title">OpenAPI 자동 동기화 파이프라인 구축</span>
+    </div>
+    <div class="entry-body">
+      <div class="field-label">문제 / 발견 경위</div>
+      <div class="field-value"><code>specs/api-contract/openapi.yaml</code>이 초기 보일러플레이트(Todo API) 상태 그대로였으며, 001~004에서 구현된 실제 엔드포인트가 전혀 반영되지 않아 프론트엔드 팀이 API 계약을 읽을 수 없는 상태.</div>
+
+      <div class="field-label">근본 원인</div>
+      <div class="field-value">openapi.yaml을 수동 관리하면서 "변경 시 반드시 반영" 규칙이 있었지만 자동화 없이는 누락이 불가피. news-pulse-spec 서브모듈은 별도 레포이므로 이 레포에서 직접 커밋 불가.</div>
+
+      <div class="field-label">수정 내용</div>
+      <ul class="change-list">
+        <li><code>OpenApiSpecExportTest.java</code> — <code>@SpringBootTest</code> + TestContainers로 앱 기동 후 <code>/api-docs</code> 호출, JSON→YAML 변환 후 <code>build/openapi.yaml</code> 저장.</li>
+        <li><code>.github/workflows/sync-openapi.yml</code> — <code>dev</code>/<code>main</code> push 시 export 테스트 실행 → <code>SPEC_REPO_TOKEN</code>으로 <code>news-pulse-spec</code> 레포에 push. 변경 없으면 커밋 생략.</li>
+        <li><code>build.gradle</code> — <code>testImplementation jackson-dataformat-yaml</code> 추가 (JSON→YAML 변환용).</li>
+      </ul>
+
+      <div class="field-label">결정 이유</div>
+      <div class="field-value">SpringDoc이 런타임에 정확한 스펙을 생성하므로 "앱 기동 후 /api-docs 호출" 방식이 가장 신뢰도가 높다. springdoc-openapi-gradle-plugin은 Spring Boot 4.x 호환성 미확인이고 별도 DB 기동이 필요해 제외. GitHub Actions에서 TestContainers가 이미 동작하므로 기존 인프라 재사용.</div>
+
+      <div class="field-label">영향 파일</div>
+      <div class="field-value">
+        <code>src/test/java/com/newscurator/integration/OpenApiSpecExportTest.java</code> (신규),
+        <code>.github/workflows/sync-openapi.yml</code> (신규),
+        <code>build.gradle</code>
+      </div>
+
+      <div class="field-label">사전 설정 필요 (수동)</div>
+      <div class="field-value">GitHub → news-pulse-back 레포 Settings → Secrets → <code>SPEC_REPO_TOKEN</code> 등록 필요. news-pulse-spec 레포 write 권한이 있는 GitHub PAT (classic, <code>repo</code> 스코프).</div>
+    </div>
+  </div>
+</div><!-- /date-group 0614 -->
 
 <!-- ═══════ 2026-06-12 ═══════ -->
 <div class="date-group" id="date-0612">
