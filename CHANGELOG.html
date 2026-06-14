@@ -301,11 +301,11 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">41</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">42</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">9</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">10</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
-  <div class="stat"><div class="stat-num">14</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">16</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-15</div><div class="stat-label">작업 기간</div></div>
 </div>
 
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-15</div>
+  <a class="toc-item" href="#d0615-3">소셜 가입 pending-token + /complete 2단계 전환</a>
   <a class="toc-item" href="#d0615-1">openapi A1~A6 불일치 수정</a>
   <a class="toc-item" href="#d0615-2">B-1 redirectUri 프론트 전달 + B-2 소셜 약관 동의 수집</a>
   <div class="toc-date">2026-06-14</div>
@@ -366,6 +367,51 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="entry" id="d0615-3" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          소셜 신규 가입 (b)→(a) 전환: pending-token + POST /complete 2단계
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제</dt>
+        <dd>기존 (b) 방식(callback 요청에 consents 포함)은 OAuth code가 1회용이라 신규/기존 구분 전에 이미 consents를 받아야 하는 문제. 기존 유저도 불필요한 약관 필드를 보내야 하고, UX 상 OAuth 시작 전에 약관을 미리 받아야 하는 제약이 있었음.</dd>
+        <dt>근본 원인</dt>
+        <dd>소셜 OAuth는 code 교환 전엔 신규/기존을 알 수 없음. (b) 방식은 신규로 확정되지 않은 시점에 약관 동의를 받는 구조적 결함.</dd>
+        <dt>수정 내용</dt>
+        <dd>
+          <ul>
+            <li>callback 신규 유저 경로: 계정 미생성 → 소셜 신원(provider·pid·email·userInfo)을 담은 pendingToken(10분 JWT) + 활성 약관 목록 반환 (202)</li>
+            <li>POST /auth/social/complete 신규 엔드포인트: pendingToken 검증 → 필수 약관+age 검증 → 계정+SocialConnection+ConsentRecord 생성 → 201</li>
+            <li>JwtTokenProvider: generatePendingSignupToken / parsePendingSignupToken 추가</li>
+            <li>SocialCallbackRequest: consents·ageConfirmed 제거 (complete으로 이동)</li>
+            <li>SocialCompleteRequest: 신규 DTO</li>
+            <li>openapi.yaml: callback 202 SocialPendingSignupResponse / /complete 엔드포인트 추가</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>(a) 방식이 신규로 확정된 유저에게만 약관을 받으므로 UX·구조 모두 자연스러움. code는 callback에서 소진(1회용 보장), 이후 pending 토큰 10분 TTL로 세션 유지. 이메일 충돌은 callback에서 fast-fail + complete에서 race-condition 재확인으로 이중 방어.</dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <ul>
+            <li>src/main/java/com/newscurator/security/JwtTokenProvider.java</li>
+            <li>src/main/java/com/newscurator/dto/request/SocialCallbackRequest.java</li>
+            <li>src/main/java/com/newscurator/dto/request/SocialCompleteRequest.java (신규)</li>
+            <li>src/main/java/com/newscurator/service/SocialAuthService.java</li>
+            <li>src/main/java/com/newscurator/controller/SocialAuthController.java</li>
+            <li>specs/api-contract/openapi.yaml (news-pulse-spec 커밋: 60f4c95)</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 1 -->
