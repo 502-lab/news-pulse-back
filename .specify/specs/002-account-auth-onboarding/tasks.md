@@ -175,17 +175,17 @@
 
 ### DTO
 
-- [ ] T046 [P] [US5] PasswordResetRequestDto.java + PasswordResetVerifyRequest.java + PasswordResetConfirmRequest.java + PasswordResetVerifyResponse.java 생성 (`…/dto/request/*.java`, `…/dto/response/PasswordResetVerifyResponse.java`)
+- [X] T046 [P] [US5] PasswordResetRequestDto.java + PasswordResetVerifyRequest.java + PasswordResetConfirmRequest.java + PasswordResetVerifyResponse.java 생성 (`…/dto/request/*.java`, `…/dto/response/PasswordResetVerifyResponse.java`)
 
 ### 서비스 & 컨트롤러
 
-- [ ] T047 [US5] PasswordResetService.java 생성: `requestCode()` — 계정 존재 여부 불문 동일 처리, 이메일 계정이면 코드 생성·발송(발송 실패 503·한도 미차감), 소셜 전용 계정이면 안내 이메일 발송(코드 미생성, FR-026); `verifyCode()` — 코드 검증, 성공 시 단일 사용 resetToken(JWT, TTL=10분, jti=UUID) 발급; `confirmReset()` — resetToken 검증(서명·exp·jti 미사용 확인), 비밀번호 정책 검증, BCrypt 해시 업데이트, TokenService로 계정 전체 세션 무효화(FR-025) (`…/service/PasswordResetService.java`)
-- [ ] T048 [US5] PasswordResetController.java 생성: `POST /api/v1/auth/password-reset/request`, `POST /auth/password-reset/verify`, `POST /auth/password-reset/confirm` (모두 permitAll) (`…/controller/PasswordResetController.java`)
+- [X] T047 [US5] PasswordResetService.java 생성: `requestCode()` — 계정 존재 여부 불문 동일 처리, 이메일 계정이면 코드 생성·발송(발송 실패 503·한도 미차감), 소셜 전용 계정이면 안내 이메일 발송(코드 미생성, FR-026); `verifyCode()` — 코드 검증, 성공 시 단일 사용 resetToken(JWT, TTL=10분, jti=UUID) 발급; `confirmReset()` — resetToken 검증(서명·exp·jti 미사용 확인), 비밀번호 정책 검증, BCrypt 해시 업데이트, TokenService로 계정 전체 세션 무효화(FR-025) (`…/service/PasswordResetService.java`)
+- [X] T048 [US5] PasswordResetController.java 생성: `POST /api/v1/auth/password-reset/request`, `POST /auth/password-reset/verify`, `POST /auth/password-reset/confirm` (모두 permitAll) (`…/controller/PasswordResetController.java`)
 
 ### 단위 & 통합 테스트
 
-- [ ] T049 [US5] PasswordResetServiceTest.java 생성: requestCode 소셜 전용→안내이메일·코드미생성, 이메일 발송 실패→503 단위 테스트(Mockito) (`src/test/java/com/newscurator/auth/PasswordResetServiceTest.java`)
-- [ ] T050 [US5] PasswordResetIntegrationTest.java 생성 — 7개 시나리오: 3단계 정상·코드 만료 410·오입력 5회 무효화·재전송 초과 429·이메일 장애 503+한도 미차감·소셜 전용 202+안내이메일·재설정 후 기존 refresh 401, WireMock 이메일 stub (`src/test/java/com/newscurator/integration/PasswordResetIntegrationTest.java`)
+- [X] T049 [US5] PasswordResetServiceTest.java 생성: requestCode 소셜 전용→안내이메일·코드미생성, 이메일 발송 실패→503 단위 테스트(Mockito) (`src/test/java/com/newscurator/auth/PasswordResetServiceTest.java`)
+- [X] T050 [US5] PasswordResetIntegrationTest.java 생성 — 7개 시나리오: 3단계 정상·코드 만료 410·오입력 5회 무효화·재전송 초과 429·이메일 장애 503+한도 미차감·소셜 전용 202+안내이메일·재설정 후 기존 refresh 401, WireMock 이메일 stub (`src/test/java/com/newscurator/integration/PasswordResetIntegrationTest.java`)
 
 **Checkpoint**: 비밀번호 재설정 3단계 독립 동작, T049·T050 모두 PASS
 
