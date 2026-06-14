@@ -15,6 +15,7 @@ import com.newscurator.domain.enums.SocialProvider;
 import com.newscurator.dto.request.ConsentInput;
 import com.newscurator.dto.response.AccountSummaryResponse;
 import com.newscurator.dto.response.SocialAuthorizeResponse;
+import com.newscurator.dto.response.TermsVersionResponse;
 import com.newscurator.dto.response.TokenPairResponse;
 import com.newscurator.exception.OAuthStateInvalidException;
 import com.newscurator.exception.SocialEmailConflictException;
@@ -77,15 +78,14 @@ public class SocialAuthService {
     }
 
     /**
-     * OAuth 콜백 처리. state 검증 → 토큰 교환 → 계정 조회/생성.
-     * 신규 소셜 가입: 201 isNew=true, emailVerified=true (FR-024). consents 필수.
-     * 기존 소셜 로그인: 200 isNew=false. consents/ageConfirmed 무시.
-     * 동일 이메일 이메일 계정 존재: 409 (FR-007).
+     * OAuth 콜백 처리. state 검증 → 토큰 교환 → 기존/신규 분기.
+     * 기존 유저: 200 isNew=false, account+tokens.
+     * 신규 유저: 202 isNew=true, pendingToken(10분)+전체 활성 약관 목록. 계정은 생성하지 않음.
+     * 이메일 충돌(동일 이메일 이메일 계정 존재): 409.
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Map<String, Object> callback(SocialProvider provider, String code, String state,
-                                        String redirectUri, String userJson,
-                                        List<ConsentInput> consents, Boolean ageConfirmed) {
+                                        String redirectUri, String userJson) {
         validateState(provider, state);
 
         OAuthProviderPort adapter = providerFactory.get(provider);
@@ -99,10 +99,10 @@ public class SocialAuthService {
             Account account = existingConnection.get().getAccount();
             TokenPairResponse tokens = tokenService.issueTokenPair(account);
             AccountSummaryResponse summary = authService.buildAccountSummary(account);
-            return Map.of("tokens", tokens, "account", summary, "isNew", false);
+            return Map.of("isNew", false, "account", summary, "tokens", tokens);
         }
 
-        // New social user: check email conflict
+        // Check email conflict before issuing pending token (fail fast)
         if (userInfo.email() != null) {
             Optional<Account> existingByEmail =
                     accountRepository.findByEmailIgnoreCase(userInfo.email());
@@ -112,11 +112,51 @@ public class SocialAuthService {
             }
         }
 
-        // Validate required consents before creating account
+        // New user: issue pending token, return terms list. No account created yet.
+        String storedUserInfo = userInfo.rawUserInfo() != null ? userInfo.rawUserInfo() : userJson;
+        String pendingToken = jwtTokenProvider.generatePendingSignupToken(
+                provider.name(), userInfo.providerUserId(), userInfo.email(), storedUserInfo);
+
+        List<TermsVersionResponse> activeTerms = termsVersionRepository.findByIsActiveTrue()
+                .stream()
+                .map(tv -> new TermsVersionResponse(tv.getId(), tv.getType(), tv.getVersion(),
+                        tv.getEffectiveDate(), tv.isRequired(), tv.isActive()))
+                .toList();
+
+        return Map.of("isNew", true, "pendingToken", pendingToken, "requiredTerms", activeTerms);
+    }
+
+    /**
+     * 소셜 신규 가입 완료. pendingToken 검증 → 약관 검증 → 계정+연결+ConsentRecord 생성 → 201 JWT 발급.
+     */
+    @Transactional
+    public Map<String, Object> complete(String pendingToken, List<ConsentInput> consents,
+                                        Boolean ageConfirmed) {
+        Claims claims;
+        try {
+            claims = jwtTokenProvider.parsePendingSignupToken(pendingToken);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new OAuthStateInvalidException("Invalid or expired pending signup token");
+        }
+
+        String providerName = claims.get("provider", String.class);
+        String providerUserId = claims.get("pid", String.class);
+        String email = claims.get("email", String.class);
+        String userInfo = claims.get("userInfo", String.class);
+        SocialProvider provider = SocialProvider.valueOf(providerName);
+
         validateNewUserConsents(consents, ageConfirmed);
 
+        // Re-check email conflict (race condition: another signup with same email between callback and complete)
+        if (email != null) {
+            accountRepository.findByEmailIgnoreCase(email).ifPresent(existing -> {
+                throw new SocialEmailConflictException(
+                        "An account with this email already exists. Please log in with email.");
+            });
+        }
+
         Account newAccount = Account.builder()
-                .email(userInfo.email())
+                .email(email)
                 .passwordHash(null)
                 .role(AccountRole.USER)
                 .status(AccountStatus.ACTIVE)
@@ -125,16 +165,12 @@ public class SocialAuthService {
                 .build();
         accountRepository.save(newAccount);
 
-        // For Apple, rawUserInfo from the token exchange is null;
-        // the userJson form field sent from the client (first login only) is stored instead.
-        String storedUserInfo = userInfo.rawUserInfo() != null ? userInfo.rawUserInfo() : userJson;
-
         SocialConnection connection = SocialConnection.builder()
                 .account(newAccount)
                 .provider(provider)
-                .providerUserId(userInfo.providerUserId())
-                .providerEmail(userInfo.email())
-                .userInfo(storedUserInfo)
+                .providerUserId(providerUserId)
+                .providerEmail(email)
+                .userInfo(userInfo)
                 .build();
         socialConnectionRepository.save(connection);
 
@@ -142,28 +178,25 @@ public class SocialAuthService {
 
         TokenPairResponse tokens = tokenService.issueTokenPair(newAccount);
         AccountSummaryResponse summary = authService.buildAccountSummary(newAccount);
-        return Map.of("tokens", tokens, "account", summary, "isNew", true);
+        return Map.of("account", summary, "tokens", tokens);
     }
 
     private void validateRedirectUri(String redirectUri) {
         List<String> allowed = oauthConfig.getAllowedRedirectUris();
         if (!allowed.contains(redirectUri)) {
-            throw new OAuthStateInvalidException(
-                    "Redirect URI not allowed: " + redirectUri);
+            throw new OAuthStateInvalidException("Redirect URI not allowed: " + redirectUri);
         }
     }
 
     private void validateNewUserConsents(List<ConsentInput> consents, Boolean ageConfirmed) {
-        if (Boolean.TRUE.equals(ageConfirmed) == false) {
+        if (!Boolean.TRUE.equals(ageConfirmed)) {
             throw new IllegalArgumentException("만 14세 이상 동의가 필요합니다");
-        }
-        if (consents == null || consents.isEmpty()) {
-            throw new IllegalArgumentException("필수 약관 동의가 필요합니다");
         }
         List<TermsVersion> requiredTerms = termsVersionRepository.findByIsActiveTrueAndIsRequiredTrue();
         for (TermsVersion required : requiredTerms) {
             boolean agreed = consents.stream()
-                    .anyMatch(c -> c.termsVersionId().equals(required.getId()) && Boolean.TRUE.equals(c.agreed()));
+                    .anyMatch(c -> c.termsVersionId().equals(required.getId())
+                            && Boolean.TRUE.equals(c.agreed()));
             if (!agreed) {
                 throw new IllegalArgumentException("필수 약관 '" + required.getType() + "' 동의가 필요합니다");
             }
@@ -171,7 +204,6 @@ public class SocialAuthService {
     }
 
     private void saveConsents(Account account, List<ConsentInput> consents) {
-        if (consents == null) return;
         for (ConsentInput input : consents) {
             termsVersionRepository.findById(input.termsVersionId()).ifPresent(tv -> {
                 ConsentRecord record = ConsentRecord.builder()

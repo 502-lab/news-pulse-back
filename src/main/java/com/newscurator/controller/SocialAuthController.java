@@ -2,6 +2,7 @@ package com.newscurator.controller;
 
 import com.newscurator.domain.enums.SocialProvider;
 import com.newscurator.dto.request.SocialCallbackRequest;
+import com.newscurator.dto.request.SocialCompleteRequest;
 import com.newscurator.dto.response.SocialAuthorizeResponse;
 import com.newscurator.service.SocialAuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,16 +51,15 @@ public class SocialAuthController {
     }
 
     @Operation(summary = "OAuth 콜백 처리",
-               description = "provider에서 받은 code와 state를 검증 후 계정 조회/생성. "
-                           + "신규 가입: 201 + emailVerified=true (FR-024). 기존 로그인: 200. "
-                           + "이메일 충돌: 409 (FR-007). state 위조/만료: 400 (FR-027). "
-                           + "신규 가입 시 consents(필수 약관 동의 포함) 및 ageConfirmed=true 필수.")
+               description = "provider에서 받은 code와 state를 검증 후 기존/신규 분기. "
+                           + "기존 유저: 200 + account/tokens. "
+                           + "신규 유저: 202 + pendingToken(10분) + 전체 활성 약관 목록(requiredTerms). "
+                           + "code는 여기서 소진됨. 가입 완료는 POST /complete 호출 필요.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "기존 소셜 계정 로그인"),
-        @ApiResponse(responseCode = "201", description = "소셜 신규 가입"),
+        @ApiResponse(responseCode = "202", description = "신규 유저 — pendingToken 발급. POST /complete로 가입 완료 필요"),
         @ApiResponse(responseCode = "400", description = "state 유효하지 않음 (위조/만료/provider 불일치)"),
-        @ApiResponse(responseCode = "409", description = "동일 이메일 계정 이미 존재"),
-        @ApiResponse(responseCode = "422", description = "신규 가입 시 필수 약관 미동의 또는 연령 미확인")
+        @ApiResponse(responseCode = "409", description = "동일 이메일 계정 이미 존재")
     })
     @PostMapping("/{provider}/callback")
     public ResponseEntity<Map<String, Object>> callback(
@@ -72,11 +72,29 @@ public class SocialAuthController {
                 request.code(),
                 request.state(),
                 request.redirectUri(),
-                request.userJson(),
+                request.userJson());
+        boolean isNew = Boolean.TRUE.equals(result.get("isNew"));
+        return ResponseEntity.status(isNew ? 202 : 200).body(result);
+    }
+
+    @Operation(summary = "소셜 신규 가입 완료",
+               description = "pendingToken과 약관 동의를 검증 후 계정 생성 + JWT 발급. "
+                           + "pendingToken TTL 10분. 필수 약관(SERVICE·PRIVACY) 미동의 또는 "
+                           + "ageConfirmed=false 시 422.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "계정 생성 + 로그인 성공"),
+        @ApiResponse(responseCode = "400", description = "pendingToken 만료 또는 서명 오류"),
+        @ApiResponse(responseCode = "409", description = "이메일 충돌 (동시 가입 경합)"),
+        @ApiResponse(responseCode = "422", description = "필수 약관 미동의 또는 연령 미확인")
+    })
+    @PostMapping("/complete")
+    public ResponseEntity<Map<String, Object>> complete(
+            @RequestBody @Valid SocialCompleteRequest request) {
+        Map<String, Object> result = socialAuthService.complete(
+                request.pendingToken(),
                 request.consents(),
                 request.ageConfirmed());
-        boolean isNew = Boolean.TRUE.equals(result.get("isNew"));
-        return ResponseEntity.status(isNew ? 201 : 200).body(result);
+        return ResponseEntity.status(201).body(result);
     }
 
     private SocialProvider parseProvider(String provider) {
