@@ -68,6 +68,15 @@ oauth:
     token-base-url: ${APPLE_TOKEN_BASE_URL:https://appleid.apple.com}
 
 app:
+  client:
+    gemini:
+      api-key: ${GEMINI_API_KEY}
+      model: gemini-2.0-flash
+      base-url: https://generativelanguage.googleapis.com
+    naver:
+      client-id: ${NAVER_CLIENT_ID}
+      client-secret: ${NAVER_CLIENT_SECRET}
+      base-url: https://openapi.naver.com
   scheduler:
     enabled: true
     collection:
