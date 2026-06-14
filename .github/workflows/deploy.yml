@@ -1,7 +1,9 @@
 name: Deploy to EC2
 on:
-  workflow_dispatch:               # 수동 트리거 (Secrets·Nginx 준비 후 첫 배포용)
-  # push: { branches: [main] }     # 안정화 후 이 줄 주석 해제 → main 푸시 시 자동 배포
+  push:
+    tags:
+      - 'v*'                # v로 시작하는 태그 푸시 시 배포 (예: v1.0.0, v0.1.0)
+  workflow_dispatch:        # 수동 트리거도 유지
 jobs:
   deploy:
     runs-on: ubuntu-latest
