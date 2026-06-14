@@ -301,11 +301,11 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">53</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">54</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
-  <div class="stat"><div class="stat-num">21</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">22</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-15</div><div class="stat-label">작업 기간</div></div>
 </div>
 
@@ -380,6 +380,50 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 4 -->
+  <div class="entry" id="d0615-4" data-tags="test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-test">Test</span>
+          CI 테스트 실패 수정 — Resend WireMock 스텁 경로, 소셜 2단계 가입 플로우
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>feat/002-password-reset PR #16 CI 실행 결과: AuthIntegrationTest 2건, RbacIntegrationTest 1건, SocialAuthIntegrationTest 11건 실패. AuthIntegrationTest: "정상 가입 verificationEmailSent=true" AssertionFailed(line 131), "이메일 발송 503 재발송" ServiceUnavailable(line 195). RbacIntegrationTest: "email-verification/request 허용(200)" ServiceUnavailable(line 244). SocialAuthIntegrationTest: 모든 테스트 422 UnprocessableContent.</dd>
+        <dt>근본 원인</dt>
+        <dd>
+          <ul>
+            <li><strong>Auth/Rbac 503</strong>: HttpEmailServiceClient를 Resend API(POST /emails)로 교체했으나 WireMock 스텁이 여전히 구 경로 /send-verification-code를 사용. /emails에 스텁 없음 → WireMock 404 → RestClientException → EmailDeliveryException. signup 내부에서는 verificationEmailSent=false로 fallback되지만, /email-verification/request는 예외가 버블업 → GlobalExceptionHandler → 503.</li>
+            <li><strong>Social 422</strong>: SocialCallbackRequest에 redirectUri(@NotBlank) 필드가 추가됐으나 테스트가 요청 body에 포함하지 않음 → Bean Validation에서 422 반환 (서비스 호출 전에 실패). 또한 신규 유저 테스트가 callback에서 직접 201을 기대했으나, 변경 후 신규 유저는 202+pendingToken을 반환하고 /complete에서 201을 반환하는 2단계 플로우로 바뀜.</li>
+          </ul>
+        </dd>
+        <dt>수정 내용</dt>
+        <dd>
+          <ul>
+            <li>AuthIntegrationTest: WireMock 스텁 경로 /send-verification-code → /emails (setUp, 503 stubFor, 재발송 stubFor, verify 총 4곳)</li>
+            <li>RbacIntegrationTest: setUp WireMock 스텁 경로 /send-verification-code → /emails</li>
+            <li>SocialAuthIntegrationTest 전면 교체: 신규 유저 테스트(Kakao×2, Google×2, Apple×3) → callback 202+pendingToken 검증 후 POST /complete 201 2단계 플로우. state 오류·이메일 충돌 테스트 → 요청 body에 redirectUri 추가하여 422 사전 차단 해제.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>근본 수정: 테스트가 실제 구현 경로(Resend /emails)와 일치하도록 수정. 증상 가리기(스텁 제거, 검증 약화) 대신 정확한 경로 변경으로 실제 동작을 검증. 소셜 테스트는 (b)→(a) 플로우 전환에 맞게 전면 재작성하여 새 2단계 계약을 완전히 검증.</dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <ul>
+            <li>src/test/java/com/newscurator/integration/AuthIntegrationTest.java</li>
+            <li>src/test/java/com/newscurator/integration/RbacIntegrationTest.java</li>
+            <li>src/test/java/com/newscurator/integration/SocialAuthIntegrationTest.java</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 3 -->
