@@ -39,8 +39,9 @@ jwt:
   refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
 
 email-service:
-  base-url: ${EMAIL_SERVICE_BASE_URL:http://localhost:9999}
+  base-url: ${EMAIL_SERVICE_BASE_URL:https://api.resend.com}
   api-key: ${EMAIL_SERVICE_API_KEY:test-api-key}
+  from-address: ${EMAIL_FROM_ADDRESS:NewsIT <onboarding@resend.dev>}
 
 oauth:
   kakao:

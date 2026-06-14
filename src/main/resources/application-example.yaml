@@ -18,8 +18,9 @@ jwt:
 
 # 이메일 서비스 (절대 코드/git에 하드코딩 금지)
 email-service:
-  base-url: ${EMAIL_SERVICE_BASE_URL}
-  api-key: ${EMAIL_SERVICE_API_KEY}
+  base-url: ${EMAIL_SERVICE_BASE_URL}         # https://api.resend.com
+  api-key: ${EMAIL_SERVICE_API_KEY}           # Resend API 키
+  from-address: ${EMAIL_FROM_ADDRESS}         # 예: NewsIT <noreply@yourdomain.com>
 
 # OAuth 소셜 로그인 (절대 코드/git에 하드코딩 금지)
 oauth:
