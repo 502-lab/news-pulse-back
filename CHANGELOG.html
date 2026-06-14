@@ -301,11 +301,11 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">54</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">55</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">16</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">17</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
-  <div class="stat"><div class="stat-num">22</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-15</div><div class="stat-label">작업 기간</div></div>
 </div>
 
@@ -321,6 +321,7 @@
   <a class="toc-item" href="#d0614-2">GitHub Actions CI/CD 워크플로우 추가 (deploy.yml)</a>
   <a class="toc-item" href="#d0614-1">build.gradle plain jar 비활성화 (bootJar 단독 생성)</a>
   <a class="toc-item" href="#d0614-3">HttpEmailServiceClient → Resend API 교체</a>
+  <a class="toc-item" href="#d0614-4">OpenAPI 자동 동기화 파이프라인 구축 (sync-openapi.yml)</a>
   <div class="toc-date">2026-06-13</div>
   <a class="toc-item" href="#d0613-8">spec 004 TTS 제공자 Naver Clova → AWS Polly (Seoyeon, Neural) 교체</a>
   <a class="toc-item" href="#d0613-7">spec 004 US4+Polish — listenable 필터·SavedArticleControllerTest·Swagger·CHANGELOG</a>
@@ -636,6 +637,26 @@
           </ul>
         </dd>
       </dl>
+    </div>
+  </div>
+
+  <div class="entry" id="d0614-4" data-tags="feature config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-config">Config</span>
+          OpenAPI 자동 동기화 파이프라인 구축 (sync-openapi.yml)
+        </div>
+        <div class="entry-meta"><span class="session-badge">커밋됨</span></div>
+      </div>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="entry-body">
+      <div class="entry-section"><strong>문제(배경):</strong> <code>specs/api-contract/openapi.yaml</code>이 초기 보일러플레이트(Todo API) 상태 그대로였으며, 001~004에서 구현된 실제 엔드포인트가 전혀 반영되지 않아 프론트엔드 팀이 API 계약을 읽을 수 없는 상태.</div>
+      <div class="entry-section"><strong>근본 원인(결정 이유):</strong> openapi.yaml을 수동 관리하면서 "변경 시 반드시 반영" 규칙이 있었지만 자동화 없이는 누락이 불가피. news-pulse-spec 서브모듈은 별도 레포이므로 이 레포에서 직접 커밋 불가. SpringDoc이 런타임에 정확한 스펙을 생성하므로 "앱 기동 후 /api-docs 호출" 방식이 가장 신뢰도가 높음. springdoc-openapi-gradle-plugin은 Spring Boot 4.x 호환성 미확인이어서 제외.</div>
+      <div class="entry-section"><strong>수정 내용:</strong> <code>OpenApiSpecExportTest.java</code> 신규 — @SpringBootTest + TestContainers로 앱 기동 후 /api-docs 호출, JSON→YAML 변환 후 build/openapi.yaml 저장. <code>.github/workflows/sync-openapi.yml</code> 신규 — dev/main push 시 export 테스트 실행 → SPEC_REPO_TOKEN으로 news-pulse-spec 레포에 push (변경 없으면 커밋 생략). <code>build.gradle</code> — testImplementation jackson-dataformat-yaml 추가. 사전 설정: GitHub → news-pulse-back Secrets → SPEC_REPO_TOKEN 등록 필요 (news-pulse-spec write 권한 PAT).</div>
+      <div class="entry-section"><strong>영향 파일:</strong> src/test/java/com/newscurator/integration/OpenApiSpecExportTest.java (신규), .github/workflows/sync-openapi.yml (신규), build.gradle</div>
     </div>
   </div>
 
