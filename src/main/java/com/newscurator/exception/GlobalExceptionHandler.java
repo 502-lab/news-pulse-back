@@ -89,6 +89,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("ARTICLE_NOT_FOUND", ex.getMessage()));
     }
 
+    @ExceptionHandler(SaveLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleSaveLimitExceeded(SaveLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("SAVE_LIMIT_EXCEEDED", ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         String message =
@@ -132,6 +138,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleSocialEmailConflict(SocialEmailConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of("EMAIL_ALREADY_EXISTS", ex.getMessage()));
+    }
+
+    @ExceptionHandler(TtsAudioNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTtsAudioNotFound(TtsAudioNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of("TTS_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SummaryNotReadyException.class)
+    public ResponseEntity<ErrorResponse> handleSummaryNotReady(SummaryNotReadyException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("SUMMARY_NOT_READY", ex.getMessage()));
+    }
+
+    @ExceptionHandler(NoFeedArticlesException.class)
+    public ResponseEntity<ErrorResponse> handleNoFeedArticles(NoFeedArticlesException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of("NO_FEED_ARTICLES", ex.getMessage()));
     }
 
     @ExceptionHandler(AiProviderException.class)

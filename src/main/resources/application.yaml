@@ -1,6 +1,11 @@
 spring:
   application:
     name: news-curator
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -39,30 +44,44 @@ jwt:
   refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
 
 email-service:
-  base-url: ${EMAIL_SERVICE_BASE_URL:http://localhost:9999}
+  base-url: ${EMAIL_SERVICE_BASE_URL:https://api.resend.com}
   api-key: ${EMAIL_SERVICE_API_KEY:test-api-key}
+  from-address: ${EMAIL_FROM_ADDRESS:NewsIT <onboarding@resend.dev>}
 
 oauth:
+  allowed-redirect-uris:
+    - http://localhost:3000
+    - https://dev.newsit.app
+    - https://newsit.app
   kakao:
     client-id: ${KAKAO_CLIENT_ID:test-kakao-id}
     client-secret: ${KAKAO_CLIENT_SECRET:test-kakao-secret}
-    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/oauth/kakao/callback}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:3000}
     token-base-url: ${KAKAO_TOKEN_BASE_URL:https://kauth.kakao.com}
     api-base-url: ${KAKAO_API_BASE_URL:https://kapi.kakao.com}
   google:
     client-id: ${GOOGLE_CLIENT_ID:test-google-id}
     client-secret: ${GOOGLE_CLIENT_SECRET:test-google-secret}
-    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/oauth/google/callback}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:3000}
     token-base-url: ${GOOGLE_TOKEN_BASE_URL:https://oauth2.googleapis.com}
   apple:
     client-id: ${APPLE_CLIENT_ID:test-apple-id}
     team-id: ${APPLE_TEAM_ID:test-team}
     key-id: ${APPLE_KEY_ID:test-key-id}
     private-key: ${APPLE_PRIVATE_KEY:}
-    redirect-uri: ${APPLE_REDIRECT_URI:http://localhost:8080/oauth/apple/callback}
+    redirect-uri: ${APPLE_REDIRECT_URI:http://localhost:3000}
     token-base-url: ${APPLE_TOKEN_BASE_URL:https://appleid.apple.com}
 
 app:
+  client:
+    gemini:
+      api-key: ${GEMINI_API_KEY}
+      model: gemini-2.0-flash
+      base-url: https://generativelanguage.googleapis.com
+    naver:
+      client-id: ${NAVER_CLIENT_ID}
+      client-secret: ${NAVER_CLIENT_SECRET}
+      base-url: https://openapi.naver.com
   scheduler:
     enabled: true
     collection:
@@ -80,6 +99,28 @@ app:
   feed:
     default-page-size: 20
     max-page-size: 100
+    ranking:
+      category-match-score: 50
+      keyword-match-score: 30
+      recency-window-hours: 30
+      recency-max-score: 20
+      feed-window-days: 7
   retention:
     days: 90
     grace-period-days: 7
+  tts:
+    briefing:
+      article-count: 5           # 브리핑 기사 수 (최대 10)
+    scheduler:
+      cron: "*/30 * * * * *"     # TTS 처리 스케줄러 주기 (30초)
+    default-voice-id: "Seoyeon"
+    polly:
+      engine: neural
+
+cloud:
+  aws:
+    region: ${AWS_REGION:ap-northeast-2}
+    s3:
+      bucket: ${AWS_S3_BUCKET:placeholder-bucket}
+    cloudfront:
+      domain: ${AWS_CLOUDFRONT_DOMAIN:https://placeholder.cloudfront.net}

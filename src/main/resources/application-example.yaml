@@ -18,15 +18,21 @@ jwt:
 
 # 이메일 서비스 (절대 코드/git에 하드코딩 금지)
 email-service:
-  base-url: ${EMAIL_SERVICE_BASE_URL}
-  api-key: ${EMAIL_SERVICE_API_KEY}
+  base-url: ${EMAIL_SERVICE_BASE_URL}         # https://api.resend.com
+  api-key: ${EMAIL_SERVICE_API_KEY}           # Resend API 키
+  from-address: ${EMAIL_FROM_ADDRESS}         # 예: NewsIT <noreply@yourdomain.com>
 
 # OAuth 소셜 로그인 (절대 코드/git에 하드코딩 금지)
 oauth:
+  # 프론트엔드가 /authorize에 전달할 수 있는 redirectUri 화이트리스트
+  allowed-redirect-uris:
+    - http://localhost:3000
+    - https://dev.newsit.app
+    - https://newsit.app
   kakao:
     client-id: ${KAKAO_CLIENT_ID}
     client-secret: ${KAKAO_CLIENT_SECRET}
-    redirect-uri: ${KAKAO_REDIRECT_URI}
+    redirect-uri: ${KAKAO_REDIRECT_URI}   # provider 콘솔에 등록한 URI
   google:
     client-id: ${GOOGLE_CLIENT_ID}
     client-secret: ${GOOGLE_CLIENT_SECRET}
@@ -57,3 +63,37 @@ app:
       client-id: ${NAVER_CLIENT_ID}
       client-secret: ${NAVER_CLIENT_SECRET}
       base-url: https://openapi.naver.com
+
+# 피드·검색 설정 (application.yaml 기본값과 동일 구조 — 필요 시 오버라이드)
+  feed:
+    default-page-size: 20     # 기본 페이지 크기
+    max-page-size: 100        # 최대 허용 페이지 크기
+    ranking:
+      category-match-score: 50   # 관심 카테고리 일치 점수
+      keyword-match-score: 30    # 팔로우 키워드 일치 점수
+      recency-window-hours: 30   # 최신성 점수 구간 (시간)
+      recency-max-score: 20      # 최신성 최대 점수
+      feed-window-days: 7        # 피드 노출 기사 기간 (일)
+
+# 데이터 보존 정책
+  retention:
+    days: 90                  # 기사 보존 일수
+    grace-period-days: 7      # 만료 후 추가 유예 기간
+
+# TTS 설정 (004)
+  tts:
+    briefing:
+      article-count: 5        # 브리핑 기사 수 (최대 10)
+    scheduler:
+      cron: "*/30 * * * * *"  # TTS 처리 스케줄러 주기 (cron)
+    default-voice-id: "Seoyeon"
+    polly:
+      engine: neural
+
+# AWS S3 + CloudFront (오디오 파일 저장·배포)
+cloud:
+  aws:
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+    cloudfront:
+      domain: ${AWS_CLOUDFRONT_DOMAIN}               # CloudFront 배포 도메인 (https://xxx.cloudfront.net)

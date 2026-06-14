@@ -35,6 +35,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import com.newscurator.testutil.BigmPostgresImage;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -48,7 +49,7 @@ class SocialAuthIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
+            new PostgreSQLContainer<>(BigmPostgresImage.NAME)
                     .withDatabaseName("newscurator_social_it")
                     .withUsername("test")
                     .withPassword("test");
@@ -177,7 +178,7 @@ class SocialAuthIntegrationTest {
     // ─── tests ───
 
     @Test
-    @DisplayName("Kakao 신규 가입 → 201, emailVerified=true (DB 확인), SocialConnection 저장")
+    @DisplayName("Kakao 신규 가입 → callback 202+pendingToken, /complete 201, emailVerified=true (DB 확인), SocialConnection 저장")
     void kakao_newUser_returns201AndEmailVerified() throws Exception {
         // Stub Kakao token endpoint
         wireMock.stubFor(post(urlPathEqualTo("/oauth/token"))
@@ -193,16 +194,33 @@ class SocialAuthIntegrationTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"id\":12345678,\"kakao_account\":{\"email\":\"kakao@example.com\"}}")));
 
+        // Step 1: callback → 202 + pendingToken (신규 유저, 계정 미생성)
         String state = generateOAuthState("KAKAO");
-        var response = restClient.post().uri("/api/v1/auth/social/kakao/callback")
+        var callbackResp = restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "kakao-auth-code", "state", state))
+                .body(Map.of("code", "kakao-auth-code", "state", state, "redirectUri", "http://localhost:3000"))
                 .retrieve().toEntity(Map.class);
 
-        assertThat(response.getStatusCode().value()).isEqualTo(201);
-        Map<?, ?> body = response.getBody();
+        assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
+        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+        assertThat(pendingToken).isNotBlank();
+
+        // Step 2: /complete → 201 + tokens (계정 생성, 약관 동의 저장)
+        var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "pendingToken", pendingToken,
+                        "consents", List.of(
+                                Map.of("termsVersionId", serviceTermsId.toString(), "agreed", true),
+                                Map.of("termsVersionId", privacyTermsId.toString(), "agreed", true)
+                        ),
+                        "ageConfirmed", true
+                ))
+                .retrieve().toEntity(Map.class);
+
+        assertThat(completeResp.getStatusCode().value()).isEqualTo(201);
+        Map<?, ?> body = completeResp.getBody();
         assertThat(body.containsKey("tokens")).isTrue();
-        assertThat((boolean) body.get("isNew")).isTrue();
 
         // DB: email_verified = true (FR-024)
         Boolean emailVerified = jdbcTemplate.queryForObject(
@@ -232,13 +250,30 @@ class SocialAuthIntegrationTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"id\":99991234,\"kakao_account\":{}}")));  // no email field
 
+        // Step 1: callback → 202 + pendingToken
         String state = generateOAuthState("KAKAO");
-        var response = restClient.post().uri("/api/v1/auth/social/kakao/callback")
+        var callbackResp = restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "kakao-code-noemail", "state", state))
+                .body(Map.of("code", "kakao-code-noemail", "state", state, "redirectUri", "http://localhost:3000"))
                 .retrieve().toEntity(Map.class);
 
-        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
+        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+
+        // Step 2: /complete → 201
+        var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "pendingToken", pendingToken,
+                        "consents", List.of(
+                                Map.of("termsVersionId", serviceTermsId.toString(), "agreed", true),
+                                Map.of("termsVersionId", privacyTermsId.toString(), "agreed", true)
+                        ),
+                        "ageConfirmed", true
+                ))
+                .retrieve().toEntity(Map.class);
+
+        assertThat(completeResp.getStatusCode().value()).isEqualTo(201);
 
         Integer connCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM social_connections WHERE provider = 'KAKAO' AND provider_user_id = '99991234'",
@@ -259,13 +294,30 @@ class SocialAuthIntegrationTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"access_token\":\"google-at\",\"id_token\":\"" + idToken + "\"}")));
 
+        // Step 1: callback → 202 + pendingToken
         String state = generateOAuthState("GOOGLE");
-        var response = restClient.post().uri("/api/v1/auth/social/google/callback")
+        var callbackResp = restClient.post().uri("/api/v1/auth/social/google/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "google-auth-code", "state", state))
+                .body(Map.of("code", "google-auth-code", "state", state, "redirectUri", "http://localhost:3000"))
                 .retrieve().toEntity(Map.class);
 
-        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
+        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+
+        // Step 2: /complete → 201
+        var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "pendingToken", pendingToken,
+                        "consents", List.of(
+                                Map.of("termsVersionId", serviceTermsId.toString(), "agreed", true),
+                                Map.of("termsVersionId", privacyTermsId.toString(), "agreed", true)
+                        ),
+                        "ageConfirmed", true
+                ))
+                .retrieve().toEntity(Map.class);
+
+        assertThat(completeResp.getStatusCode().value()).isEqualTo(201);
 
         // DB: SocialConnection with correct providerUserId (= sub)
         Integer connCount = jdbcTemplate.queryForObject(
@@ -293,18 +345,32 @@ class SocialAuthIntegrationTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"access_token\":\"google-at\",\"id_token\":\"" + idToken + "\"}")));
 
+        // First login: callback → 202 + pendingToken, then /complete → 201 (계정 생성)
         String state1 = generateOAuthState("GOOGLE");
-        // First login → 201
-        restClient.post().uri("/api/v1/auth/social/google/callback")
+        var callbackResp1 = restClient.post().uri("/api/v1/auth/social/google/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "google-code-1", "state", state1))
+                .body(Map.of("code", "google-code-1", "state", state1, "redirectUri", "http://localhost:3000"))
+                .retrieve().toEntity(Map.class);
+        assertThat(callbackResp1.getStatusCode().value()).isEqualTo(202);
+
+        String pendingToken = (String) callbackResp1.getBody().get("pendingToken");
+        restClient.post().uri("/api/v1/auth/social/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "pendingToken", pendingToken,
+                        "consents", List.of(
+                                Map.of("termsVersionId", serviceTermsId.toString(), "agreed", true),
+                                Map.of("termsVersionId", privacyTermsId.toString(), "agreed", true)
+                        ),
+                        "ageConfirmed", true
+                ))
                 .retrieve().toBodilessEntity();
 
-        // Second login → 200
+        // Second login → 200 (기존 계정)
         String state2 = generateOAuthState("GOOGLE");
         var response2 = restClient.post().uri("/api/v1/auth/social/google/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "google-code-2", "state", state2))
+                .body(Map.of("code", "google-code-2", "state", state2, "redirectUri", "http://localhost:3000"))
                 .retrieve().toEntity(Map.class);
 
         assertThat(response2.getStatusCode().value()).isEqualTo(200);
@@ -316,7 +382,7 @@ class SocialAuthIntegrationTest {
     void callback_forgedState_returns400() {
         assertThatThrownBy(() -> restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "any-code", "state", "forged.state.value"))
+                .body(Map.of("code", "any-code", "state", "forged.state.value", "redirectUri", "http://localhost:3000"))
                 .retrieve().toBodilessEntity())
                 .isInstanceOf(HttpClientErrorException.class)
                 .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode().value()).isEqualTo(400));
@@ -338,7 +404,7 @@ class SocialAuthIntegrationTest {
 
         assertThatThrownBy(() -> restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "any-code", "state", expiredState))
+                .body(Map.of("code", "any-code", "state", expiredState, "redirectUri", "http://localhost:3000"))
                 .retrieve().toBodilessEntity())
                 .isInstanceOf(HttpClientErrorException.class)
                 .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode().value()).isEqualTo(400));
@@ -352,7 +418,7 @@ class SocialAuthIntegrationTest {
 
         assertThatThrownBy(() -> restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "any-code", "state", state))
+                .body(Map.of("code", "any-code", "state", state, "redirectUri", "http://localhost:3000"))
                 .retrieve().toBodilessEntity())
                 .isInstanceOf(HttpClientErrorException.class)
                 .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode().value()).isEqualTo(400));
@@ -379,7 +445,7 @@ class SocialAuthIntegrationTest {
         String state = generateOAuthState("GOOGLE");
         assertThatThrownBy(() -> restClient.post().uri("/api/v1/auth/social/google/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "google-code-conflict", "state", state))
+                .body(Map.of("code", "google-code-conflict", "state", state, "redirectUri", "http://localhost:3000"))
                 .retrieve().toBodilessEntity())
                 .isInstanceOf(HttpClientErrorException.class)
                 .satisfies(e -> {
@@ -390,7 +456,7 @@ class SocialAuthIntegrationTest {
     }
 
     @Test
-    @DisplayName("Apple client_secret은 ES256 서명 유효 JWT (iss/sub/aud/exp/kid 검증) + 신규 → 201 + emailVerified=true")
+    @DisplayName("Apple client_secret은 ES256 서명 유효 JWT (iss/sub/aud/exp/kid 검증) + 신규 → callback 202+pendingToken, /complete 201 + emailVerified=true")
     void apple_clientSecret_isValidEs256Jwt() throws Exception {
         String appleSub = "apple-sub-" + UUID.randomUUID();
         String relayEmail = appleSub + "@privaterelay.appleid.com";
@@ -403,14 +469,30 @@ class SocialAuthIntegrationTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"access_token\":\"apple-at\",\"id_token\":\"" + appleIdToken + "\"}")));
 
+        // Step 1: callback → 202 + pendingToken
         String state = generateOAuthState("APPLE");
         var callbackResponse = restClient.post().uri("/api/v1/auth/social/apple/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "apple-auth-code", "state", state))
+                .body(Map.of("code", "apple-auth-code", "state", state, "redirectUri", "http://localhost:3000"))
                 .retrieve().toEntity(Map.class);
 
-        // 신규 → 201 (FR-024 implicit: social signup)
-        assertThat(callbackResponse.getStatusCode().value()).isEqualTo(201);
+        assertThat(callbackResponse.getStatusCode().value()).isEqualTo(202);
+        String pendingToken = (String) callbackResponse.getBody().get("pendingToken");
+
+        // Step 2: /complete → 201 + emailVerified=true (FR-024)
+        var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "pendingToken", pendingToken,
+                        "consents", List.of(
+                                Map.of("termsVersionId", serviceTermsId.toString(), "agreed", true),
+                                Map.of("termsVersionId", privacyTermsId.toString(), "agreed", true)
+                        ),
+                        "ageConfirmed", true
+                ))
+                .retrieve().toEntity(Map.class);
+
+        assertThat(completeResp.getStatusCode().value()).isEqualTo(201);
 
         // DB: email_verified = true (FR-024)
         Boolean emailVerified = jdbcTemplate.queryForObject(
@@ -466,13 +548,30 @@ class SocialAuthIntegrationTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"access_token\":\"apple-at\",\"id_token\":\"" + appleIdToken + "\"}")));
 
+        // Step 1: callback → 202 + pendingToken
         String state = generateOAuthState("APPLE");
-        var response = restClient.post().uri("/api/v1/auth/social/apple/callback")
+        var callbackResp = restClient.post().uri("/api/v1/auth/social/apple/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "apple-relay-code", "state", state))
+                .body(Map.of("code", "apple-relay-code", "state", state, "redirectUri", "http://localhost:3000"))
                 .retrieve().toEntity(Map.class);
 
-        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
+        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+
+        // Step 2: /complete → 201
+        var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "pendingToken", pendingToken,
+                        "consents", List.of(
+                                Map.of("termsVersionId", serviceTermsId.toString(), "agreed", true),
+                                Map.of("termsVersionId", privacyTermsId.toString(), "agreed", true)
+                        ),
+                        "ageConfirmed", true
+                ))
+                .retrieve().toEntity(Map.class);
+
+        assertThat(completeResp.getStatusCode().value()).isEqualTo(201);
 
         // DB: provider_email stored as relay email (중계 이메일 원본 보존)
         String storedEmail = jdbcTemplate.queryForObject(
@@ -502,10 +601,29 @@ class SocialAuthIntegrationTest {
 
         // Apple 최초 로그인: 클라이언트가 userJson(이름 등)을 POST body에 포함
         String userJson = "{\"name\":{\"firstName\":\"Gildong\",\"lastName\":\"Hong\"},\"email\":\"" + relayEmail + "\"}";
+
+        // Step 1: callback → 202 + pendingToken (userJson이 pendingToken에 포함됨)
         String state = generateOAuthState("APPLE");
-        restClient.post().uri("/api/v1/auth/social/apple/callback")
+        var callbackResp = restClient.post().uri("/api/v1/auth/social/apple/callback")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("code", "apple-userinfo-code", "state", state, "userJson", userJson))
+                .body(Map.of("code", "apple-userinfo-code", "state", state,
+                        "redirectUri", "http://localhost:3000", "userJson", userJson))
+                .retrieve().toEntity(Map.class);
+
+        assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
+        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+
+        // Step 2: /complete → 201 (userJson은 pendingToken에서 복원되어 social_connections.user_info에 저장)
+        restClient.post().uri("/api/v1/auth/social/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "pendingToken", pendingToken,
+                        "consents", List.of(
+                                Map.of("termsVersionId", serviceTermsId.toString(), "agreed", true),
+                                Map.of("termsVersionId", privacyTermsId.toString(), "agreed", true)
+                        ),
+                        "ageConfirmed", true
+                ))
                 .retrieve().toBodilessEntity();
 
         // DB: social_connections.user_info = 전달된 userJson 그대로

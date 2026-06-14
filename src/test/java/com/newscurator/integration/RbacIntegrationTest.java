@@ -25,6 +25,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import com.newscurator.testutil.BigmPostgresImage;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -38,7 +39,7 @@ class RbacIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
+            new PostgreSQLContainer<>(BigmPostgresImage.NAME)
                     .withDatabaseName("newscurator_rbac_it")
                     .withUsername("test")
                     .withPassword("test");
@@ -86,7 +87,7 @@ class RbacIntegrationTest {
                 .baseUrl("http://localhost:" + port)
                 .build();
 
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
 
         jdbcTemplate.execute("TRUNCATE TABLE consent_records, verification_codes, refresh_tokens, accounts RESTART IDENTITY CASCADE");

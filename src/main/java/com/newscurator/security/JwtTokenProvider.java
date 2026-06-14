@@ -82,6 +82,33 @@ public class JwtTokenProvider {
         return claims;
     }
 
+    /**
+     * Issues a 10-minute pending-signup token. sub = "{provider}:{providerUserId}".
+     * Carries social identity to bridge the callback → complete two-step signup.
+     */
+    public String generatePendingSignupToken(String provider, String providerUserId,
+                                              String email, String userInfo) {
+        long now = System.currentTimeMillis();
+        var builder = Jwts.builder()
+                .subject(provider + ":" + providerUserId)
+                .claim("type", "SOCIAL_PENDING")
+                .claim("provider", provider)
+                .claim("pid", providerUserId)
+                .issuedAt(new Date(now))
+                .expiration(new Date(now + 10L * 60 * 1000))
+                .signWith(signingKey);
+        if (email != null) builder.claim("email", email);
+        if (userInfo != null) builder.claim("userInfo", userInfo);
+        return builder.compact();
+    }
+
+    /** Parses and validates a pending-signup token. Throws JwtException on invalid/expired. */
+    public Claims parsePendingSignupToken(String token) {
+        Claims claims = parseToken(token);
+        Assert.isTrue("SOCIAL_PENDING".equals(claims.get("type")), "Token type mismatch");
+        return claims;
+    }
+
     /** Issues a 5-minute stateless OAuth state token. sub = provider name. */
     public String generateOAuthState(String provider) {
         long now = System.currentTimeMillis();

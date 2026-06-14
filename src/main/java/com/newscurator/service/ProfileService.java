@@ -18,17 +18,20 @@ public class ProfileService {
     private final FollowKeywordRepository followKeywordRepository;
     private final ReadingPreferenceRepository readingPreferenceRepository;
     private final BriefingSettingsRepository briefingSettingsRepository;
+    private final VoiceService voiceService;
 
     public ProfileService(UserProfileRepository userProfileRepository,
                           UserInterestsRepository userInterestsRepository,
                           FollowKeywordRepository followKeywordRepository,
                           ReadingPreferenceRepository readingPreferenceRepository,
-                          BriefingSettingsRepository briefingSettingsRepository) {
+                          BriefingSettingsRepository briefingSettingsRepository,
+                          VoiceService voiceService) {
         this.userProfileRepository = userProfileRepository;
         this.userInterestsRepository = userInterestsRepository;
         this.followKeywordRepository = followKeywordRepository;
         this.readingPreferenceRepository = readingPreferenceRepository;
         this.briefingSettingsRepository = briefingSettingsRepository;
+        this.voiceService = voiceService;
     }
 
     // ─── UserProfile ───
@@ -105,18 +108,22 @@ public class ProfileService {
     @Transactional(readOnly = true)
     public ReadingPreferenceResponse getReadingPreference(Account account) {
         return readingPreferenceRepository.findByAccountId(account.getId())
-                .map(rp -> new ReadingPreferenceResponse(rp.getSummaryDepth(), rp.getConsumeMode()))
-                .orElse(new ReadingPreferenceResponse(null, null));
+                .map(rp -> new ReadingPreferenceResponse(
+                        rp.getSummaryDepth(), rp.getConsumeMode(), rp.getVoiceId()))
+                .orElse(new ReadingPreferenceResponse(null, null, null));
     }
 
     @Transactional
     public ReadingPreferenceResponse updateReadingPreference(Account account, ReadingPreferenceRequest req) {
+        if (req.voiceId() != null) {
+            voiceService.validateVoiceId(req.voiceId()); // 유효하지 않으면 IllegalArgumentException → 422
+        }
         ReadingPreference rp = readingPreferenceRepository.findByAccountId(account.getId())
                 .orElseGet(() -> ReadingPreference.builder().account(account)
                         .summaryDepth(req.summaryDepth()).consumeMode(req.consumeMode()).build());
-        rp.update(req.summaryDepth(), req.consumeMode());
+        rp.update(req.summaryDepth(), req.consumeMode(), req.voiceId());
         readingPreferenceRepository.save(rp);
-        return new ReadingPreferenceResponse(rp.getSummaryDepth(), rp.getConsumeMode());
+        return new ReadingPreferenceResponse(rp.getSummaryDepth(), rp.getConsumeMode(), rp.getVoiceId());
     }
 
     // ─── BriefingSettings ───

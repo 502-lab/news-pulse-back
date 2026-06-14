@@ -18,4 +18,10 @@ public interface SummaryRepository extends JpaRepository<Summary, Long> {
             "SELECT COUNT(s) FROM Summary s "
                     + "WHERE s.article.id = :articleId")
     long countByArticleId(@Param("articleId") Long articleId);
+
+    @Query("SELECT s FROM Summary s "
+            + "WHERE s.article.id IN :articleIds "
+            + "AND s.status = com.newscurator.domain.enums.SummarySlotStatus.COMPLETED")
+    List<Summary> findCompletedByArticleIdIn(
+            @Param("articleIds") java.util.Collection<Long> articleIds);
 }

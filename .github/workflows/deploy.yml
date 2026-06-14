@@ -1,0 +1,31 @@
+name: Deploy to EC2
+on:
+  push:
+    tags:
+      - 'v*'                # v로 시작하는 태그 푸시 시 배포 (예: v1.0.0, v0.1.0)
+  workflow_dispatch:        # 수동 트리거도 유지
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '25' }
+      - run: chmod +x gradlew && ./gradlew clean bootJar
+      - name: Deploy via SCP & SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          echo "$EC2_SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          scp -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            build/libs/*.jar \
+            ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/news-pulse-back.jar
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            ${EC2_USER}@${EC2_HOST} \
+            "cd /home/ubuntu/app && pm2 reload newsift-back || pm2 start ecosystem.config.js && pm2 save"
+          rm -f /tmp/deploy_key
