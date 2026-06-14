@@ -46,22 +46,22 @@ public class KakaoOAuthAdapter implements OAuthProviderPort {
     }
 
     @Override
-    public String getAuthorizeUrl(String state) {
+    public String getAuthorizeUrl(String state, String redirectUri) {
         return AUTH_BASE + "/oauth/authorize"
                 + "?client_id=" + config.getClientId()
-                + "&redirect_uri=" + config.getRedirectUri()
+                + "&redirect_uri=" + redirectUri
                 + "&response_type=code"
                 + "&state=" + state;
     }
 
     @Override
-    public OAuthUserInfo exchangeAndFetchUser(String code) {
+    public OAuthUserInfo exchangeAndFetchUser(String code, String redirectUri) {
         try {
             MultiValueMap<String, String> tokenParams = new LinkedMultiValueMap<>();
             tokenParams.add("grant_type", "authorization_code");
             tokenParams.add("client_id", config.getClientId());
             tokenParams.add("client_secret", config.getClientSecret());
-            tokenParams.add("redirect_uri", config.getRedirectUri());
+            tokenParams.add("redirect_uri", redirectUri);
             tokenParams.add("code", code);
 
             String tokenJson = tokenClient.post()

@@ -1,5 +1,6 @@
 package com.newscurator.config;
 
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("oauth")
@@ -8,6 +9,7 @@ public class OAuthConfig {
     private Kakao kakao = new Kakao();
     private Provider google = new Provider();
     private Apple apple = new Apple();
+    private List<String> allowedRedirectUris = List.of();
 
     public Kakao getKakao() { return kakao; }
     public void setKakao(Kakao kakao) { this.kakao = kakao; }
@@ -17,6 +19,11 @@ public class OAuthConfig {
 
     public Apple getApple() { return apple; }
     public void setApple(Apple apple) { this.apple = apple; }
+
+    public List<String> getAllowedRedirectUris() { return allowedRedirectUris; }
+    public void setAllowedRedirectUris(List<String> allowedRedirectUris) {
+        this.allowedRedirectUris = allowedRedirectUris;
+    }
 
     public static class Provider {
         private String clientId;

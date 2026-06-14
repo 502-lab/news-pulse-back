@@ -87,7 +87,7 @@ class RbacIntegrationTest {
                 .baseUrl("http://localhost:" + port)
                 .build();
 
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
 
         jdbcTemplate.execute("TRUNCATE TABLE consent_records, verification_codes, refresh_tokens, accounts RESTART IDENTITY CASCADE");

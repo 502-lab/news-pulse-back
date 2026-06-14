@@ -76,12 +76,11 @@ class PasswordResetIntegrationTest {
     void setUp() {
         restClient = RestClient.builder().baseUrl("http://localhost:" + port).build();
 
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
-                .willReturn(aResponse().withStatus(200)));
-        wireMock.stubFor(post(urlPathEqualTo("/send-password-reset-code"))
-                .willReturn(aResponse().withStatus(200)));
-        wireMock.stubFor(post(urlPathEqualTo("/send-social-only-notice"))
-                .willReturn(aResponse().withStatus(200)));
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"test-email-id\"}")));
 
         jdbcTemplate.execute(
                 "TRUNCATE TABLE consent_records, verification_codes, refresh_tokens, accounts RESTART IDENTITY CASCADE");
@@ -174,7 +173,7 @@ class PasswordResetIntegrationTest {
                 .body(Map.of("email", "registered@example.com"))
                 .retrieve().toBodilessEntity();
 
-        wireMock.verify(1, postRequestedFor(urlPathEqualTo("/send-password-reset-code")));
+        wireMock.verify(1, postRequestedFor(urlPathEqualTo("/emails")));
     }
 
     @Test
@@ -188,7 +187,7 @@ class PasswordResetIntegrationTest {
                 .retrieve().toBodilessEntity().getStatusCode().value();
 
         assertThat(status).isEqualTo(202);
-        wireMock.verify(0, postRequestedFor(urlPathEqualTo("/send-password-reset-code")));
+        wireMock.verify(0, postRequestedFor(urlPathEqualTo("/emails")));
     }
 
     @Test
@@ -206,8 +205,7 @@ class PasswordResetIntegrationTest {
                 .retrieve().toBodilessEntity().getStatusCode().value();
 
         assertThat(status).isEqualTo(202);
-        wireMock.verify(1, postRequestedFor(urlPathEqualTo("/send-social-only-notice")));
-        wireMock.verify(0, postRequestedFor(urlPathEqualTo("/send-password-reset-code")));
+        wireMock.verify(1, postRequestedFor(urlPathEqualTo("/emails")));
     }
 
     @Test
@@ -240,7 +238,7 @@ class PasswordResetIntegrationTest {
                 "SELECT id FROM accounts WHERE LOWER(email) = ?", String.class, "fail@example.com");
 
         // Stub email to fail
-        wireMock.stubFor(post(urlPathEqualTo("/send-password-reset-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(500)));
 
         int codesBefore = jdbcTemplate.queryForObject(
