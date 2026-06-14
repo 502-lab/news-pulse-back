@@ -301,18 +301,21 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">47</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">49</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">13</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-13</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-14</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-14</div>
+  <a class="toc-item" href="#d0614-2">GitHub Actions CI/CD 워크플로우 추가 (deploy.yml)</a>
+  <a class="toc-item" href="#d0614-1">build.gradle plain jar 비활성화 (bootJar 단독 생성)</a>
   <div class="toc-date">2026-06-13</div>
   <a class="toc-item" href="#d0613-8">spec 004 TTS 제공자 Naver Clova → AWS Polly (Seoyeon, Neural) 교체</a>
   <a class="toc-item" href="#d0613-7">spec 004 US4+Polish — listenable 필터·SavedArticleControllerTest·Swagger·CHANGELOG</a>
@@ -366,6 +369,49 @@
 <div class="content">
 
 <!-- ═══════ 2026-06-13 ═══════ -->
+<div class="date-group" id="date-0614">
+  <h2 class="date-label">2026-06-14</h2>
+
+  <div class="entry" id="d0614-2" data-tags="config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-config">CONFIG</span>
+          GitHub Actions CI/CD 워크플로우 추가 (deploy.yml)
+        </div>
+        <div class="entry-meta"><span class="session-badge">커밋됨</span></div>
+      </div>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="entry-body">
+      <div class="entry-section"><strong>문제(배경):</strong> EC2 배포를 수동 scp+ssh로 수행하면 실수 가능성이 높고 반복 작업이 비효율적. GitHub Actions 워크플로우로 표준화 필요.</div>
+      <div class="entry-section"><strong>근본 원인(결정 이유):</strong> workflow_dispatch로 수동 트리거만 활성화하여 Secrets·Nginx 준비 전 오배포를 방지. push 자동화 트리거는 주석으로 남겨 안정화 후 한 줄 해제만으로 전환 가능. appleboy/scp-action+ssh-action은 GitHub Marketplace 표준 EC2 배포 조합으로 검증됨.</div>
+      <div class="entry-section"><strong>수정 내용:</strong> .github/workflows/deploy.yml 신규 생성. checkout → setup-java(25) → bootJar 빌드 → scp로 jar 전송 → ssh로 pm2 reload 순서.</div>
+      <div class="entry-section"><strong>영향 파일:</strong> .github/workflows/deploy.yml (신규)</div>
+    </div>
+  </div>
+
+  <div class="entry" id="d0614-1" data-tags="config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-config">CONFIG</span>
+          build.gradle plain jar 비활성화 — bootJar 단독 생성
+        </div>
+        <div class="entry-meta"><span class="session-badge">커밋됨</span></div>
+      </div>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="entry-body">
+      <div class="entry-section"><strong>문제(배경):</strong> Spring Boot 기본 빌드 시 plain jar(의존성 미포함)와 bootJar(실행 가능) 두 파일이 생성됨. deploy.yml의 <code>build/libs/*.jar</code> glob이 plain jar까지 EC2로 전송하여 mv 명령 충돌 위험.</div>
+      <div class="entry-section"><strong>근본 원인(결정 이유):</strong> <code>tasks.named('jar') { enabled = false }</code> 한 줄로 plain jar 태스크를 비활성화하는 것이 Spring Boot 공식 권장 방법. bootJar 태스크 자체를 수정하거나 classifier를 변경하는 방법보다 의도가 명확하고 부작용 없음.</div>
+      <div class="entry-section"><strong>수정 내용:</strong> build.gradle에 <code>tasks.named('jar') { enabled = false }</code> 추가. ./gradlew clean bootJar 실행 결과 build/libs/ 에 실행 jar 1개만 생성 확인 (84.7MB).</div>
+      <div class="entry-section"><strong>영향 파일:</strong> build.gradle</div>
+    </div>
+  </div>
+
+</div>
+
 <div class="date-group" id="date-0613">
   <div class="date-heading">
     <h2>2026-06-13</h2>

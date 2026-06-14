@@ -70,6 +70,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+tasks.named('jar') { enabled = false }
+
 tasks.named('test') {
     useJUnitPlatform()
 }
