@@ -90,10 +90,10 @@ public class AppleOAuthAdapter implements OAuthProviderPort {
     }
 
     @Override
-    public String getAuthorizeUrl(String state) {
+    public String getAuthorizeUrl(String state, String redirectUri) {
         return APPLE_AUTH_BASE + "/auth/authorize"
                 + "?client_id=" + config.getClientId()
-                + "&redirect_uri=" + config.getRedirectUri()
+                + "&redirect_uri=" + redirectUri
                 + "&response_type=code"
                 + "&scope=email"
                 + "&response_mode=form_post"
@@ -101,7 +101,7 @@ public class AppleOAuthAdapter implements OAuthProviderPort {
     }
 
     @Override
-    public OAuthUserInfo exchangeAndFetchUser(String code) {
+    public OAuthUserInfo exchangeAndFetchUser(String code, String redirectUri) {
         if (applePrivateKey == null) {
             throw new IllegalStateException("Apple OAuth private key is not configured");
         }
@@ -112,7 +112,7 @@ public class AppleOAuthAdapter implements OAuthProviderPort {
             tokenParams.add("grant_type", "authorization_code");
             tokenParams.add("client_id", config.getClientId());
             tokenParams.add("client_secret", clientSecret);
-            tokenParams.add("redirect_uri", config.getRedirectUri());
+            tokenParams.add("redirect_uri", redirectUri);
             tokenParams.add("code", code);
 
             String tokenJson = tokenClient.post()

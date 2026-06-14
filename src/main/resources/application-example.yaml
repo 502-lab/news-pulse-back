@@ -24,10 +24,15 @@ email-service:
 
 # OAuth 소셜 로그인 (절대 코드/git에 하드코딩 금지)
 oauth:
+  # 프론트엔드가 /authorize에 전달할 수 있는 redirectUri 화이트리스트
+  allowed-redirect-uris:
+    - http://localhost:3000
+    - https://dev.newsit.app
+    - https://newsit.app
   kakao:
     client-id: ${KAKAO_CLIENT_ID}
     client-secret: ${KAKAO_CLIENT_SECRET}
-    redirect-uri: ${KAKAO_REDIRECT_URI}
+    redirect-uri: ${KAKAO_REDIRECT_URI}   # provider 콘솔에 등록한 URI
   google:
     client-id: ${GOOGLE_CLIENT_ID}
     client-secret: ${GOOGLE_CLIENT_SECRET}
