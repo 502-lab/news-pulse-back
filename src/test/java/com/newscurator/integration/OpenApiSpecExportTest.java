@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.RestClient;
+import com.newscurator.testutil.BigmPostgresImage;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -30,7 +31,7 @@ class OpenApiSpecExportTest {
 
     @Container
     static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
+            new PostgreSQLContainer<>(BigmPostgresImage.NAME)
                     .withDatabaseName("newscurator_openapi_export")
                     .withUsername("test")
                     .withPassword("test");
