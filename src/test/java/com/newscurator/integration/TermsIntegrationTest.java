@@ -209,26 +209,26 @@ class TermsIntegrationTest {
         String userToken = signupAndGetToken("reconsent@example.com");
 
         // Verify current state: requiresReConsent=false
-        Map<?, ?> meBefore = restClient.get().uri("/api/v1/me")
+        Map<?, ?> meBefore = (Map<?, ?>) restClient.get().uri("/api/v1/me")
                 .header("Authorization", "Bearer " + userToken)
-                .retrieve().body(Map.class);
+                .retrieve().body(Map.class).get("data");
         assertThat(meBefore.get("requiresReConsent")).isEqualTo(false);
 
         // 2. Admin publishes new required SERVICE terms version
         String adminToken = adminToken();
-        Map<?, ?> newVersionResp = restClient.post().uri("/api/v1/admin/terms")
+        Map<?, ?> newVersionResp = (Map<?, ?>) restClient.post().uri("/api/v1/admin/terms")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("type", "SERVICE", "version", "v3.0",
                         "effectiveDate", LocalDate.now().toString(), "required", true))
-                .retrieve().body(Map.class);
+                .retrieve().body(Map.class).get("data");
 
         String newVersionId = newVersionResp.get("id").toString();
 
         // 3. Existing user checks /me → requiresReConsent=true
-        Map<?, ?> meAfterNewTerms = restClient.get().uri("/api/v1/me")
+        Map<?, ?> meAfterNewTerms = (Map<?, ?>) restClient.get().uri("/api/v1/me")
                 .header("Authorization", "Bearer " + userToken)
-                .retrieve().body(Map.class);
+                .retrieve().body(Map.class).get("data");
         assertThat(meAfterNewTerms.get("requiresReConsent")).isEqualTo(true);
 
         // 4. User submits consent to new version
@@ -239,9 +239,9 @@ class TermsIntegrationTest {
                 .retrieve().toBodilessEntity();
 
         // 5. requiresReConsent=false after re-consent
-        Map<?, ?> meAfterConsent = restClient.get().uri("/api/v1/me")
+        Map<?, ?> meAfterConsent = (Map<?, ?>) restClient.get().uri("/api/v1/me")
                 .header("Authorization", "Bearer " + userToken)
-                .retrieve().body(Map.class);
+                .retrieve().body(Map.class).get("data");
         assertThat(meAfterConsent.get("requiresReConsent")).isEqualTo(false);
     }
 
