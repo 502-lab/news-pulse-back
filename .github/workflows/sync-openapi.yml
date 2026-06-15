@@ -20,7 +20,7 @@ jobs:
           java-version: "25"
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Generate OpenAPI spec
         run: ./gradlew test --tests "com.newscurator.integration.OpenApiSpecExportTest" --no-daemon

@@ -19,7 +19,7 @@ jobs:
           java-version: "25"
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Run tests (incl. Testcontainers integration)
         run: ./gradlew test --no-daemon
