@@ -163,9 +163,10 @@ class ProfileIntegrationTest {
                 "SELECT nickname FROM user_profiles WHERE account_id = ?::uuid", String.class, accountId);
         assertThat(dbNickname).isEqualTo("업데이트닉네임");
 
-        Map<?, ?> getResp = restClient.get().uri("/api/v1/me/profile")
+        Map<?, ?> getResp = (Map<?, ?>) restClient.get().uri("/api/v1/me/profile")
                 .header("Authorization", "Bearer " + token)
-                .retrieve().body(Map.class);
+                .retrieve().body(Map.class)
+                .get("data");
         assertThat(getResp.get("nickname")).isEqualTo("업데이트닉네임");
         assertThat(getResp.get("occupation")).isEqualTo("디자이너");
     }
@@ -224,9 +225,10 @@ class ProfileIntegrationTest {
                 String.class, accountId);
         assertThat(dbDepth).isEqualTo("DEEP");
 
-        Map<?, ?> getResp = restClient.get().uri("/api/v1/me/reading-preference")
+        Map<?, ?> getResp = (Map<?, ?>) restClient.get().uri("/api/v1/me/reading-preference")
                 .header("Authorization", "Bearer " + token)
-                .retrieve().body(Map.class);
+                .retrieve().body(Map.class)
+                .get("data");
         assertThat(getResp.get("summaryDepth")).isEqualTo("DEEP");
         assertThat(getResp.get("consumeMode")).isEqualTo("LISTEN");
     }

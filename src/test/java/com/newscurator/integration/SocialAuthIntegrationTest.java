@@ -151,7 +151,7 @@ class SocialAuthIntegrationTest {
                         + "/authorize?redirectUri=http://localhost:3000")
                 .retrieve()
                 .body(Map.class);
-        String authorizeUrl = (String) resp.get("authorizeUrl");
+        String authorizeUrl = (String) ((Map<?, ?>) resp.get("data")).get("authorizeUrl");
         for (String part : authorizeUrl.split("[?&]")) {
             if (part.startsWith("state=")) {
                 return java.net.URLDecoder.decode(
@@ -221,7 +221,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
 
         assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
-        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+        String pendingToken = (String) ((Map<?, ?>) callbackResp.getBody().get("data")).get("pendingToken");
         assertThat(pendingToken).isNotBlank();
 
         // Step 2: /complete → 201 + tokens (계정 생성, 약관 동의 저장)
@@ -277,7 +277,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
 
         assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
-        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+        String pendingToken = (String) ((Map<?, ?>) callbackResp.getBody().get("data")).get("pendingToken");
 
         // Step 2: /complete → 201
         var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
@@ -321,7 +321,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
 
         assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
-        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+        String pendingToken = (String) ((Map<?, ?>) callbackResp.getBody().get("data")).get("pendingToken");
 
         // Step 2: /complete → 201
         var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
@@ -372,7 +372,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
         assertThat(callbackResp1.getStatusCode().value()).isEqualTo(202);
 
-        String pendingToken = (String) callbackResp1.getBody().get("pendingToken");
+        String pendingToken = (String) ((Map<?, ?>) callbackResp1.getBody().get("data")).get("pendingToken");
         restClient.post().uri("/api/v1/auth/social/complete")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
@@ -393,7 +393,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
 
         assertThat(response2.getStatusCode().value()).isEqualTo(200);
-        assertThat((boolean) response2.getBody().get("isNew")).isFalse();
+        assertThat((boolean) ((Map<?, ?>) response2.getBody().get("data")).get("isNew")).isFalse();
     }
 
     @Test
@@ -487,7 +487,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
 
         assertThat(callbackResponse.getStatusCode().value()).isEqualTo(202);
-        String pendingToken = (String) callbackResponse.getBody().get("pendingToken");
+        String pendingToken = (String) ((Map<?, ?>) callbackResponse.getBody().get("data")).get("pendingToken");
 
         // Step 2: /complete → 201 + emailVerified=true (FR-024)
         var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
@@ -566,7 +566,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
 
         assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
-        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+        String pendingToken = (String) ((Map<?, ?>) callbackResp.getBody().get("data")).get("pendingToken");
 
         // Step 2: /complete → 201
         var completeResp = restClient.post().uri("/api/v1/auth/social/complete")
@@ -621,7 +621,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
 
         assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
-        String pendingToken = (String) callbackResp.getBody().get("pendingToken");
+        String pendingToken = (String) ((Map<?, ?>) callbackResp.getBody().get("data")).get("pendingToken");
 
         // Step 2: /complete → 201 (userInfo는 클라이언트가 재전송 — JWT PII 제거 설계)
         restClient.post().uri("/api/v1/auth/social/complete")

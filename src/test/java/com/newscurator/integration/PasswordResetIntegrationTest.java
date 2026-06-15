@@ -157,7 +157,7 @@ class PasswordResetIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("email", email, "code", code))
                 .retrieve().body(Map.class);
-        return (String) verifyResp.get("resetToken");
+        return (String) ((Map<?, ?>) verifyResp.get("data")).get("resetToken");
     }
 
     // ─── test scenarios ───

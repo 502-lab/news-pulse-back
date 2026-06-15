@@ -167,7 +167,7 @@ class RbacIntegrationTest {
                 .body(Map.of("email", "admin@test.local", "password", ADMIN_PASSWORD))
                 .retrieve()
                 .body(Map.class);
-        String adminAccessToken = getAccessToken(loginResp);
+        String adminAccessToken = getAccessToken((Map<?, ?>) loginResp.get("data"));
 
         // ADMIN can access /api/v1/admin/pipeline/stats → 200
         var statsResp = restClient.get().uri("/api/v1/admin/pipeline/stats")
@@ -208,12 +208,13 @@ class RbacIntegrationTest {
                 .body(Map.of("email", "me@rbac.com", "password", "Password1"))
                 .retrieve()
                 .body(Map.class);
-        String verifiedToken = getAccessToken(loginResp);
+        String verifiedToken = getAccessToken((Map<?, ?>) loginResp.get("data"));
 
-        Map<?, ?> meResp = restClient.get().uri("/api/v1/me")
+        Map<?, ?> meResp = (Map<?, ?>) restClient.get().uri("/api/v1/me")
                 .header("Authorization", "Bearer " + verifiedToken)
                 .retrieve()
-                .body(Map.class);
+                .body(Map.class)
+                .get("data");
         assertThat(meResp.get("email")).isEqualTo("me@rbac.com");
         assertThat(meResp.get("emailVerified")).isEqualTo(true);
     }
