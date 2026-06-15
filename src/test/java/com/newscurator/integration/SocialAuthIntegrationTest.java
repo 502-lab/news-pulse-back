@@ -238,7 +238,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toEntity(Map.class);
 
         assertThat(completeResp.getStatusCode().value()).isEqualTo(201);
-        Map<?, ?> body = completeResp.getBody();
+        Map<?, ?> body = (Map<?, ?>) completeResp.getBody().get("data");
         assertThat(body.containsKey("tokens")).isTrue();
 
         // DB: email_verified = true (FR-024)
