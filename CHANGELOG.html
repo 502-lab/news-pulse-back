@@ -301,8 +301,8 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">61</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">19</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">62</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">20</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">19</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-15</div>
+  <a class="toc-item" href="#d0615-11">GEMINI/NAVER API 키 기본값 누락 → CI PlaceholderResolutionException</a>
   <a class="toc-item" href="#d0615-10">pendingToken PII 제거 — userInfo를 /complete로 이동</a>
   <a class="toc-item" href="#d0615-9">email-service.from-address 기본값 제거 + 테스트 보완</a>
   <a class="toc-item" href="#d0615-8">OAuthProviderFactory → InvalidProviderException</a>
@@ -387,6 +388,34 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 11 -->
+  <div class="entry" id="d0615-11" data-tags="bugfix config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-high">HIGH</span>
+          GEMINI_API_KEY · NAVER_CLIENT_ID/SECRET 기본값 누락 → CI PlaceholderResolutionException
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제</dt>
+        <dd>CI "Run tests" 단계에서 <code>AiProcessingIntegrationTest</code>, <code>AuthIntegrationTest</code>, <code>CollectionIntegrationTest</code> 등 모든 통합 테스트가 <code>PlaceholderResolutionException</code>으로 컨텍스트 로드 실패.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>application.yaml</code>의 <code>app.client.gemini.api-key: ${GEMINI_API_KEY}</code>, <code>naver.client-id: ${NAVER_CLIENT_ID}</code>, <code>naver.client-secret: ${NAVER_CLIENT_SECRET}</code>에 기본값이 없었음. Repository 테스트는 <code>@TestPropertySource</code>로 각각 주입하고 있었으나, Integration 테스트는 <code>@DynamicPropertySource</code>로 해당 속성을 설정하지 않아 placeholder 미해소.</dd>
+        <dt>수정 내용</dt>
+        <dd><code>application.yaml</code>에 테스트용 기본값 추가: <code>${GEMINI_API_KEY:test-gemini-key}</code>, <code>${NAVER_CLIENT_ID:test-naver-id}</code>, <code>${NAVER_CLIENT_SECRET:test-naver-secret}</code>.</dd>
+        <dt>결정 이유</dt>
+        <dd>다른 외부 API 키들(JWT_SECRET, Kakao, Google, Apple 등)은 이미 같은 패턴으로 기본값 제공 중. 일관성 유지. 대안인 Integration 테스트 전체에 <code>@DynamicPropertySource</code> 추가는 파일 수정 범위가 넓고 향후 새 속성 추가 시 반복 실수 유발.</dd>
+        <dt>영향 파일</dt>
+        <dd><code>src/main/resources/application.yaml</code></dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 10 -->

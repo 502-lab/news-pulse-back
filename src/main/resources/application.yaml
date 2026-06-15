@@ -81,12 +81,12 @@ oauth:
 app:
   client:
     gemini:
-      api-key: ${GEMINI_API_KEY}
+      api-key: ${GEMINI_API_KEY:test-gemini-key}
       model: gemini-2.0-flash
       base-url: https://generativelanguage.googleapis.com
     naver:
-      client-id: ${NAVER_CLIENT_ID}
-      client-secret: ${NAVER_CLIENT_SECRET}
+      client-id: ${NAVER_CLIENT_ID:test-naver-id}
+      client-secret: ${NAVER_CLIENT_SECRET:test-naver-secret}
       base-url: https://openapi.naver.com
   scheduler:
     enabled: true
