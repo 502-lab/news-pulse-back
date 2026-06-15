@@ -5,8 +5,10 @@ import com.newscurator.dto.request.EmailVerificationVerifyRequest;
 import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.repository.AccountRepository;
 import com.newscurator.security.CustomUserDetails;
+import com.newscurator.service.AuthService;
 import com.newscurator.service.EmailVerificationService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,11 +22,14 @@ public class EmailVerificationController {
 
     private final EmailVerificationService emailVerificationService;
     private final AccountRepository accountRepository;
+    private final AuthService authService;
 
     public EmailVerificationController(EmailVerificationService emailVerificationService,
-                                       AccountRepository accountRepository) {
+                                       AccountRepository accountRepository,
+                                       AuthService authService) {
         this.emailVerificationService = emailVerificationService;
         this.accountRepository = accountRepository;
+        this.authService = authService;
     }
 
     @PostMapping("/request")
@@ -36,12 +41,16 @@ public class EmailVerificationController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    /**
+     * 인증 코드 확인 성공 시 emailVerified=true 가 반영된 정식 JWT(accessToken + refreshToken)를 반환.
+     * 프론트는 이 토큰으로 기존 pendingToken을 교체해야 한다.
+     */
     @PostMapping("/verify")
-    public ResponseEntity<ApiResponse<Void>> verify(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> verify(
             @Valid @RequestBody EmailVerificationVerifyRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        accountRepository.findById(userDetails.getAccountId()).ifPresent(account ->
-                emailVerificationService.verifyCode(account, request.code()));
-        return ResponseEntity.ok(ApiResponse.success(null));
+        Map<String, Object> result = authService.completeEmailVerification(
+                userDetails.getAccountId(), request.code());
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 }

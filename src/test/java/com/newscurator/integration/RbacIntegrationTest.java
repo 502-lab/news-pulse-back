@@ -118,12 +118,18 @@ class RbacIntegrationTest {
                 ),
                 "ageConfirmed", true
         );
-        Map<?, ?> response = restClient.post().uri("/api/v1/auth/signup")
+        restClient.post().uri("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(signupBody)
                 .retrieve()
                 .body(Map.class);
-        return (Map<?, ?>) response.get("data");
+        // signup은 pendingToken만 반환 → login으로 정식 토큰 확보 (email_verified=false 상태)
+        Map<?, ?> loginResp = restClient.post().uri("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("email", email, "password", password))
+                .retrieve()
+                .body(Map.class);
+        return (Map<?, ?>) loginResp.get("data");
     }
 
     private String getAccessToken(Map<?, ?> data) {

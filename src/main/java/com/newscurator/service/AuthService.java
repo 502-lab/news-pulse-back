@@ -10,7 +10,9 @@ import com.newscurator.dto.request.ConsentInput;
 import com.newscurator.dto.request.LoginRequest;
 import com.newscurator.dto.request.SignupRequest;
 import com.newscurator.dto.response.AccountSummaryResponse;
+import com.newscurator.dto.response.SignupResponse;
 import com.newscurator.dto.response.TokenPairResponse;
+import com.newscurator.security.JwtTokenProvider;
 import com.newscurator.exception.AccountSuspendedException;
 import com.newscurator.exception.EmailAlreadyExistsException;
 import com.newscurator.exception.EmailDeliveryException;
@@ -50,6 +52,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final EmailVerificationService emailVerificationService;
+    private final JwtTokenProvider jwtTokenProvider;
     private final TransactionTemplate transactionTemplate;
 
     public AuthService(AccountRepository accountRepository,
@@ -58,6 +61,7 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        TokenService tokenService,
                        EmailVerificationService emailVerificationService,
+                       JwtTokenProvider jwtTokenProvider,
                        PlatformTransactionManager transactionManager) {
         this.accountRepository = accountRepository;
         this.termsVersionRepository = termsVersionRepository;
@@ -65,12 +69,13 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.emailVerificationService = emailVerificationService;
+        this.jwtTokenProvider = jwtTokenProvider;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     // signup() is NOT @Transactional: account creation commits first (in transactionTemplate),
     // then email is sent outside that transaction so an email failure cannot roll back the account.
-    public Map<String, Object> signup(SignupRequest request) {
+    public SignupResponse signup(SignupRequest request) {
         String email = request.email().toLowerCase();
 
         // Phase 1: create account + consents in an isolated transaction that commits immediately.
@@ -122,11 +127,20 @@ public class AuthService {
             log.warn("Verification email delivery failed for account={}, user can resend", account.getId());
         }
 
-        // Phase 3: issue tokens (own @Transactional).
+        // Phase 3: 이메일 인증 전이므로 정식 JWT 대신 pendingToken 발급
+        String pendingToken = jwtTokenProvider.generateEmailPendingToken(account.getId());
+        return new SignupResponse(pendingToken, verificationEmailSent);
+    }
+
+    @Transactional
+    public Map<String, Object> completeEmailVerification(java.util.UUID accountId, String code) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new org.springframework.security.authentication.BadCredentialsException("Account not found"));
+        emailVerificationService.verifyCode(account, code);
+        // verifyCode() 내부에서 account.verifyEmail() 호출 → emailVerified=true 반영
         TokenPairResponse tokens = tokenService.issueTokenPair(account);
         AccountSummaryResponse accountSummary = buildAccountSummary(account);
-        return Map.of("tokens", tokens, "account", accountSummary,
-                      "verificationEmailSent", verificationEmailSent);
+        return Map.of("tokens", tokens, "account", accountSummary);
     }
 
     @Transactional

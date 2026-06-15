@@ -126,6 +126,21 @@ public class JwtTokenProvider {
         return claims;
     }
 
+    /**
+     * Issues a 15-minute email-verification pending token.
+     * type=EMAIL_PENDING — only valid for /api/v1/auth/email-verification/** endpoints.
+     */
+    public String generateEmailPendingToken(java.util.UUID accountId) {
+        long now = System.currentTimeMillis();
+        return Jwts.builder()
+                .subject(accountId.toString())
+                .claim("type", "EMAIL_PENDING")
+                .issuedAt(new Date(now))
+                .expiration(new Date(now + 15L * 60 * 1000))
+                .signWith(signingKey)
+                .compact();
+    }
+
     public String sha256Hex(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

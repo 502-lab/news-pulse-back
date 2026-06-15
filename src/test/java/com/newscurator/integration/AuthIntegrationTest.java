@@ -101,8 +101,8 @@ class AuthIntegrationTest {
     }
 
     @Test
-    @DisplayName("정상 가입 → 201 + 토큰 쌍 + emailVerified=false + verificationEmailSent=true")
-    void signup_success_returns201WithTokens() {
+    @DisplayName("정상 가입 → 201 + pendingToken + verificationEmailSent=true (정식 JWT는 이메일 인증 후 발급)")
+    void signup_success_returns201WithPendingToken() {
         Map<String, Object> body = Map.of(
                 "email", "newuser@example.com",
                 "password", "Password1",
@@ -121,18 +121,13 @@ class AuthIntegrationTest {
                 .body(Map.class);
 
         Map<?, ?> data = (Map<?, ?>) response.get("data");
-        assertThat(data.containsKey("tokens")).isTrue();
-        assertThat(data.containsKey("account")).isTrue();
-        Map<?, ?> tokens = (Map<?, ?>) data.get("tokens");
-        assertThat(tokens.get("accessToken")).asString().isNotBlank();
-        assertThat(tokens.get("refreshToken")).asString().isNotBlank();
-        Map<?, ?> account = (Map<?, ?>) data.get("account");
-        assertThat(account.get("emailVerified")).isEqualTo(false);
-        assertThat(account.get("role")).isEqualTo("USER");
-        // verificationEmailSent must be true when email stub returns 200
+        // 정식 JWT 미발급 — pendingToken만 반환
+        assertThat(data.containsKey("pendingToken")).isTrue();
+        assertThat(data.containsKey("tokens")).isFalse();
+        assertThat(data.containsKey("account")).isFalse();
+        assertThat((String) data.get("pendingToken")).isNotBlank();
         assertThat(data.get("verificationEmailSent")).isEqualTo(true);
 
-        // Verify email send was called via Resend API
         wireMock.verify(1, postRequestedFor(urlPathEqualTo("/emails")));
     }
 
@@ -163,7 +158,8 @@ class AuthIntegrationTest {
 
         Map<?, ?> data = (Map<?, ?>) response.get("data");
         assertThat(data.get("verificationEmailSent")).isEqualTo(false);
-        assertThat(data.containsKey("tokens")).isTrue();
+        assertThat(data.containsKey("pendingToken")).isTrue();
+        assertThat(data.containsKey("tokens")).isFalse();
 
         // (b) 계정 row DB에 존재
         int accountCount = jdbcTemplate.queryForObject(
@@ -185,13 +181,13 @@ class AuthIntegrationTest {
                 Integer.class, accountId);
         assertThat(maxHourly).isEqualTo(0);
 
-        // (d) 재발송 가능: 이메일 서비스 복구 후 request 성공
+        // (d) 재발송 가능: 이메일 서비스 복구 후 pendingToken으로 request 성공
         wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
-        String accessToken = (String) ((Map<?, ?>) ((Map<?, ?>) response.get("data")).get("tokens")).get("accessToken");
+        String pendingToken = (String) ((Map<?, ?>) response.get("data")).get("pendingToken");
         var resendResp = restClient.post()
                 .uri("/api/v1/auth/email-verification/request")
-                .header("Authorization", "Bearer " + accessToken)
+                .header("Authorization", "Bearer " + pendingToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("email", "emailfail@signup.com"))
                 .retrieve()

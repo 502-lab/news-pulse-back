@@ -5,6 +5,7 @@ import com.newscurator.dto.request.LogoutRequest;
 import com.newscurator.dto.request.RefreshRequest;
 import com.newscurator.dto.request.SignupRequest;
 import com.newscurator.dto.response.ApiResponse;
+import com.newscurator.dto.response.SignupResponse;
 import com.newscurator.dto.response.TokenPairResponse;
 import com.newscurator.service.AuthService;
 import jakarta.validation.Valid;
@@ -27,8 +28,8 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> signup(@Valid @RequestBody SignupRequest request) {
-        Map<String, Object> result = authService.signup(request);
+    public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest request) {
+        SignupResponse result = authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
     }
 

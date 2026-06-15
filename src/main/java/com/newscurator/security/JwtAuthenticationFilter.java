@@ -35,24 +35,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtTokenProvider.validateToken(token)) {
             Claims claims = jwtTokenProvider.parseToken(token);
             UUID accountId = UUID.fromString(claims.getSubject());
-            AccountRole role = AccountRole.valueOf(claims.get("role", String.class));
-            boolean emailVerified = Boolean.TRUE.equals(claims.get("emailVerified", Boolean.class));
-
-            CustomUserDetails userDetails = new CustomUserDetails(accountId, role, emailVerified);
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-
-            // emailVerified gating: /api/v1/me/** requires emailVerified=true
-            // /api/v1/auth/email-verification/** is exempt (emailVerified=false allowed)
             String path = request.getServletPath();
-            if (!emailVerified
-                    && path.startsWith(ME_PATH)
-                    && !path.startsWith(EMAIL_VERIFY_PATH)) {
-                SecurityContextHolder.clearContext();
-                writeError(response, HttpServletResponse.SC_FORBIDDEN,
-                        "EMAIL_NOT_VERIFIED", "Email verification required");
-                return;
+            String tokenType = claims.get("type", String.class);
+
+            if ("EMAIL_PENDING".equals(tokenType)) {
+                // EMAIL_PENDING 토큰은 이메일 인증 엔드포인트에만 접근 가능
+                if (!path.startsWith(EMAIL_VERIFY_PATH)) {
+                    writeError(response, HttpServletResponse.SC_FORBIDDEN,
+                            "EMAIL_NOT_VERIFIED", "Email verification required");
+                    return;
+                }
+                CustomUserDetails userDetails = new CustomUserDetails(accountId, AccountRole.USER, false);
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } else {
+                AccountRole role = AccountRole.valueOf(claims.get("role", String.class));
+                boolean emailVerified = Boolean.TRUE.equals(claims.get("emailVerified", Boolean.class));
+
+                CustomUserDetails userDetails = new CustomUserDetails(accountId, role, emailVerified);
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+                // emailVerified gating: /api/v1/me/** requires emailVerified=true
+                if (!emailVerified && path.startsWith(ME_PATH)) {
+                    SecurityContextHolder.clearContext();
+                    writeError(response, HttpServletResponse.SC_FORBIDDEN,
+                            "EMAIL_NOT_VERIFIED", "Email verification required");
+                    return;
+                }
             }
         }
         filterChain.doFilter(request, response);

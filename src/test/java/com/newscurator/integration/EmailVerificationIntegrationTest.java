@@ -98,7 +98,8 @@ class EmailVerificationIntegrationTest {
                 .map(TermsVersion::getId).orElseThrow();
     }
 
-    private Map<?, ?> signupAndGetTokens(String email) {
+    /** signup → pendingToken 반환 (이메일 인증 전용 15분 토큰) */
+    private String signupAndGetPendingToken(String email) {
         wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
 
@@ -116,18 +117,17 @@ class EmailVerificationIntegrationTest {
                 .body(body)
                 .retrieve()
                 .body(Map.class);
-        return (Map<?, ?>) response.get("data");
+        return (String) ((Map<?, ?>) response.get("data")).get("pendingToken");
     }
 
     @Test
-    @DisplayName("미인증 계정(emailVerified=false) /me 접근 → 403")
+    @DisplayName("가입 직후 pendingToken으로 /me 접근 → 403 (이메일 미인증)")
     void unverifiedAccount_meAccess_returns403() {
-        Map<?, ?> resp = signupAndGetTokens("unverified@example.com");
-        String accessToken = (String) ((Map<?, ?>) resp.get("tokens")).get("accessToken");
+        String pendingToken = signupAndGetPendingToken("unverified@example.com");
 
         assertThatThrownBy(() ->
                 restClient.get().uri("/api/v1/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .header("Authorization", "Bearer " + pendingToken)
                         .retrieve()
                         .body(Map.class))
                 .isInstanceOf(HttpClientErrorException.class)
@@ -136,12 +136,10 @@ class EmailVerificationIntegrationTest {
     }
 
     @Test
-    @DisplayName("코드 검증 성공 → emailVerified=true → /me 접근 허용")
-    void verifyCode_success_allowsMeAccess() {
-        Map<?, ?> resp = signupAndGetTokens("verify@example.com");
-        String accessToken = (String) ((Map<?, ?>) resp.get("tokens")).get("accessToken");
+    @DisplayName("코드 검증 성공 → verify가 emailVerified=true JWT 반환 → /me 접근 허용")
+    void verifyCode_success_returnsTokensAndAllowsMeAccess() {
+        String pendingToken = signupAndGetPendingToken("verify@example.com");
 
-        // Get the account ID from DB and insert a known verification code
         String accountId = jdbcTemplate.queryForObject(
                 "SELECT id FROM accounts WHERE LOWER(email) = ?",
                 String.class, "verify@example.com");
@@ -152,24 +150,20 @@ class EmailVerificationIntegrationTest {
                 "VALUES (?::uuid, 'EMAIL_VERIFY', ?, NOW() + INTERVAL '15 minutes', NOW())",
                 accountId, codeHash);
 
-        // Verify the code
-        restClient.post().uri("/api/v1/auth/email-verification/verify")
-                .header("Authorization", "Bearer " + accessToken)
+        // verify → 200 + tokens (emailVerified=true JWT 포함)
+        Map<?, ?> verifyResp = restClient.post().uri("/api/v1/auth/email-verification/verify")
+                .header("Authorization", "Bearer " + pendingToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", knownCode))
                 .retrieve()
-                .toBodilessEntity();
-
-        // JWT is stateless — old token still has emailVerified=false claim.
-        // Must re-login to get a token reflecting the verified DB state.
-        Map<?, ?> loginResp = restClient.post().uri("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("email", "verify@example.com", "password", "Password1"))
-                .retrieve()
                 .body(Map.class);
-        Map<?, ?> loginData = (Map<?, ?>) loginResp.get("data");
-        String newAccessToken = (String) ((Map<?, ?>) loginData.get("tokens")).get("accessToken");
 
+        Map<?, ?> verifyData = (Map<?, ?>) verifyResp.get("data");
+        String newAccessToken = (String) ((Map<?, ?>) verifyData.get("tokens")).get("accessToken");
+        assertThat(newAccessToken).isNotBlank();
+        assertThat(((Map<?, ?>) verifyData.get("account")).get("emailVerified")).isEqualTo(true);
+
+        // verify가 반환한 토큰으로 /me 즉시 접근 가능 (재로그인 불필요)
         Map<?, ?> meFresh = restClient.get().uri("/api/v1/me")
                 .header("Authorization", "Bearer " + newAccessToken)
                 .retrieve()
@@ -180,10 +174,8 @@ class EmailVerificationIntegrationTest {
     @Test
     @DisplayName("만료된 코드 검증 → 410")
     void verifyCode_expired_returns410() {
-        Map<?, ?> resp = signupAndGetTokens("expired@example.com");
-        String accessToken = (String) ((Map<?, ?>) resp.get("tokens")).get("accessToken");
+        String pendingToken = signupAndGetPendingToken("expired@example.com");
 
-        // Insert an already-expired code
         String accountId = jdbcTemplate.queryForObject(
                 "SELECT id FROM accounts WHERE LOWER(email) = ?",
                 String.class, "expired@example.com");
@@ -196,7 +188,7 @@ class EmailVerificationIntegrationTest {
 
         assertThatThrownBy(() ->
                 restClient.post().uri("/api/v1/auth/email-verification/verify")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .header("Authorization", "Bearer " + pendingToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Map.of("code", knownCode))
                         .retrieve()
@@ -209,8 +201,8 @@ class EmailVerificationIntegrationTest {
     @Test
     @DisplayName("이메일 발송 실패 503 → 코드 미생성·한도 미차감")
     void requestCode_emailFailure_returns503AndQuotaNotCharged() {
-        Map<?, ?> resp = signupAndGetTokens("emailfail@example.com");
-        String accessToken = (String) ((Map<?, ?>) resp.get("tokens")).get("accessToken");
+        String pendingToken = signupAndGetPendingToken("emailfail@example.com");
+        String accessToken = pendingToken;
 
         // Count current verification codes and hourly_count before
         String accountId = jdbcTemplate.queryForObject(

@@ -76,7 +76,7 @@ class PiiAuditLeakTest {
 
         authService = new AuthService(accountRepository, termsVersionRepository,
                 consentRecordRepository, passwordEncoder, tokenService,
-                emailVerificationService, transactionManager);
+                emailVerificationService, jwtTokenProvider, transactionManager);
         passwordResetService = new PasswordResetService(accountRepository,
                 verificationCodeRepository, emailServiceClient, jwtTokenProvider,
                 passwordEncoder, tokenService);

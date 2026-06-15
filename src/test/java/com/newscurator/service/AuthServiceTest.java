@@ -13,6 +13,7 @@ import com.newscurator.exception.SocialOnlyAccountException;
 import com.newscurator.repository.AccountRepository;
 import com.newscurator.repository.ConsentRecordRepository;
 import com.newscurator.repository.TermsVersionRepository;
+import com.newscurator.security.JwtTokenProvider;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -38,6 +39,7 @@ class AuthServiceTest {
     @Mock private ConsentRecordRepository consentRecordRepository;
     @Mock private TokenService tokenService;
     @Mock private EmailVerificationService emailVerificationService;
+    @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private PlatformTransactionManager transactionManager;
 
     private PasswordEncoder passwordEncoder;
@@ -54,7 +56,7 @@ class AuthServiceTest {
         lenient().when(transactionManager.getTransaction(any())).thenReturn(txStatus);
         authService = new AuthService(accountRepository, termsVersionRepository,
                 consentRecordRepository, passwordEncoder, tokenService, emailVerificationService,
-                transactionManager);
+                jwtTokenProvider, transactionManager);
     }
 
     private Account buildActiveEmailAccount(String email, String rawPassword) {

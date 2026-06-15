@@ -105,12 +105,20 @@ class TokenRotationIntegrationTest {
                 ),
                 "ageConfirmed", true
         );
-        Map<?, ?> response = restClient.post().uri("/api/v1/auth/signup")
+        restClient.post().uri("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
                 .body(Map.class);
-        return (Map<?, ?>) response.get("data");
+        // signup은 pendingToken만 반환 → DB로 이메일 인증 완료 후 login으로 토큰 확보
+        jdbcTemplate.update("UPDATE accounts SET email_verified = TRUE WHERE LOWER(email) = ?",
+                email.toLowerCase());
+        Map<?, ?> loginResp = restClient.post().uri("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("email", email, "password", "Password1"))
+                .retrieve()
+                .body(Map.class);
+        return (Map<?, ?>) loginResp.get("data");
     }
 
     private String extractRefreshToken(Map<?, ?> data) {
