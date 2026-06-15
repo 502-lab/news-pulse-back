@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">55</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">16</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">17</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">58</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">18</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">18</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-15</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,9 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-15</div>
+  <a class="toc-item" href="#d0615-7">CORS 설정 추가 (로컬 프론트 → EC2 접근)</a>
+  <a class="toc-item" href="#d0615-6">알 수 없는 provider → 422 대신 400 오류</a>
+  <a class="toc-item" href="#d0615-5">소셜 기존 유저 refresh token DB 미저장 버그</a>
   <a class="toc-item" href="#d0615-3">소셜 가입 pending-token + /complete 2단계 전환</a>
   <a class="toc-item" href="#d0615-1">openapi A1~A6 불일치 수정</a>
   <a class="toc-item" href="#d0615-2">B-1 redirectUri 프론트 전달 + B-2 소셜 약관 동의 수집</a>
@@ -381,6 +384,102 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 7 -->
+  <div class="entry" id="d0615-7" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-feature">Feature</span>
+        <span class="entry-title">CORS 설정 추가 — 로컬 프론트(5173)에서 EC2 백엔드 접근 허용</span>
+      </div>
+      <span class="entry-toggle">▼</span>
+    </div>
+    <div class="entry-body">
+      <div class="field-label">문제 / 발견 경위</div>
+      <div class="field-value">CORS 설정이 전혀 없어 로컬 프론트(localhost:5173)에서 EC2 배포 백엔드로 API 요청 시 브라우저가 전부 차단.</div>
+      <div class="field-label">수정 내용</div>
+      <ul class="change-list">
+        <li><code>SecurityConfig</code>: <code>CorsConfigurationSource</code> 빈 추가, <code>cors.allowed-origins</code> 프로퍼티에서 허용 오리진 주입.</li>
+        <li><code>application.yaml</code>: <code>cors.allowed-origins</code> 항목 추가 (<code>http://localhost:5173</code>, <code>https://dev.newsit.app</code>, <code>https://newsit.app</code>). OAuth allowed-redirect-uris도 5173으로 통일.</li>
+      </ul>
+      <div class="field-label">결정 이유</div>
+      <div class="field-value">허용 오리진을 프로퍼티로 관리해 환경별(local/dev/prd) 오버라이드 가능하게 설계. 와일드카드(*) 미사용 — credentials:true와 함께 쓸 수 없고 보안상 명시 목록이 원칙.</div>
+      <div class="field-label">영향 파일</div>
+      <div class="field-value"><code>config/SecurityConfig.java</code>, <code>application.yaml</code></div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="entry" id="d0615-6" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-medium">MEDIUM</span>
+          알 수 없는 OAuth provider → 422 대신 400 반환 오류
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>코드 감사 중 발견. <code>POST /api/v1/auth/social/invalid-provider/callback</code> 등 존재하지 않는 provider 이름을 전달하면 422 UNPROCESSABLE_ENTITY가 반환됨. 잘못된 경로 파라미터에 대한 의미론적으로 올바른 상태 코드는 400 BAD_REQUEST.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>SocialAuthController.parseProvider()</code>가 알 수 없는 provider 이름에 대해 <code>IllegalArgumentException</code>을 던지고, <code>GlobalExceptionHandler</code>가 <code>IllegalArgumentException</code>을 일괄 422로 매핑함. 클라이언트 입력 파싱 오류와 비즈니스 검증 실패를 같은 예외 타입으로 처리하는 구조적 문제.</dd>
+        <dt>수정 내용</dt>
+        <dd>
+          <ul>
+            <li><code>InvalidProviderException</code> 클래스 신규 추가</li>
+            <li><code>GlobalExceptionHandler</code>에 <code>InvalidProviderException</code> → 400 BAD_REQUEST 핸들러 추가</li>
+            <li><code>SocialAuthController.parseProvider()</code>에서 <code>IllegalArgumentException</code> 대신 <code>InvalidProviderException</code>으로 변경</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>근본 수정. 서비스 레이어 검증 실패(<code>IllegalArgumentException</code> → 422)와 URL 파라미터 파싱 오류(→ 400)를 명확히 분리. GlobalExceptionHandler의 <code>IllegalArgumentException</code> 매핑은 다른 용도로 사용되므로 변경 대신 전용 예외 클래스를 추가하는 방식 선택.</dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <ul>
+            <li>src/main/java/com/newscurator/exception/InvalidProviderException.java (신규)</li>
+            <li>src/main/java/com/newscurator/exception/GlobalExceptionHandler.java</li>
+            <li>src/main/java/com/newscurator/controller/SocialAuthController.java</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="entry" id="d0615-5" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-critical">CRITICAL</span>
+          소셜 기존 유저 로그인 시 refresh token DB 미저장 버그
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>코드 감사 중 발견. 소셜 기존 유저 로그인(callback 200) 시 발급된 refresh token이 DB에 저장되지 않아, 이후 token refresh 요청이 항상 실패하는 치명적 버그.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>SocialAuthService.callback()</code>이 <code>@Transactional(readOnly=true)</code>로 선언되어 있음. readOnly=true는 Hibernate flush mode를 MANUAL로 설정하므로 트랜잭션 커밋 전 자동 flush가 발생하지 않음. 기존 유저 경로에서 <code>tokenService.issueTokenPair()</code>를 호출하면 내부의 <code>@Transactional</code>(PROPAGATION.REQUIRED)이 외부 readOnly 트랜잭션에 참여하고, <code>refreshTokenRepository.save()</code>가 영속성 컨텍스트에 엔티티를 등록하지만 MANUAL flush mode로 인해 실제 SQL이 실행되지 않음.</dd>
+        <dt>수정 내용</dt>
+        <dd><code>SocialAuthService.callback()</code>의 <code>@Transactional(readOnly = true)</code>를 <code>@Transactional</code>로 변경.</dd>
+        <dt>결정 이유</dt>
+        <dd>근본 수정. callback() 메서드는 두 경로를 가짐: 신규 유저(읽기만, pendingToken 반환), 기존 유저(refresh token 쓰기). 두 경로가 같은 메서드에 있으므로 readOnly=true는 기존 유저 경로와 양립 불가. 경로별 메서드 분리(bigger refactor) 대신 readOnly 제거로 최소 범위 수정 선택. 신규 유저 경로에서는 write operation이 없으므로 영향 없음.</dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <ul>
+            <li>src/main/java/com/newscurator/service/SocialAuthService.java</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 4 -->

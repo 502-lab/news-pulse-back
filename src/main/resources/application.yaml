@@ -48,9 +48,15 @@ email-service:
   api-key: ${EMAIL_SERVICE_API_KEY:test-api-key}
   from-address: ${EMAIL_FROM_ADDRESS:NewsIT <onboarding@resend.dev>}
 
+cors:
+  allowed-origins:
+    - http://localhost:5173
+    - https://dev.newsit.app
+    - https://newsit.app
+
 oauth:
   allowed-redirect-uris:
-    - http://localhost:3000
+    - http://localhost:5173
     - https://dev.newsit.app
     - https://newsit.app
   kakao:
