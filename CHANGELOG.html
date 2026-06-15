@@ -301,8 +301,8 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">62</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">20</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">63</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">21</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">19</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-15</div>
+  <a class="toc-item" href="#d0615-12">cors.allowed-origins @Value → @ConfigurationProperties 전환</a>
   <a class="toc-item" href="#d0615-11">GEMINI/NAVER API 키 기본값 누락 → CI PlaceholderResolutionException</a>
   <a class="toc-item" href="#d0615-10">pendingToken PII 제거 — userInfo를 /complete로 이동</a>
   <a class="toc-item" href="#d0615-9">email-service.from-address 기본값 제거 + 테스트 보완</a>
@@ -388,6 +389,34 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 12 -->
+  <div class="entry" id="d0615-12" data-tags="bugfix config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-high">HIGH</span>
+          cors.allowed-origins YAML 리스트 @Value 주입 실패 → @ConfigurationProperties 전환
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제</dt>
+        <dd>모든 <code>@SpringBootTest</code> 통합 테스트가 <code>PlaceholderResolutionException: Could not resolve placeholder 'cors.allowed-origins'</code>로 컨텍스트 로드 실패.</dd>
+        <dt>근본 원인</dt>
+        <dd>YAML 리스트(<code>- item</code> 형식)는 Spring Environment에 <code>cors.allowed-origins[0]</code>, <code>cors.allowed-origins[1]</code> 등의 indexed key로 저장됨. <code>@Value("${cors.allowed-origins}")</code>의 Placeholder resolver는 해당 prefix만으로 단일 값을 찾으므로 해소 불가. Spring Boot 4.x / Spring Framework 7.x에서 이 동작이 엄격해짐.</dd>
+        <dt>수정 내용</dt>
+        <dd><code>CorsProperties</code> record (<code>@ConfigurationProperties(prefix = "cors")</code>) 신규 생성. <code>SecurityConfig</code>에서 <code>@Value</code> 필드 제거하고 생성자 주입으로 전환. <code>NewsCuratorApplication</code>에 <code>@EnableConfigurationProperties(CorsProperties.class)</code> 추가.</dd>
+        <dt>결정 이유</dt>
+        <dd><code>@ConfigurationProperties</code>는 YAML 리스트를 <code>List&lt;String&gt;</code>으로 직접 바인딩하는 Spring Boot 공식 방식. 대안인 YAML을 콤마 구분 문자열로 변경하면 가독성이 저하되고, 각 Origin에 포트·도메인 변경 시 오타 위험 증가.</dd>
+        <dt>영향 파일</dt>
+        <dd><code>src/main/java/com/newscurator/config/CorsProperties.java</code> (신규), <code>src/main/java/com/newscurator/config/SecurityConfig.java</code>, <code>src/main/java/com/newscurator/NewsCuratorApplication.java</code></dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 11 -->
