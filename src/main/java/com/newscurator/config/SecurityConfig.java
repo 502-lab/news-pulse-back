@@ -64,7 +64,7 @@ public class SecurityConfig {
                     "/api/v1/auth/social/**",
                     "/api/v1/auth/password-reset/**")
                     .permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/terms").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/terms", "/api/v1/terms/*/content").permitAll()
                 .requestMatchers(
                     "/actuator/**",
                     "/api-docs/**",

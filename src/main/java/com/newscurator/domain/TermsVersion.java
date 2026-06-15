@@ -38,6 +38,9 @@ public class TermsVersion {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "content", columnDefinition = "text")
+    private String content;
+
     @Builder
     public TermsVersion(TermsType type, String version, LocalDate effectiveDate,
                         boolean isRequired, boolean isActive) {

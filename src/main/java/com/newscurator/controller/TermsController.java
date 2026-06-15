@@ -1,15 +1,18 @@
 package com.newscurator.controller;
 
 import com.newscurator.domain.TermsVersion;
+import com.newscurator.domain.enums.TermsType;
 import com.newscurator.dto.request.ConsentInput;
 import com.newscurator.dto.request.CreateTermsVersionRequest;
 import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.dto.response.ConsentRecordResponse;
+import com.newscurator.dto.response.TermsContentResponse;
 import com.newscurator.dto.response.TermsVersionResponse;
 import com.newscurator.repository.AccountRepository;
 import com.newscurator.security.CustomUserDetails;
 import com.newscurator.service.TermsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -52,6 +55,19 @@ public class TermsController {
                 ))
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(Map.of("terms", data)));
+    }
+
+    @GetMapping("/api/v1/terms/{type}/content")
+    @Operation(summary = "약관 본문 조회 (public)",
+            description = "인증 없이 조회 가능합니다. type은 SERVICE 또는 PRIVACY. 해당 타입의 활성 약관이 없으면 404를 반환합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "활성 약관 없음")
+    })
+    public ResponseEntity<ApiResponse<TermsContentResponse>> getTermsContent(
+            @Parameter(description = "약관 유형 (SERVICE | PRIVACY)", example = "SERVICE")
+            @PathVariable TermsType type) {
+        return ResponseEntity.ok(ApiResponse.success(termsService.getTermsContent(type)));
     }
 
     @PostMapping("/api/v1/admin/terms")

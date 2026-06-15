@@ -439,6 +439,49 @@
     </div>
   </div>
 
+  <!-- 16 -->
+  <div class="entry" id="d0615-16" data-tags="feature db">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          <span class="tag tag-db">DB</span>
+          약관 본문 조회 API — <code>GET /api/v1/terms/{type}/content</code> 신규 추가 + V11 마이그레이션
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>변경 내용</dt>
+        <dd>
+          <code>terms_versions</code> 테이블에 <code>content text</code> 컬럼 추가(V11 마이그레이션).
+          SERVICE(이용약관), PRIVACY(개인정보처리방침) 각 6개 섹션 JSON을 Flyway로 시드.
+          <code>GET /api/v1/terms/{type}/content</code> public 엔드포인트 신규 추가 —
+          Jackson ObjectMapper로 stored JSON을 <code>TermsContentResponse</code>로 파싱해 반환.
+          <code>GET /api/v1/terms</code>는 기존 경량 메타데이터 목록 그대로 유지.
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>
+          프론트엔드(<code>src/constants/legalText.ts</code>)가 약관 본문을 하드코딩하던 구조를 제거하고 백엔드에서 관리.
+          jsonb 대신 <code>text</code> 타입 선택 — Hibernate 6의 <code>@JdbcTypeCode(JSON)</code> + String 조합에서 이중 직렬화 문제가 발생하므로 단순 text 저장 후 Jackson 파싱.
+          Flyway SQL에서 dollar-quoting(<code>$json$...$json$</code>)을 사용했으나 Flyway가 <code>${</code> 시퀀스를 플레이스홀더로 오인하는 문제로 single-quoted 문자열로 전환.
+          Security 퍼블릭 경로에 <code>/api/v1/terms/*/content</code> 추가.
+        </dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <code>db/migration/V11__add_terms_content.sql</code> (신규),
+          <code>domain/TermsVersion.java</code> (<code>content</code> 필드 추가),
+          <code>dto/response/TermsSection.java</code> (신규),
+          <code>dto/response/TermsContentResponse.java</code> (신규),
+          <code>service/TermsService.java</code> (ObjectMapper 주입, <code>getTermsContent()</code> 추가),
+          <code>controller/TermsController.java</code> (신규 엔드포인트),
+          <code>config/SecurityConfig.java</code> (public 경로 추가)
+        </dd>
+      </dl>
+    </div>
+  </div>
+
   <!-- 14 -->
   <div class="entry" id="d0615-14" data-tags="bugfix hotfix">
     <div class="entry-header" onclick="toggle(this)">
