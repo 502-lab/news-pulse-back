@@ -1,11 +1,9 @@
 package com.newscurator.controller;
 
+import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.dto.response.PipelineStatsResponse;
 import com.newscurator.service.PipelineStatsService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -31,11 +29,10 @@ public class AdminPipelineController {
             description = "오늘 날짜 기준 수집 건수, 요약 완료율, 중복 병합 건수, 카테고리별 분포, "
                     + "파이프라인 처리 대기/실패 현황을 반환합니다.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "성공",
-                content = @Content(schema = @Schema(implementation = PipelineStatsResponse.class)))
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공")
     })
     @GetMapping("/pipeline/stats")
-    public ResponseEntity<PipelineStatsResponse> getStats() {
-        return ResponseEntity.ok(pipelineStatsService.getStats());
+    public ResponseEntity<ApiResponse<PipelineStatsResponse>> getStats() {
+        return ResponseEntity.ok(ApiResponse.success(pipelineStatsService.getStats()));
     }
 }

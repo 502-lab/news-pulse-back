@@ -49,8 +49,9 @@ public class TtsController {
             @Parameter(description = "기사 ID") @PathVariable Long articleId,
             @Valid @RequestBody TtsRequest request) {
         TtsStatusResponse response = ttsService.requestArticleTts(articleId, request.voiceId());
-        HttpStatus status = response.status() == TtsStatus.READY ? HttpStatus.OK : HttpStatus.ACCEPTED;
-        return ResponseEntity.status(status).body(ApiResponse.success(response));
+        boolean ready = response.status() == TtsStatus.READY;
+        return ResponseEntity.status(ready ? HttpStatus.OK : HttpStatus.ACCEPTED)
+                .body(ready ? ApiResponse.success(response) : ApiResponse.accepted(response));
     }
 
     @Operation(

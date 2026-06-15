@@ -1,10 +1,10 @@
 package com.newscurator.controller;
 
+import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.service.AiProcessingService;
 import com.newscurator.service.CollectionService;
 import com.newscurator.service.ExpiryService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
@@ -33,27 +33,27 @@ public class InternalTriggerController {
     }
 
     @Operation(summary = "뉴스 수집 수동 트리거", description = "등록된 모든 출처(RSS/Naver)에서 즉시 뉴스를 수집합니다.")
-    @ApiResponse(responseCode = "200", description = "트리거 완료")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "트리거 완료")
     @PostMapping("/collect")
-    public ResponseEntity<String> triggerCollection() {
+    public ResponseEntity<ApiResponse<String>> triggerCollection() {
         collectionService.collectAll();
-        return ResponseEntity.ok("collection triggered");
+        return ResponseEntity.ok(ApiResponse.success("collection triggered"));
     }
 
     @Operation(summary = "AI 처리 수동 트리거", description = "PENDING 상태 기사를 즉시 AI 분류·요약 처리합니다.")
-    @ApiResponse(responseCode = "200", description = "트리거 완료")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "트리거 완료")
     @PostMapping("/ai-process")
-    public ResponseEntity<String> triggerAiProcessing() {
+    public ResponseEntity<ApiResponse<String>> triggerAiProcessing() {
         aiProcessingService.processBatch();
-        return ResponseEntity.ok("ai processing triggered");
+        return ResponseEntity.ok(ApiResponse.success("ai processing triggered"));
     }
 
     @Operation(summary = "만료 기사 정리 수동 트리거", description = "보존 기간 초과 기사를 숨기고, 유예 기간까지 경과한 기사를 삭제합니다.")
-    @ApiResponse(responseCode = "200", description = "트리거 완료")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "트리거 완료")
     @PostMapping("/expiry")
-    public ResponseEntity<String> triggerExpiry() {
+    public ResponseEntity<ApiResponse<String>> triggerExpiry() {
         expiryService.hideExpiredArticles();
         expiryService.deleteGracePeriodExpired();
-        return ResponseEntity.ok("expiry triggered");
+        return ResponseEntity.ok(ApiResponse.success("expiry triggered"));
     }
 }

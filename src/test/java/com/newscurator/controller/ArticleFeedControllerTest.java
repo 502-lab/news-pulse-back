@@ -46,8 +46,8 @@ class ArticleFeedControllerTest {
 
         mockMvc.perform(get("/api/v1/articles"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.hasMore").value(false));
+                .andExpect(jsonPath("$.data.data").isArray())
+                .andExpect(jsonPath("$.data.hasMore").value(false));
     }
 
     @Test
@@ -58,10 +58,10 @@ class ArticleFeedControllerTest {
 
         mockMvc.perform(get("/api/v1/articles"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").isEmpty())
-                .andExpect(jsonPath("$.nextCursor").doesNotExist())
-                .andExpect(jsonPath("$.hasMore").value(false))
-                .andExpect(jsonPath("$.size").value(0));
+                .andExpect(jsonPath("$.data.data").isEmpty())
+                .andExpect(jsonPath("$.data.nextCursor").doesNotExist())
+                .andExpect(jsonPath("$.data.hasMore").value(false))
+                .andExpect(jsonPath("$.data.size").value(0));
     }
 
     @Test

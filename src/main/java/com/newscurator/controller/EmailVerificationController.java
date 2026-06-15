@@ -2,6 +2,7 @@ package com.newscurator.controller;
 
 import com.newscurator.dto.request.EmailVerificationRequestDto;
 import com.newscurator.dto.request.EmailVerificationVerifyRequest;
+import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.repository.AccountRepository;
 import com.newscurator.security.CustomUserDetails;
 import com.newscurator.service.EmailVerificationService;
@@ -27,20 +28,20 @@ public class EmailVerificationController {
     }
 
     @PostMapping("/request")
-    public ResponseEntity<Void> requestVerification(
+    public ResponseEntity<ApiResponse<Void>> requestVerification(
             @Valid @RequestBody EmailVerificationRequestDto request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         accountRepository.findById(userDetails.getAccountId()).ifPresent(
                 account -> emailVerificationService.requestCode(account));
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<Void> verify(
+    public ResponseEntity<ApiResponse<Void>> verify(
             @Valid @RequestBody EmailVerificationVerifyRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         accountRepository.findById(userDetails.getAccountId()).ifPresent(account ->
                 emailVerificationService.verifyCode(account, request.code()));
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

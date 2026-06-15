@@ -45,11 +45,13 @@ class ArticleDetailControllerTest {
 
         mockMvc.perform(get("/api/v1/articles/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.title").value("Test Article"))
-                .andExpect(jsonPath("$.brief.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.balanced.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.deep.status").value("COMPLETED"));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.title").value("Test Article"))
+                .andExpect(jsonPath("$.data.brief.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.balanced.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.deep.status").value("COMPLETED"));
     }
 
     @Test
@@ -60,8 +62,8 @@ class ArticleDetailControllerTest {
 
         mockMvc.perform(get("/api/v1/articles/2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.deep.status").value("FAILED"))
-                .andExpect(jsonPath("$.deep.content").doesNotExist());
+                .andExpect(jsonPath("$.data.deep.status").value("FAILED"))
+                .andExpect(jsonPath("$.data.deep.content").doesNotExist());
     }
 
     @Test

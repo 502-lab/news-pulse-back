@@ -1,13 +1,11 @@
 package com.newscurator.controller;
 
 import com.newscurator.dto.request.FeedRequest;
+import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.dto.response.ArticleFeedResponse;
 import com.newscurator.service.ArticleFeedService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
@@ -36,13 +34,11 @@ public class ArticleFeedController {
                     + "category_status가 COMPLETED 또는 FAILED인 기사만 포함되며, PENDING 기사는 노출되지 않습니다. "
                     + "분류 실패(FAILED)된 기사는 category가 OTHER로 표시됩니다.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "성공",
-                content = @Content(schema = @Schema(implementation = ArticleFeedResponse.class))),
-        @ApiResponse(responseCode = "400", description = "잘못된 파라미터 (size 음수, 유효하지 않은 category 등)",
-                content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 파라미터 (size 음수, 유효하지 않은 category 등)")
     })
     @GetMapping
-    public ResponseEntity<ArticleFeedResponse> getFeed(
+    public ResponseEntity<ApiResponse<ArticleFeedResponse>> getFeed(
             @Parameter(description = "페이지네이션 커서 토큰. 첫 페이지 요청 시 생략")
             @RequestParam(required = false) String cursor,
             @Parameter(description = "페이지 크기. 기본값 20, 최대 100 (초과 시 100으로 clamp)")
@@ -63,6 +59,6 @@ public class ArticleFeedController {
         }
 
         FeedRequest request = new FeedRequest(cursor, size, categoryEnum);
-        return ResponseEntity.ok(articleFeedService.getFeed(request));
+        return ResponseEntity.ok(ApiResponse.success(articleFeedService.getFeed(request)));
     }
 }

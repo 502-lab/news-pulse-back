@@ -53,10 +53,12 @@ class AdminPipelineControllerTest {
 
         mockMvc.perform(get("/api/v1/admin/pipeline/stats"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.articlesCollectedToday").value(100))
-                .andExpect(jsonPath("$.summaryCompletionRate").value(80.0))
-                .andExpect(jsonPath("$.mergeCount").value(5))
-                .andExpect(jsonPath("$.pipelineStatus.categoryPending").value(10));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.articlesCollectedToday").value(100))
+                .andExpect(jsonPath("$.data.summaryCompletionRate").value(80.0))
+                .andExpect(jsonPath("$.data.mergeCount").value(5))
+                .andExpect(jsonPath("$.data.pipelineStatus.categoryPending").value(10));
     }
 
     @Test

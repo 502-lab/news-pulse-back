@@ -69,7 +69,14 @@ openapi.yaml 변경 시 반드시 news-curator-spec 레포에 반영.
 ### API
 
 - 모든 엔드포인트 변경 시 openapi.yaml 선반영 후 구현
-- 공통 응답 형식: ApiResponse<T> 래퍼 사용
+- 공통 응답 형식: ApiResponse<T> 래퍼 사용 (필드 4개: code·status·message·data)
+  - `code`: HTTP 상태 코드 정수 (200, 201, 202 등)
+  - `status`: 문자열 `"success"` (성공 응답 공통)
+  - `message`: 사람이 읽을 수 있는 설명 (`"OK"`, `"Created"`, `"Accepted"` 등)
+  - `data`: 실제 페이로드 (데이터 없는 경우 `null`)
+  - factory 메서드: `ApiResponse.success(data)`, `.created(data)`, `.accepted(data)`, `.of(code, message, data)`
+  - 204 No Content 응답은 body 없음 유지 (HTTP 규격 준수)
+  - 참고: `ApiResponse.status` 필드명과 Swagger `@ApiResponse` 어노테이션이 충돌하므로 컨트롤러에서 `@io.swagger.v3.oas.annotations.responses.ApiResponse` fully-qualified 형태 사용
 - 에러 응답: RFC 7807 Problem Details 형식
 - @RestControllerAdvice로 예외 중앙 처리
 

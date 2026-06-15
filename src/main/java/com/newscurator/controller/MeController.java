@@ -37,10 +37,11 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<AccountSummaryResponse> getMe(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<AccountSummaryResponse>> getMe(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(authService.buildAccountSummary(account)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(authService.buildAccountSummary(account))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -52,10 +53,11 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<UserProfileResponse> getProfile(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<UserProfileResponse>> getProfile(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.getProfile(account)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.getProfile(account))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -65,11 +67,12 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<UserProfileResponse> updateProfile(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<UserProfileResponse>> updateProfile(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UserProfileRequest request) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.updateProfile(account, request)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.updateProfile(account, request))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -81,10 +84,11 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<UserInterestsResponse> getInterests(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<UserInterestsResponse>> getInterests(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.getInterests(account)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.getInterests(account))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -95,11 +99,12 @@ public class MeController {
             @ApiResponse(responseCode = "401", description = "미인증"),
             @ApiResponse(responseCode = "422", description = "카테고리 3개 미만")
     })
-    public ResponseEntity<UserInterestsResponse> updateInterests(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<UserInterestsResponse>> updateInterests(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UserInterestsRequest request) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.updateInterests(account, request)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.updateInterests(account, request))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -111,10 +116,11 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<FollowKeywordsResponse> getKeywords(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<FollowKeywordsResponse>> getKeywords(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.getKeywords(account)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.getKeywords(account))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -124,11 +130,12 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<FollowKeywordsResponse> updateKeywords(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<FollowKeywordsResponse>> updateKeywords(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody FollowKeywordsRequest request) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.updateKeywords(account, request)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.updateKeywords(account, request))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -140,10 +147,11 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<ReadingPreferenceResponse> getReadingPreference(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<ReadingPreferenceResponse>> getReadingPreference(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.getReadingPreference(account)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.getReadingPreference(account))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -153,11 +161,12 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<ReadingPreferenceResponse> updateReadingPreference(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<ReadingPreferenceResponse>> updateReadingPreference(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody ReadingPreferenceRequest request) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.updateReadingPreference(account, request)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.updateReadingPreference(account, request))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -169,10 +178,11 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<BriefingSettingsResponse> getBriefingSettings(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<BriefingSettingsResponse>> getBriefingSettings(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.getBriefingSettings(account)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.getBriefingSettings(account))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -182,11 +192,12 @@ public class MeController {
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<BriefingSettingsResponse> updateBriefingSettings(
+    public ResponseEntity<com.newscurator.dto.response.ApiResponse<BriefingSettingsResponse>> updateBriefingSettings(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody BriefingSettingsRequest request) {
         return accountRepository.findById(userDetails.getAccountId())
-                .map(account -> ResponseEntity.ok(profileService.updateBriefingSettings(account, request)))
+                .map(account -> ResponseEntity.ok(
+                        com.newscurator.dto.response.ApiResponse.success(profileService.updateBriefingSettings(account, request))))
                 .orElse(ResponseEntity.notFound().build());
     }
 }

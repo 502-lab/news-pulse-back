@@ -3,13 +3,13 @@ package com.newscurator.controller;
 import com.newscurator.domain.TermsVersion;
 import com.newscurator.dto.request.ConsentInput;
 import com.newscurator.dto.request.CreateTermsVersionRequest;
+import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.dto.response.ConsentRecordResponse;
 import com.newscurator.dto.response.TermsVersionResponse;
 import com.newscurator.repository.AccountRepository;
 import com.newscurator.security.CustomUserDetails;
 import com.newscurator.service.TermsService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,9 +38,9 @@ public class TermsController {
     @Operation(summary = "활성 약관 목록 조회 (public)",
             description = "인증 없이 조회 가능한 활성 약관 버전 목록입니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
     })
-    public ResponseEntity<Map<String, Object>> getActiveTerms() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveTerms() {
         List<TermsVersion> terms = termsService.getActiveTerms();
         List<Map<String, Object>> data = terms.stream()
                 .map(tv -> Map.<String, Object>of(
@@ -51,7 +51,7 @@ public class TermsController {
                         "isRequired", tv.isRequired()
                 ))
                 .toList();
-        return ResponseEntity.ok(Map.of("terms", data));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("terms", data)));
     }
 
     @PostMapping("/api/v1/admin/terms")
@@ -59,37 +59,38 @@ public class TermsController {
     @Operation(summary = "새 약관 버전 등록 (ADMIN 전용)",
             description = "동일 type+version 조합은 409를 반환합니다. 같은 타입의 기존 활성 버전은 비활성 처리됩니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "등록 성공"),
-            @ApiResponse(responseCode = "401", description = "미인증"),
-            @ApiResponse(responseCode = "403", description = "ADMIN 권한 필요"),
-            @ApiResponse(responseCode = "409", description = "이미 존재하는 버전")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "등록 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "미인증"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "ADMIN 권한 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 존재하는 버전")
     })
-    public ResponseEntity<TermsVersionResponse> createTermsVersion(
+    public ResponseEntity<ApiResponse<TermsVersionResponse>> createTermsVersion(
             @Valid @RequestBody CreateTermsVersionRequest request) {
         TermsVersionResponse response = termsService.createVersion(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
     @GetMapping("/api/v1/me/consents")
     @Operation(summary = "내 동의 이력 조회",
             description = "인증된 사용자의 모든 약관 동의 기록을 반환합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "401", description = "미인증")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<List<ConsentRecordResponse>> getConsentHistory(
+    public ResponseEntity<ApiResponse<List<ConsentRecordResponse>>> getConsentHistory(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(termsService.getConsentHistory(userDetails.getAccountId()));
+        return ResponseEntity.ok(ApiResponse.success(
+                termsService.getConsentHistory(userDetails.getAccountId())));
     }
 
     @PostMapping("/api/v1/me/consents")
     @Operation(summary = "약관 재동의 제출 (멱등)",
             description = "이미 동의한 버전은 무시합니다(멱등). 새로운 버전에 대한 동의만 저장됩니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "동의 처리 완료"),
-            @ApiResponse(responseCode = "401", description = "미인증")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "동의 처리 완료"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "미인증")
     })
-    public ResponseEntity<Void> submitConsents(
+    public ResponseEntity<ApiResponse<Void>> submitConsents(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody List<@Valid ConsentInput> consents) {
         accountRepository.findById(userDetails.getAccountId())
@@ -98,6 +99,6 @@ public class TermsController {
                     return account;
                 })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

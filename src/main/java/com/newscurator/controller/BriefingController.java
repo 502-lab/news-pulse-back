@@ -66,6 +66,6 @@ public class BriefingController {
 
         return ResponseEntity
                 .status(allReady ? HttpStatus.OK : HttpStatus.ACCEPTED)
-                .body(ApiResponse.success(response));
+                .body(allReady ? ApiResponse.success(response) : ApiResponse.accepted(response));
     }
 }

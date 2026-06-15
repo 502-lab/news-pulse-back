@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">65</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">66</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">19</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">20</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-15</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-15</div>
+  <a class="toc-item" href="#d0615-15">공통 API 응답 형태 통일 — ApiResponse code·status·message·data 4-필드 + 전체 컨트롤러 적용</a>
   <a class="toc-item" href="#d0615-14">배포 중 JAR 덮어쓰기 → pm2 444회 재시작 (Truncated class file)</a>
   <a class="toc-item" href="#d0615-13">oauth.allowed-redirect-uris에 localhost:3000 누락 → SocialAuth 테스트 400</a>
   <a class="toc-item" href="#d0615-12">cors.allowed-origins @Value → @ConfigurationProperties 전환</a>
@@ -391,6 +392,51 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 15 -->
+  <div class="entry" id="d0615-15" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          공통 API 응답 형태 통일 — ApiResponse&lt;T&gt; code·status·message·data 4-필드 + 전체 컨트롤러 적용
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>변경 내용</dt>
+        <dd><code>ApiResponse&lt;T&gt;</code> record에 <code>code</code>(int), <code>status</code>(String), <code>message</code>(String), <code>data</code>(T) 4개 필드로 확장. 기존 <code>success(data)</code> factory 메서드 유지하고 <code>created(data)</code>, <code>accepted(data)</code>, <code>of(code, message, data)</code> 추가. 17개 컨트롤러 전체에 일괄 적용.</dd>
+        <dt>결정 이유</dt>
+        <dd>실무 표준 패턴(code·status·message·data)으로 통일해 프론트엔드가 응답 코드를 body에서도 확인 가능하게 함. 204 No Content는 HTTP 규격상 body 없어야 하므로 그대로 유지. Swagger <code>@ApiResponse</code> 어노테이션과 이름 충돌이 있어 컨트롤러에서 fully-qualified 형태로 사용.</dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <code>dto/response/ApiResponse.java</code> (필드 확장),
+          <code>controller/AdminPipelineController.java</code>,
+          <code>controller/ArticleDetailController.java</code>,
+          <code>controller/ArticleFeedController.java</code>,
+          <code>controller/AuthController.java</code>,
+          <code>controller/BriefingController.java</code>,
+          <code>controller/EmailVerificationController.java</code>,
+          <code>controller/InternalTriggerController.java</code>,
+          <code>controller/MeController.java</code>,
+          <code>controller/OnboardingController.java</code>,
+          <code>controller/PasswordResetController.java</code>,
+          <code>controller/SavedArticleController.java</code>,
+          <code>controller/SocialAuthController.java</code>,
+          <code>controller/TermsController.java</code>,
+          <code>controller/TtsController.java</code>,
+          <code>controller/VoiceController.java</code>,
+          <code>CLAUDE.md</code> (API 응답 형식 명세 추가),
+          <code>test/controller/ArticleDetailControllerTest.java</code>,
+          <code>test/controller/AdminPipelineControllerTest.java</code>,
+          <code>test/controller/ArticleFeedControllerTest.java</code>,
+          <code>test/controller/MeControllerTest.java</code> (jsonPath 경로 수정)
+        </dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 14 -->

@@ -4,6 +4,7 @@ import com.newscurator.dto.request.LoginRequest;
 import com.newscurator.dto.request.LogoutRequest;
 import com.newscurator.dto.request.RefreshRequest;
 import com.newscurator.dto.request.SignupRequest;
+import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.dto.response.TokenPairResponse;
 import com.newscurator.service.AuthService;
 import jakarta.validation.Valid;
@@ -26,21 +27,21 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<Map<String, Object>> signup(@Valid @RequestBody SignupRequest request) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> signup(@Valid @RequestBody SignupRequest request) {
         Map<String, Object> result = authService.signup(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> login(@Valid @RequestBody LoginRequest request) {
         Map<String, Object> result = authService.login(request);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<TokenPairResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+    public ResponseEntity<ApiResponse<TokenPairResponse>> refresh(@Valid @RequestBody RefreshRequest request) {
         TokenPairResponse tokens = authService.refresh(request.refreshToken());
-        return ResponseEntity.ok(tokens);
+        return ResponseEntity.ok(ApiResponse.success(tokens));
     }
 
     @PostMapping("/logout")

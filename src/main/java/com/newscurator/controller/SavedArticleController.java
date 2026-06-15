@@ -55,8 +55,8 @@ public class SavedArticleController {
 
         verifyEmail(userDetails);
         boolean isNew = savedArticleService.save(userDetails.getAccountId(), articleId);
-        HttpStatus status = isNew ? HttpStatus.CREATED : HttpStatus.OK;
-        return ResponseEntity.status(status).body(ApiResponse.success(null));
+        return ResponseEntity.status(isNew ? HttpStatus.CREATED : HttpStatus.OK)
+                .body(isNew ? ApiResponse.created(null) : ApiResponse.success(null));
     }
 
     @Operation(

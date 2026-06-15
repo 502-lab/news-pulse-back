@@ -89,9 +89,9 @@ class MeControllerTest {
                                 {"summaryDepth":"BALANCED","consumeMode":"LISTEN","voiceId":"Seoyeon"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.summaryDepth").value("BALANCED"))
-                .andExpect(jsonPath("$.consumeMode").value("LISTEN"))
-                .andExpect(jsonPath("$.voiceId").value("Seoyeon"));
+                .andExpect(jsonPath("$.data.summaryDepth").value("BALANCED"))
+                .andExpect(jsonPath("$.data.consumeMode").value("LISTEN"))
+                .andExpect(jsonPath("$.data.voiceId").value("Seoyeon"));
     }
 
     @Test
@@ -108,7 +108,7 @@ class MeControllerTest {
                                 {"summaryDepth":"BALANCED","consumeMode":"READ"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.voiceId").doesNotExist());
+                .andExpect(jsonPath("$.data.voiceId").doesNotExist());
     }
 
     @Test
