@@ -93,6 +93,7 @@ openapi.yaml 변경 시 반드시 news-curator-spec 레포에 반영.
 - 외부 API 호출 실패 시 fallback 처리 필수 (서킷브레이커 고려)
 - Gemini 요약 결과는 Redis에 캐싱 (동일 기사 재호출 방지)
 - NewsAPI 호출은 스케줄러에서만, 컨트롤러 직접 호출 금지
+- **이메일 서비스**: Resend REST API — `POST /emails`, `Authorization: Bearer {KEY}`, body `{from, to[], subject, html}`. 환경변수: `email-service.base-url`, `email-service.api-key`, `email-service.from-address`
 
 ### 스케줄러
 
@@ -143,6 +144,26 @@ openapi.yaml 변경 시 반드시 news-curator-spec 레포에 반영.
   - Repository: @DataJpaTest 사용
   - Controller: @WebMvcTest 사용
   - 외부 API 클라이언트: Mock 처리 필수
+  - **통합 테스트 PostgreSQL 컨테이너**: 반드시 `BigmPostgresImage.NAME` 사용 — V9 마이그레이션(`V9__saved_articles_search_indexes.sql`)이 pg_bigm 확장을 요구하므로 `"postgres:16-alpine"` 직접 사용 금지
+  - **이메일 발송 WireMock 스텁**: 경로는 `/emails` (Resend API 경로) — `/send-verification-code` 등 구 경로 사용 금지
+
+## 구현된 주요 플로우 (변경 시 반드시 여기도 수정)
+
+### 소셜 OAuth 인증
+
+- **신규 가입 (2단계)**:
+  1. `GET /auth/social/{provider}/authorize?redirectUri=...` → authorizeUrl 반환 (state JWT 포함, redirectUri 화이트리스트 검증)
+  2. `POST /auth/social/{provider}/callback` `{code, state, redirectUri}` → **202** + `pendingToken`(10분 JWT) + 활성 약관 목록 반환. 이 시점에 계정 미생성.
+  3. `POST /auth/social/complete` `{pendingToken, consents, ageConfirmed}` → **201** + account + tokens. 계정·SocialConnection·ConsentRecord 생성.
+- **기존 로그인**: callback → **200** + account + tokens (pendingToken 없음)
+- **이메일 충돌**: callback → **409** (동일 이메일 이메일 계정 존재)
+- **redirectUri 화이트리스트**: `oauth.allowed-redirect-uris` (application.yaml). callback 요청 body에도 `redirectUri`(@NotBlank) 필수 — 없으면 422.
+
+### OpenAPI 자동 동기화
+
+- `dev`/`main` push 시 `.github/workflows/sync-openapi.yml` 워크플로우 실행
+- `OpenApiSpecExportTest` → 앱 기동 후 `/api-docs` 호출 → JSON→YAML 변환 → `build/openapi.yaml` 저장
+- `SPEC_REPO_TOKEN` 시크릿(news-pulse-spec repo write 권한 PAT)으로 news-pulse-spec 레포에 자동 push
 
 ## 구현·검증 규칙
 
