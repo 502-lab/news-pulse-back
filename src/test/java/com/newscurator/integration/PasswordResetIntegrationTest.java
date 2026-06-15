@@ -115,7 +115,7 @@ class PasswordResetIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("email", email, "password", "Password1"))
                 .retrieve().body(Map.class);
-        return (String) ((Map<?, ?>) loginResp.get("tokens")).get("refreshToken");
+        return (String) ((Map<?, ?>) ((Map<?, ?>) loginResp.get("data")).get("tokens")).get("refreshToken");
     }
 
     private String insertKnownCode(String email, String plainCode) {

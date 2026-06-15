@@ -95,14 +95,14 @@ class PipelineE2ETest {
                         + " RESTART IDENTITY CASCADE");
 
         // All endpoints require auth (002 spec). Login as the Flyway-seeded admin.
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
         Map<?, ?> loginResp = restClient.post().uri("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("email", "admin@test.local", "password", ADMIN_PASSWORD))
                 .retrieve()
                 .body(Map.class);
-        adminAccessToken = (String) ((Map<?, ?>) loginResp.get("tokens")).get("accessToken");
+        adminAccessToken = (String) ((Map<?, ?>) ((Map<?, ?>) loginResp.get("data")).get("tokens")).get("accessToken");
     }
 
     @Test

@@ -120,16 +120,17 @@ class AuthIntegrationTest {
                 .retrieve()
                 .body(Map.class);
 
-        assertThat(response.containsKey("tokens")).isTrue();
-        assertThat(response.containsKey("account")).isTrue();
-        Map<?, ?> tokens = (Map<?, ?>) response.get("tokens");
+        Map<?, ?> data = (Map<?, ?>) response.get("data");
+        assertThat(data.containsKey("tokens")).isTrue();
+        assertThat(data.containsKey("account")).isTrue();
+        Map<?, ?> tokens = (Map<?, ?>) data.get("tokens");
         assertThat(tokens.get("accessToken")).asString().isNotBlank();
         assertThat(tokens.get("refreshToken")).asString().isNotBlank();
-        Map<?, ?> account = (Map<?, ?>) response.get("account");
+        Map<?, ?> account = (Map<?, ?>) data.get("account");
         assertThat(account.get("emailVerified")).isEqualTo(false);
         assertThat(account.get("role")).isEqualTo("USER");
         // verificationEmailSent must be true when email stub returns 200
-        assertThat(response.get("verificationEmailSent")).isEqualTo(true);
+        assertThat(data.get("verificationEmailSent")).isEqualTo(true);
 
         // Verify email send was called via Resend API
         wireMock.verify(1, postRequestedFor(urlPathEqualTo("/emails")));
@@ -160,8 +161,9 @@ class AuthIntegrationTest {
                 .retrieve()
                 .body(Map.class);
 
-        assertThat(response.get("verificationEmailSent")).isEqualTo(false);
-        assertThat(response.containsKey("tokens")).isTrue();
+        Map<?, ?> data = (Map<?, ?>) response.get("data");
+        assertThat(data.get("verificationEmailSent")).isEqualTo(false);
+        assertThat(data.containsKey("tokens")).isTrue();
 
         // (b) 계정 row DB에 존재
         int accountCount = jdbcTemplate.queryForObject(
@@ -186,7 +188,7 @@ class AuthIntegrationTest {
         // (d) 재발송 가능: 이메일 서비스 복구 후 request 성공
         wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
-        String accessToken = (String) ((Map<?, ?>) response.get("tokens")).get("accessToken");
+        String accessToken = (String) ((Map<?, ?>) ((Map<?, ?>) response.get("data")).get("tokens")).get("accessToken");
         var resendResp = restClient.post()
                 .uri("/api/v1/auth/email-verification/request")
                 .header("Authorization", "Bearer " + accessToken)

@@ -91,7 +91,7 @@ class ProfileIntegrationTest {
     @BeforeEach
     void setUp() {
         restClient = RestClient.builder().baseUrl("http://localhost:" + port).build();
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
 
         jdbcTemplate.execute(
@@ -124,7 +124,7 @@ class ProfileIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("email", email, "password", "Password1!"))
                 .retrieve().body(Map.class);
-        return (String) ((Map<?, ?>) loginResp.get("tokens")).get("accessToken");
+        return (String) ((Map<?, ?>) ((Map<?, ?>) loginResp.get("data")).get("tokens")).get("accessToken");
     }
 
     private void submitOnboarding(String token) {

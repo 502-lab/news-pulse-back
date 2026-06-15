@@ -99,7 +99,7 @@ class EmailVerificationIntegrationTest {
     }
 
     private Map<?, ?> signupAndGetTokens(String email) {
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
 
         Map<String, Object> body = Map.of(
@@ -111,11 +111,12 @@ class EmailVerificationIntegrationTest {
                 ),
                 "ageConfirmed", true
         );
-        return restClient.post().uri("/api/v1/auth/signup")
+        Map<?, ?> response = restClient.post().uri("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
                 .body(Map.class);
+        return (Map<?, ?>) response.get("data");
     }
 
     @Test
@@ -166,13 +167,14 @@ class EmailVerificationIntegrationTest {
                 .body(Map.of("email", "verify@example.com", "password", "Password1"))
                 .retrieve()
                 .body(Map.class);
-        String newAccessToken = (String) ((Map<?, ?>) loginResp.get("tokens")).get("accessToken");
+        Map<?, ?> loginData = (Map<?, ?>) loginResp.get("data");
+        String newAccessToken = (String) ((Map<?, ?>) loginData.get("tokens")).get("accessToken");
 
         Map<?, ?> meFresh = restClient.get().uri("/api/v1/me")
                 .header("Authorization", "Bearer " + newAccessToken)
                 .retrieve()
                 .body(Map.class);
-        assertThat(meFresh.get("emailVerified")).isEqualTo(true);
+        assertThat(((Map<?, ?>) meFresh.get("data")).get("emailVerified")).isEqualTo(true);
     }
 
     @Test
@@ -222,7 +224,7 @@ class EmailVerificationIntegrationTest {
                 Integer.class, accountId);
 
         // Stub email to fail
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() ->

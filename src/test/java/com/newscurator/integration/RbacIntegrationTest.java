@@ -118,15 +118,16 @@ class RbacIntegrationTest {
                 ),
                 "ageConfirmed", true
         );
-        return restClient.post().uri("/api/v1/auth/signup")
+        Map<?, ?> response = restClient.post().uri("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(signupBody)
                 .retrieve()
                 .body(Map.class);
+        return (Map<?, ?>) response.get("data");
     }
 
-    private String getAccessToken(Map<?, ?> resp) {
-        return (String) ((Map<?, ?>) resp.get("tokens")).get("accessToken");
+    private String getAccessToken(Map<?, ?> data) {
+        return (String) ((Map<?, ?>) data.get("tokens")).get("accessToken");
     }
 
     @Test

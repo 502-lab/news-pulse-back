@@ -81,7 +81,7 @@ class TokenRotationIntegrationTest {
                 .baseUrl("http://localhost:" + port)
                 .build();
 
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
 
         jdbcTemplate.execute("TRUNCATE TABLE consent_records, verification_codes, refresh_tokens, accounts RESTART IDENTITY CASCADE");
@@ -105,23 +105,25 @@ class TokenRotationIntegrationTest {
                 ),
                 "ageConfirmed", true
         );
-        return restClient.post().uri("/api/v1/auth/signup")
+        Map<?, ?> response = restClient.post().uri("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
                 .body(Map.class);
+        return (Map<?, ?>) response.get("data");
     }
 
-    private String extractRefreshToken(Map<?, ?> response) {
-        return (String) ((Map<?, ?>) response.get("tokens")).get("refreshToken");
+    private String extractRefreshToken(Map<?, ?> data) {
+        return (String) ((Map<?, ?>) data.get("tokens")).get("refreshToken");
     }
 
     private Map<?, ?> refresh(String rawRefreshToken) {
-        return restClient.post().uri("/api/v1/auth/refresh")
+        Map<?, ?> response = restClient.post().uri("/api/v1/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("refreshToken", rawRefreshToken))
                 .retrieve()
                 .body(Map.class);
+        return (Map<?, ?>) response.get("data");
     }
 
     @Test

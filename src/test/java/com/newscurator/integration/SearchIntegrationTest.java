@@ -85,7 +85,7 @@ class SearchIntegrationTest {
     void setUp() {
         restClient = RestClient.builder().baseUrl("http://localhost:" + port).build();
 
-        wireMock.stubFor(post(urlPathEqualTo("/send-verification-code"))
+        wireMock.stubFor(post(urlPathEqualTo("/emails"))
                 .willReturn(aResponse().withStatus(200)));
 
         jdbcTemplate.execute("DELETE FROM summaries");
@@ -440,7 +440,9 @@ class SearchIntegrationTest {
                 .body(Map.class);
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> tokens = (Map<String, Object>) response.get("tokens");
+        Map<String, Object> data = (Map<String, Object>) response.get("data");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> tokens = (Map<String, Object>) data.get("tokens");
         return (String) tokens.get("accessToken");
     }
 
