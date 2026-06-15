@@ -301,8 +301,8 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">63</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">21</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">64</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">22</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">19</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-15</div>
+  <a class="toc-item" href="#d0615-13">oauth.allowed-redirect-uris에 localhost:3000 누락 → SocialAuth 테스트 400</a>
   <a class="toc-item" href="#d0615-12">cors.allowed-origins @Value → @ConfigurationProperties 전환</a>
   <a class="toc-item" href="#d0615-11">GEMINI/NAVER API 키 기본값 누락 → CI PlaceholderResolutionException</a>
   <a class="toc-item" href="#d0615-10">pendingToken PII 제거 — userInfo를 /complete로 이동</a>
@@ -389,6 +390,34 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 13 -->
+  <div class="entry" id="d0615-13" data-tags="bugfix config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-medium">MEDIUM</span>
+          oauth.allowed-redirect-uris에 localhost:3000 누락 → SocialAuth 통합 테스트 전체 400
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제</dt>
+        <dd><code>SocialAuthIntegrationTest</code> 전체 케이스가 <code>getOAuthState()</code> 호출 시 400 반환으로 실패. CORS PR에서 CORS <code>allowed-origins</code>를 <code>localhost:5173</code>으로 변경하면서 <code>oauth.allowed-redirect-uris</code>에서 <code>http://localhost:3000</code>도 함께 제거된 것이 원인.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>application.yaml</code>의 <code>oauth.allowed-redirect-uris</code>에 <code>http://localhost:3000</code>이 없어 <code>/authorize?redirectUri=http://localhost:3000</code> 요청이 화이트리스트 검증 실패로 400.</dd>
+        <dt>수정 내용</dt>
+        <dd><code>application.yaml</code>의 <code>oauth.allowed-redirect-uris</code>에 <code>http://localhost:3000</code> 재추가.</dd>
+        <dt>결정 이유</dt>
+        <dd>테스트에서만 수정하려면 <code>@DynamicPropertySource</code>로 indexed key 형식으로 주입해야 하는데 번거롭고, <code>localhost:3000</code>은 기존 통합 테스트 전반에서 쓰이는 표준 리다이렉트 URI. 프로덕션에서 localhost는 SSRF 위험이 없어 화이트리스트에 포함해도 무방.</dd>
+        <dt>영향 파일</dt>
+        <dd><code>src/main/resources/application.yaml</code></dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 12 -->
