@@ -301,8 +301,8 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">64</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">22</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">65</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">23</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">19</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-15</div>
+  <a class="toc-item" href="#d0615-14">배포 중 JAR 덮어쓰기 → pm2 444회 재시작 (Truncated class file)</a>
   <a class="toc-item" href="#d0615-13">oauth.allowed-redirect-uris에 localhost:3000 누락 → SocialAuth 테스트 400</a>
   <a class="toc-item" href="#d0615-12">cors.allowed-origins @Value → @ConfigurationProperties 전환</a>
   <a class="toc-item" href="#d0615-11">GEMINI/NAVER API 키 기본값 누락 → CI PlaceholderResolutionException</a>
@@ -390,6 +391,35 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 14 -->
+  <div class="entry" id="d0615-14" data-tags="bugfix hotfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="tag tag-hotfix">Hotfix</span>
+          <span class="sev sev-critical">CRITICAL</span>
+          SCP 전송 중 pm2 auto-restart → ClassFormatError(Truncated class file) → 444회 재시작
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제</dt>
+        <dd>pm2 재시작 횟수 444회 누적. 로그에 <code>ClassFormatError: Truncated class file</code>, <code>Zip Central Directory not found</code>, <code>NoClassDefFoundError: SpringApplication</code>가 반복.</dd>
+        <dt>근본 원인</dt>
+        <dd>배포 스크립트가 SCP로 JAR를 실행 중인 경로에 직접 덮어씀. SCP 전송 도중 이전 크래시 등으로 pm2 auto-restart 발생 시, 반쯤 쓰인 JAR를 로드하다 <code>ClassFormatError</code> → 즉시 재크래시 → pm2 재시작 → 반복 루프. 이 과정에서 Gemini API도 burst 호출되어 일일 할당량(1,500 req/day) 소진.</dd>
+        <dt>수정 내용</dt>
+        <dd>SCP 목적지를 <code>.tmp</code> 임시 파일로 변경 후, <code>mv</code>로 원자적 교체. 같은 파일시스템에서 <code>mv</code>는 커널 <code>rename(2)</code> syscall로 원자적이므로 중간 상태가 없음. pm2 reload는 <code>mv</code> 완료 후에만 실행.</dd>
+        <dt>결정 이유</dt>
+        <dd>대안인 "SCP 전 pm2 stop → SCP → pm2 start"은 다운타임이 발생. <code>mv</code> 원자 교체는 다운타임 없이 문제 해결 가능.</dd>
+        <dt>영향 파일</dt>
+        <dd><code>.github/workflows/deploy.yml</code></dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 13 -->

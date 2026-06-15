@@ -23,9 +23,9 @@ jobs:
           scp -i /tmp/deploy_key \
             -o StrictHostKeyChecking=no \
             build/libs/*.jar \
-            ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/news-pulse-back.jar
+            ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/news-pulse-back.jar.tmp
           ssh -i /tmp/deploy_key \
             -o StrictHostKeyChecking=no \
             ${EC2_USER}@${EC2_HOST} \
-            "cd /home/ubuntu/app && pm2 reload newsift-back || pm2 start ecosystem.config.js && pm2 save"
+            "mv /home/ubuntu/app/news-pulse-back.jar.tmp /home/ubuntu/app/news-pulse-back.jar && cd /home/ubuntu/app && pm2 reload newsift-back || pm2 start ecosystem.config.js && pm2 save"
           rm -f /tmp/deploy_key
