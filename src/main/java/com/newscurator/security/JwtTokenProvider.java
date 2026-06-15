@@ -86,8 +86,7 @@ public class JwtTokenProvider {
      * Issues a 10-minute pending-signup token. sub = "{provider}:{providerUserId}".
      * Carries social identity to bridge the callback → complete two-step signup.
      */
-    public String generatePendingSignupToken(String provider, String providerUserId,
-                                              String email, String userInfo) {
+    public String generatePendingSignupToken(String provider, String providerUserId, String email) {
         long now = System.currentTimeMillis();
         var builder = Jwts.builder()
                 .subject(provider + ":" + providerUserId)
@@ -98,7 +97,6 @@ public class JwtTokenProvider {
                 .expiration(new Date(now + 10L * 60 * 1000))
                 .signWith(signingKey);
         if (email != null) builder.claim("email", email);
-        if (userInfo != null) builder.claim("userInfo", userInfo);
         return builder.compact();
     }
 

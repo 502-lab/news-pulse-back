@@ -89,6 +89,7 @@ class SocialAuthIntegrationTest {
         registry.add("app.client.naver.base-url", wireMock::baseUrl);
         registry.add("email-service.base-url", wireMock::baseUrl);
         registry.add("email-service.api-key", () -> "test-api-key");
+        registry.add("email-service.from-address", () -> "test@test.local");
         registry.add("spring.flyway.placeholders.admin-email", () -> "admin@social.local");
         registry.add("spring.flyway.placeholders.admin-password-hash", () -> ADMIN_HASH);
 
@@ -143,15 +144,33 @@ class SocialAuthIntegrationTest {
 
     // ─── helpers ───
 
-    private String generateOAuthState(String provider) {
+    /** /authorize 엔드포인트를 실제로 호출해 state를 얻음 (generateOAuthState 직접 생성 대신 실제 흐름 사용). */
+    private String getOAuthState(String provider) {
+        Map<?, ?> resp = restClient.get()
+                .uri("/api/v1/auth/social/" + provider.toLowerCase()
+                        + "/authorize?redirectUri=http://localhost:3000")
+                .retrieve()
+                .body(Map.class);
+        String authorizeUrl = (String) resp.get("authorizeUrl");
+        for (String part : authorizeUrl.split("[?&]")) {
+            if (part.startsWith("state=")) {
+                return java.net.URLDecoder.decode(
+                        part.substring(6), StandardCharsets.UTF_8);
+            }
+        }
+        throw new AssertionError("state not found in authorizeUrl: " + authorizeUrl);
+    }
+
+    /** 만료된 state JWT를 직접 생성 (만료 테스트 전용). */
+    private String buildExpiredState(String provider) {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         javax.crypto.SecretKey signingKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
-        long now = System.currentTimeMillis();
+        long tenMinutesAgo = System.currentTimeMillis() - 10 * 60 * 1000L;
         return Jwts.builder()
                 .subject(provider)
                 .claim("type", "OAUTH_STATE")
-                .issuedAt(new Date(now))
-                .expiration(new Date(now + 5L * 60 * 1000))
+                .issuedAt(new Date(tenMinutesAgo - 5 * 60 * 1000L))
+                .expiration(new Date(tenMinutesAgo))
                 .signWith(signingKey)
                 .compact();
     }
@@ -195,7 +214,7 @@ class SocialAuthIntegrationTest {
                         .withBody("{\"id\":12345678,\"kakao_account\":{\"email\":\"kakao@example.com\"}}")));
 
         // Step 1: callback → 202 + pendingToken (신규 유저, 계정 미생성)
-        String state = generateOAuthState("KAKAO");
+        String state = getOAuthState("KAKAO");
         var callbackResp = restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "kakao-auth-code", "state", state, "redirectUri", "http://localhost:3000"))
@@ -251,7 +270,7 @@ class SocialAuthIntegrationTest {
                         .withBody("{\"id\":99991234,\"kakao_account\":{}}")));  // no email field
 
         // Step 1: callback → 202 + pendingToken
-        String state = generateOAuthState("KAKAO");
+        String state = getOAuthState("KAKAO");
         var callbackResp = restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "kakao-code-noemail", "state", state, "redirectUri", "http://localhost:3000"))
@@ -295,7 +314,7 @@ class SocialAuthIntegrationTest {
                         .withBody("{\"access_token\":\"google-at\",\"id_token\":\"" + idToken + "\"}")));
 
         // Step 1: callback → 202 + pendingToken
-        String state = generateOAuthState("GOOGLE");
+        String state = getOAuthState("GOOGLE");
         var callbackResp = restClient.post().uri("/api/v1/auth/social/google/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "google-auth-code", "state", state, "redirectUri", "http://localhost:3000"))
@@ -346,7 +365,7 @@ class SocialAuthIntegrationTest {
                         .withBody("{\"access_token\":\"google-at\",\"id_token\":\"" + idToken + "\"}")));
 
         // First login: callback → 202 + pendingToken, then /complete → 201 (계정 생성)
-        String state1 = generateOAuthState("GOOGLE");
+        String state1 = getOAuthState("GOOGLE");
         var callbackResp1 = restClient.post().uri("/api/v1/auth/social/google/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "google-code-1", "state", state1, "redirectUri", "http://localhost:3000"))
@@ -367,7 +386,7 @@ class SocialAuthIntegrationTest {
                 .retrieve().toBodilessEntity();
 
         // Second login → 200 (기존 계정)
-        String state2 = generateOAuthState("GOOGLE");
+        String state2 = getOAuthState("GOOGLE");
         var response2 = restClient.post().uri("/api/v1/auth/social/google/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "google-code-2", "state", state2, "redirectUri", "http://localhost:3000"))
@@ -391,16 +410,7 @@ class SocialAuthIntegrationTest {
     @Test
     @DisplayName("state 만료 → 400 OAUTH_STATE_INVALID (리플레이 보호)")
     void callback_expiredState_returns400() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        javax.crypto.SecretKey signingKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
-        long tenMinutesAgo = System.currentTimeMillis() - 10 * 60 * 1000L;
-        String expiredState = Jwts.builder()
-                .subject("KAKAO")
-                .claim("type", "OAUTH_STATE")
-                .issuedAt(new Date(tenMinutesAgo - 5 * 60 * 1000L))
-                .expiration(new Date(tenMinutesAgo))  // expired 10 minutes ago
-                .signWith(signingKey)
-                .compact();
+        String expiredState = buildExpiredState("KAKAO");
 
         assertThatThrownBy(() -> restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -414,7 +424,7 @@ class SocialAuthIntegrationTest {
     @DisplayName("state provider 불일치 → 400 OAUTH_STATE_INVALID")
     void callback_providerMismatch_returns400() {
         // State says GOOGLE but endpoint is kakao
-        String state = generateOAuthState("GOOGLE");
+        String state = getOAuthState("GOOGLE");
 
         assertThatThrownBy(() -> restClient.post().uri("/api/v1/auth/social/kakao/callback")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -442,7 +452,7 @@ class SocialAuthIntegrationTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"access_token\":\"google-at\",\"id_token\":\"" + idToken + "\"}")));
 
-        String state = generateOAuthState("GOOGLE");
+        String state = getOAuthState("GOOGLE");
         assertThatThrownBy(() -> restClient.post().uri("/api/v1/auth/social/google/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "google-code-conflict", "state", state, "redirectUri", "http://localhost:3000"))
@@ -470,7 +480,7 @@ class SocialAuthIntegrationTest {
                         .withBody("{\"access_token\":\"apple-at\",\"id_token\":\"" + appleIdToken + "\"}")));
 
         // Step 1: callback → 202 + pendingToken
-        String state = generateOAuthState("APPLE");
+        String state = getOAuthState("APPLE");
         var callbackResponse = restClient.post().uri("/api/v1/auth/social/apple/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "apple-auth-code", "state", state, "redirectUri", "http://localhost:3000"))
@@ -549,7 +559,7 @@ class SocialAuthIntegrationTest {
                         .withBody("{\"access_token\":\"apple-at\",\"id_token\":\"" + appleIdToken + "\"}")));
 
         // Step 1: callback → 202 + pendingToken
-        String state = generateOAuthState("APPLE");
+        String state = getOAuthState("APPLE");
         var callbackResp = restClient.post().uri("/api/v1/auth/social/apple/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "apple-relay-code", "state", state, "redirectUri", "http://localhost:3000"))
@@ -603,7 +613,7 @@ class SocialAuthIntegrationTest {
         String userJson = "{\"name\":{\"firstName\":\"Gildong\",\"lastName\":\"Hong\"},\"email\":\"" + relayEmail + "\"}";
 
         // Step 1: callback → 202 + pendingToken (userJson이 pendingToken에 포함됨)
-        String state = generateOAuthState("APPLE");
+        String state = getOAuthState("APPLE");
         var callbackResp = restClient.post().uri("/api/v1/auth/social/apple/callback")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("code", "apple-userinfo-code", "state", state,
@@ -613,7 +623,7 @@ class SocialAuthIntegrationTest {
         assertThat(callbackResp.getStatusCode().value()).isEqualTo(202);
         String pendingToken = (String) callbackResp.getBody().get("pendingToken");
 
-        // Step 2: /complete → 201 (userJson은 pendingToken에서 복원되어 social_connections.user_info에 저장)
+        // Step 2: /complete → 201 (userInfo는 클라이언트가 재전송 — JWT PII 제거 설계)
         restClient.post().uri("/api/v1/auth/social/complete")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
@@ -622,7 +632,8 @@ class SocialAuthIntegrationTest {
                                 Map.of("termsVersionId", serviceTermsId.toString(), "agreed", true),
                                 Map.of("termsVersionId", privacyTermsId.toString(), "agreed", true)
                         ),
-                        "ageConfirmed", true
+                        "ageConfirmed", true,
+                        "userInfo", userJson
                 ))
                 .retrieve().toBodilessEntity();
 

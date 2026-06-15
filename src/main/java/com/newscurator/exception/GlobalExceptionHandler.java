@@ -134,6 +134,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("OAUTH_STATE_INVALID", ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidProviderException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidProvider(InvalidProviderException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of("INVALID_PROVIDER", ex.getMessage()));
+    }
+
     @ExceptionHandler(SocialEmailConflictException.class)
     public ResponseEntity<ErrorResponse> handleSocialEmailConflict(SocialEmailConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

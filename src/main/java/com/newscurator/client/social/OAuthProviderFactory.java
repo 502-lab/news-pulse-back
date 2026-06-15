@@ -1,6 +1,7 @@
 package com.newscurator.client.social;
 
 import com.newscurator.domain.enums.SocialProvider;
+import com.newscurator.exception.InvalidProviderException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -20,7 +21,7 @@ public class OAuthProviderFactory {
     public OAuthProviderPort get(SocialProvider provider) {
         OAuthProviderPort port = providers.get(provider);
         if (port == null) {
-            throw new IllegalArgumentException("Unknown OAuth provider: " + provider);
+            throw new InvalidProviderException("Unknown OAuth provider: " + provider);
         }
         return port;
     }

@@ -83,7 +83,7 @@ public class SocialAuthService {
      * 신규 유저: 202 isNew=true, pendingToken(10분)+전체 활성 약관 목록. 계정은 생성하지 않음.
      * 이메일 충돌(동일 이메일 이메일 계정 존재): 409.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public Map<String, Object> callback(SocialProvider provider, String code, String state,
                                         String redirectUri, String userJson) {
         validateState(provider, state);
@@ -113,9 +113,10 @@ public class SocialAuthService {
         }
 
         // New user: issue pending token, return terms list. No account created yet.
-        String storedUserInfo = userInfo.rawUserInfo() != null ? userInfo.rawUserInfo() : userJson;
+        // userInfo (Apple name etc.) is NOT stored in the JWT to avoid PII in unencrypted token;
+        // the client re-sends it as userInfo in POST /complete.
         String pendingToken = jwtTokenProvider.generatePendingSignupToken(
-                provider.name(), userInfo.providerUserId(), userInfo.email(), storedUserInfo);
+                provider.name(), userInfo.providerUserId(), userInfo.email());
 
         List<TermsVersionResponse> activeTerms = termsVersionRepository.findByIsActiveTrue()
                 .stream()
@@ -131,7 +132,7 @@ public class SocialAuthService {
      */
     @Transactional
     public Map<String, Object> complete(String pendingToken, List<ConsentInput> consents,
-                                        Boolean ageConfirmed) {
+                                        Boolean ageConfirmed, String userInfo) {
         Claims claims;
         try {
             claims = jwtTokenProvider.parsePendingSignupToken(pendingToken);
@@ -142,7 +143,6 @@ public class SocialAuthService {
         String providerName = claims.get("provider", String.class);
         String providerUserId = claims.get("pid", String.class);
         String email = claims.get("email", String.class);
-        String userInfo = claims.get("userInfo", String.class);
         SocialProvider provider = SocialProvider.valueOf(providerName);
 
         validateNewUserConsents(consents, ageConfirmed);

@@ -46,7 +46,7 @@ jwt:
 email-service:
   base-url: ${EMAIL_SERVICE_BASE_URL:https://api.resend.com}
   api-key: ${EMAIL_SERVICE_API_KEY:test-api-key}
-  from-address: ${EMAIL_FROM_ADDRESS:NewsIT <onboarding@resend.dev>}
+  from-address: ${EMAIL_FROM_ADDRESS}
 
 cors:
   allowed-origins:

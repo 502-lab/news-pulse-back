@@ -301,9 +301,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">58</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">18</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">18</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">61</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">19</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">19</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-15</div><div class="stat-label">작업 기간</div></div>
@@ -314,6 +314,9 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-15</div>
+  <a class="toc-item" href="#d0615-10">pendingToken PII 제거 — userInfo를 /complete로 이동</a>
+  <a class="toc-item" href="#d0615-9">email-service.from-address 기본값 제거 + 테스트 보완</a>
+  <a class="toc-item" href="#d0615-8">OAuthProviderFactory → InvalidProviderException</a>
   <a class="toc-item" href="#d0615-7">CORS 설정 추가 (로컬 프론트 → EC2 접근)</a>
   <a class="toc-item" href="#d0615-6">알 수 없는 provider → 422 대신 400 오류</a>
   <a class="toc-item" href="#d0615-5">소셜 기존 유저 refresh token DB 미저장 버그</a>
@@ -384,6 +387,122 @@
     <h2>2026-06-15</h2>
     <div class="date-bar"></div>
     <div class="commit-count">커밋: baf975f</div>
+  </div>
+
+  <!-- 10 -->
+  <div class="entry" id="d0615-10" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-feature">Feature</span>
+          pendingToken JWT PII 제거 — userInfo를 /complete 요청으로 이동 + 테스트 /authorize 경유 state 취득
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>코드 감사 중 발견. <code>pendingToken</code> JWT payload에 Apple userInfo(이름 JSON 등)가 포함되어 unencrypted JWT로 PII가 노출될 수 있음. 또한 통합 테스트 <code>generateOAuthState()</code> 헬퍼가 <code>JwtTokenProvider</code> 내부 로직을 중복 구현해 실제 /authorize 엔드포인트와의 정합성이 검증되지 않는 문제.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>JwtTokenProvider.generatePendingSignupToken()</code>이 <code>userInfo</code>(Apple name JSON)를 JWT claim에 포함. Redis 등 서버 사이드 스토리지 없이 stateless 설계를 유지하면서도 PII를 최소화하려면 클라이언트가 /complete 시점에 재전송하는 방식이 적합. 테스트의 직접 JWT 생성은 /authorize 서버 로직 변경 시 테스트가 이를 감지하지 못하는 구조적 약점.</dd>
+        <dt>수정 내용</dt>
+        <dd>
+          <ul>
+            <li><code>JwtTokenProvider.generatePendingSignupToken()</code>: <code>userInfo</code> 파라미터 및 claim 제거</li>
+            <li><code>SocialCompleteRequest</code>: nullable <code>userInfo</code> 필드 추가</li>
+            <li><code>SocialAuthService.complete()</code>: <code>userInfo</code> 파라미터 추가, JWT claim 대신 요청 바디에서 수신</li>
+            <li><code>SocialAuthController.complete()</code>: <code>request.userInfo()</code>를 서비스에 전달</li>
+            <li><code>SocialAuthService.callback()</code>: <code>storedUserInfo</code> 변수 제거, <code>generatePendingSignupToken</code> 3-arg 호출</li>
+            <li><code>SocialAuthIntegrationTest</code>: <code>generateOAuthState()</code> 헬퍼 제거 → <code>getOAuthState()</code>로 교체(실제 /authorize 엔드포인트 호출). 만료 state 테스트는 <code>buildExpiredState()</code> 인라인 빌더 유지. <code>apple_firstLogin_userInfoStoredInSocialConnection</code>: /complete body에 <code>userInfo</code> 포함.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>Redis 추가 없이 PII 노출 최소화. email은 계정 생성에 필수이므로 JWT에 유지하고, userInfo(Apple name)는 순수 표시 데이터이므로 클라이언트 재전송 방식 채택. 악의적 클라이언트가 다른 userInfo를 보내도 인증 결정에 영향 없음. 테스트의 /authorize 경유 방식은 실제 엔드포인트와 state 생성 로직을 공유해 회귀를 더 잘 감지.</dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <ul>
+            <li>src/main/java/com/newscurator/security/JwtTokenProvider.java</li>
+            <li>src/main/java/com/newscurator/dto/request/SocialCompleteRequest.java</li>
+            <li>src/main/java/com/newscurator/service/SocialAuthService.java</li>
+            <li>src/main/java/com/newscurator/controller/SocialAuthController.java</li>
+            <li>src/test/java/com/newscurator/integration/SocialAuthIntegrationTest.java</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="entry" id="d0615-9" data-tags="config test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-config">Config</span>
+          email-service.from-address 기본값 제거 — 환경변수 필수화 + 통합 테스트 프로퍼티 보완
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>코드 감사 중 발견. <code>application.yaml</code>의 <code>email-service.from-address</code>가 <code>NewsIT &lt;onboarding@resend.dev&gt;</code>라는 Resend 데모 주소를 기본값으로 가지고 있어, <code>EMAIL_FROM_ADDRESS</code> 환경변수 미설정 시 발신자 주소가 Resend 데모로 발송되는 문제.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>${EMAIL_FROM_ADDRESS:NewsIT &lt;onboarding@resend.dev&gt;}</code>형식의 SpEL 기본값이 빠진 환경변수를 조용히 채워버려, 프로덕션에서 발신자 주소 미설정을 감지하지 못함.</dd>
+        <dt>수정 내용</dt>
+        <dd>
+          <ul>
+            <li><code>application.yaml</code>: <code>from-address: ${EMAIL_FROM_ADDRESS}</code> — 기본값 제거, 환경변수 필수화</li>
+            <li>통합 테스트 4곳 <code>@DynamicPropertySource</code>에 <code>email-service.from-address: test@test.local</code> 추가 (AuthIntegrationTest, RbacIntegrationTest, SocialAuthIntegrationTest, OpenApiSpecExportTest)</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>근본 수정. <code>EMAIL_FROM_ADDRESS</code> 미설정 시 앱 기동 단계에서 바인딩 오류로 즉시 실패하게 되어 무언의 잘못된 동작보다 명시적 실패가 운영자에게 더 빠른 피드백을 줌.</dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <ul>
+            <li>src/main/resources/application.yaml</li>
+            <li>src/test/java/com/newscurator/integration/AuthIntegrationTest.java</li>
+            <li>src/test/java/com/newscurator/integration/RbacIntegrationTest.java</li>
+            <li>src/test/java/com/newscurator/integration/SocialAuthIntegrationTest.java</li>
+            <li>src/test/java/com/newscurator/integration/OpenApiSpecExportTest.java</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="entry" id="d0615-8" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <div class="entry-title">
+          <span class="tag tag-bugfix">Bug Fix</span>
+          <span class="sev sev-low">LOW</span>
+          OAuthProviderFactory 미등록 provider → IllegalArgumentException(422) 대신 InvalidProviderException(400)
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>코드 감사 중 발견. <code>OAuthProviderFactory.get()</code>이 등록되지 않은 provider에 대해 <code>IllegalArgumentException</code>을 던지고 GlobalExceptionHandler가 이를 422로 매핑. <code>SocialAuthController.parseProvider()</code>에서 이미 provider 유효성을 검사하므로 factory까지 도달하면 Spring Bean 미등록 문제이며 400이 적합.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>OAuthProviderFactory</code>가 <code>InvalidProviderException</code>이 아닌 <code>IllegalArgumentException</code>을 사용해 GlobalExceptionHandler의 422 매핑 경로에 진입.</dd>
+        <dt>수정 내용</dt>
+        <dd><code>OAuthProviderFactory.get()</code>: <code>IllegalArgumentException</code> → <code>InvalidProviderException</code> 변경 + import 추가.</dd>
+        <dt>결정 이유</dt>
+        <dd>d0615-6에서 컨트롤러 레이어에 <code>InvalidProviderException</code>을 도입한 것의 연장. 팩토리까지 도달하는 경우는 없지만 레이어 간 일관성 확보.</dd>
+        <dt>영향 파일</dt>
+        <dd>
+          <ul>
+            <li>src/main/java/com/newscurator/client/social/OAuthProviderFactory.java</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
   </div>
 
   <!-- 7 -->

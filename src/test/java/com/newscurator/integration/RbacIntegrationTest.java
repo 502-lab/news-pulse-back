@@ -61,6 +61,7 @@ class RbacIntegrationTest {
         registry.add("app.client.naver.base-url", wireMock::baseUrl);
         registry.add("email-service.base-url", wireMock::baseUrl);
         registry.add("email-service.api-key", () -> "test-api-key");
+        registry.add("email-service.from-address", () -> "test@test.local");
         registry.add("spring.flyway.placeholders.admin-email", () -> "admin@test.local");
         registry.add("spring.flyway.placeholders.admin-password-hash", () -> ADMIN_HASH);
     }

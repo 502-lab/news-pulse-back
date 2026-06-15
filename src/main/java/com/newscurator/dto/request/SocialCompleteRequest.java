@@ -16,5 +16,8 @@ public record SocialCompleteRequest(
         @NotNull @Size(min = 1) @Valid List<ConsentInput> consents,
 
         @Schema(description = "만 14세 이상 동의 여부")
-        @NotNull Boolean ageConfirmed
+        @NotNull Boolean ageConfirmed,
+
+        @Schema(description = "소셜 제공자 추가 사용자 정보 (Apple 최초 로그인 시 name 등). JWT PII 제거로 인해 클라이언트가 재전송. 선택사항.", nullable = true)
+        String userInfo
 ) {}

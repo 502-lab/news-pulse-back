@@ -4,6 +4,7 @@ import com.newscurator.domain.enums.SocialProvider;
 import com.newscurator.dto.request.SocialCallbackRequest;
 import com.newscurator.dto.request.SocialCompleteRequest;
 import com.newscurator.dto.response.SocialAuthorizeResponse;
+import com.newscurator.exception.InvalidProviderException;
 import com.newscurator.service.SocialAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -93,7 +94,8 @@ public class SocialAuthController {
         Map<String, Object> result = socialAuthService.complete(
                 request.pendingToken(),
                 request.consents(),
-                request.ageConfirmed());
+                request.ageConfirmed(),
+                request.userInfo());
         return ResponseEntity.status(201).body(result);
     }
 
@@ -101,7 +103,7 @@ public class SocialAuthController {
         try {
             return SocialProvider.valueOf(provider.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown OAuth provider: " + provider);
+            throw new InvalidProviderException("Unknown OAuth provider: " + provider);
         }
     }
 }
