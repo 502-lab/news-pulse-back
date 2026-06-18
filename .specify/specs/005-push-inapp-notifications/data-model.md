@@ -1,7 +1,7 @@
 # Data Model: 005 알림 (푸시·인앱)
 
 **Date**: 2026-06-18
-**Flyway**: V11 단일 마이그레이션 (`V11__add_notification_tables.sql`)
+**Flyway**: V12 단일 마이그레이션 (`V12__add_notification_tables.sql`)
 
 ---
 
@@ -192,7 +192,7 @@ EmailSubscriptionType: WEEKLY_EMAIL
 
 ## 마이그레이션 파일
 
-`src/main/resources/db/migration/V11__add_notification_tables.sql`
+`src/main/resources/db/migration/V12__add_notification_tables.sql`
 
 상기 CREATE TABLE 6개 + CREATE INDEX 4개를 단일 파일에 포함.
 
@@ -203,7 +203,7 @@ EmailSubscriptionType: WEEKLY_EMAIL
 ```
 PENDING
   └─[클레임 스케줄러]─→ PROCESSING
-       ├─[FCM/SES 성공]──→ SENT (종료)
+       ├─[FCM/Resend 성공]──→ SENT (종료)
        └─[실패, attempt_count < 3]──→ FAILED(next_retry_at += backoff)──→ PENDING(재시도)
        └─[실패, attempt_count >= 3]──→ FAILED (종료)
 ```

@@ -8,10 +8,10 @@
 
 ## Summary
 
-인앱 알림 저장·조회·읽음과 FCM 푸시·AWS SES 이메일 비동기 발송을 구현한다.
+인앱 알림 저장·조회·읽음과 FCM 푸시·Resend(EmailPort) 이메일 비동기 발송을 구현한다.
 발송 신뢰성은 004에서 확립한 **DB outbox + SELECT FOR UPDATE SKIP LOCKED 클레임 패턴**을 그대로 재사용한다.
 Firebase Admin SDK(푸시)를 신규 추가하며, 주간 이메일은 기존 Resend 클라이언트를 `EmailPort` 인터페이스로 추상화하여 재사용한다.
-신규 Flyway 마이그레이션 V11 단일 파일로 6개 테이블을 추가한다.
+신규 Flyway 마이그레이션 V12 단일 파일로 6개 테이블을 추가한다.
 
 ---
 
@@ -24,7 +24,7 @@ Firebase Admin SDK(푸시)를 신규 추가하며, 주간 이메일은 기존 Re
 - 기존: Spring Boot 4.0.5, Spring Data JPA, Flyway, SpringDoc OpenAPI 3, AWS SDK v2 BOM, Testcontainers
 
 **Storage**:
-- PostgreSQL — 6개 신규 테이블 (V11 마이그레이션)
+- PostgreSQL — 6개 신규 테이블 (V12 마이그레이션)
   - `device_tokens`, `topic_subscriptions`, `notification_preferences`,
     `email_subscriptions`, `notifications`, `notification_outbox`
 - 기존 `accounts`, `reading_preferences`, `interests`, `tts_audios` 재사용
@@ -33,7 +33,7 @@ Firebase Admin SDK(푸시)를 신규 추가하며, 주간 이메일은 기존 Re
 - 단위 테스트: JUnit 5 + Mockito (Service 레이어)
 - 통합 테스트: Testcontainers `BigmPostgresImage` (기존 패턴)
 - Controller: @WebMvcTest + MockMvc
-- FCM/SES: `PushNotificationPort` / `EmailNotificationPort` 인터페이스 mock (SDK 직접 mock 불필요)
+- FCM/Resend: `PushNotificationPort` / `EmailPort` 인터페이스 mock (SDK 직접 mock 불필요)
 - Outbox Processor: 실 DB Testcontainers로 FOR UPDATE SKIP LOCKED 검증
 
 **Target Platform**: Linux server (JVM 25)
@@ -67,8 +67,8 @@ Firebase Admin SDK(푸시)를 신규 추가하며, 주간 이메일은 기존 Re
 | II. Entity 비노출 + DTO 검증 | ✅ PASS | DeviceTokenRequest/Response, NotificationResponse 등 모든 컨트롤러 I/O는 DTO record. @Valid 검증. |
 | III. 일관된 응답 포맷 + 전역 예외 처리 | ✅ PASS | 기존 `ApiResponse<T>` + `GlobalExceptionHandler` 재사용. 새 예외 없음 (기존 `ResourceNotFoundException` 재사용). |
 | IV. 테스트 없는 비즈니스 로직 금지 | ✅ PASS | NotificationService(읽음), NotificationSendService(enqueue 멱등), NotificationOutboxProcessor(클레임) 모두 단위 테스트 필수. FOR UPDATE SKIP LOCKED → Testcontainers 통합 테스트 검증. |
-| V. 스키마 변경은 마이그레이션으로만 | ✅ PASS | Flyway V11 단일 파일. ddl-auto=validate 유지. |
-| VI. 보안 기본값 + 시크릿 외부화 | ✅ PASS | 모든 /me/** 인증 필수. /admin/** hasRole(ADMIN). Firebase 키·SES 설정 환경변수만. payload 로그 출력 금지. |
+| V. 스키마 변경은 마이그레이션으로만 | ✅ PASS | Flyway V12 단일 파일. ddl-auto=validate 유지. |
+| VI. 보안 기본값 + 시크릿 외부화 | ✅ PASS | 모든 /me/** 인증 필수. /admin/** hasRole(ADMIN). Firebase 키 환경변수만. payload 로그 출력 금지. |
 | VII. 멱등성 + 중복 방지 | ✅ PASS | notification_outbox.idempotency_key UNIQUE 제약. FOR UPDATE SKIP LOCKED. device_tokens.token UNIQUE(upsert). |
 
 **헌법 위반 없음**
@@ -83,7 +83,7 @@ Firebase Admin SDK(푸시)를 신규 추가하며, 주간 이메일은 기존 Re
 .specify/specs/005-push-inapp-notifications/
 ├── plan.md              # This file
 ├── spec.md              # Feature specification
-├── research.md          # Phase 0: 5가지 설계 결정 (FCM, SES, Outbox, 토큰수명, 발송분리)
+├── research.md          # Phase 0: 5가지 설계 결정 (FCM, Resend, Outbox, 토큰수명, 발송분리)
 ├── data-model.md        # Phase 1: 6개 신규 테이블 DDL + enum 정의
 ├── quickstart.md        # Phase 1: 검증 시나리오 가이드 (6개 시나리오)
 ├── contracts/
@@ -149,7 +149,7 @@ src/main/java/com/newscurator/
 │   └── notification/
 │       ├── PushNotificationPort.java         # interface (테스트 격리용 추상화)
 │       ├── FcmPushNotificationAdapter.java   # Firebase Admin SDK 구현체
-│       ├── EmailNotificationPort.java        # interface
+│       ├── EmailPort.java                       # interface
 │       └── ResendEmailProvider.java          # Resend 구현체 (주간 이메일 — EmailPort 구현)
 ├── config/
 │   └── FirebaseConfig.java                   # FirebaseApp 초기화 빈
@@ -159,7 +159,7 @@ src/main/java/com/newscurator/
     └── NotificationExpiryScheduler.java      # 90일 만료 인앱 알림 삭제
 
 src/main/resources/db/migration/
-└── V11__add_notification_tables.sql
+└── V12__add_notification_tables.sql
 
 src/test/java/com/newscurator/
 ├── controller/
@@ -181,7 +181,7 @@ src/test/java/com/newscurator/
     └── WeeklyEmailSchedulerTest.java
 ```
 
-**Structure Decision**: 기존 3계층 구조 그대로 확장. `client/notification/` 하위에 FCM/SES adapter 추가(port-adapter 패턴으로 테스트 격리). `config/FirebaseConfig.java` 신규 추가.
+**Structure Decision**: 기존 3계층 구조 그대로 확장. `client/notification/` 하위에 FCM/Resend adapter 추가(port-adapter 패턴으로 테스트 격리). `config/FirebaseConfig.java` 신규 추가.
 
 ---
 
@@ -203,7 +203,7 @@ src/test/java/com/newscurator/
 
 산출물: [`data-model.md`](./data-model.md), [`contracts/openapi.yaml`](./contracts/openapi.yaml), [`quickstart.md`](./quickstart.md)
 
-- **데이터 모델**: 6개 신규 테이블. Flyway V11 단일 마이그레이션.
+- **데이터 모델**: 6개 신규 테이블. Flyway V12 단일 마이그레이션.
   - `device_tokens`: UNIQUE(token), INDEX(account_id)
   - `topic_subscriptions`: 복합 PK (account_id, topic)
   - `notification_preferences`: 1:1 with accounts, lazy init (없으면 기본값 반환)
@@ -250,5 +250,5 @@ app:
 
 | 항목 | 이유 |
 |------|------|
-| port-adapter 패턴 (PushNotificationPort/EmailNotificationPort) | Firebase Admin SDK는 gRPC 기반으로 HTTP WireMock mock 불가. 인터페이스 추상화로 Service 단위 테스트 격리. |
+| port-adapter 패턴 (PushNotificationPort/EmailPort) | Firebase Admin SDK는 gRPC 기반으로 HTTP WireMock mock 불가. 인터페이스 추상화로 Service 단위 테스트 격리. |
 | EmailPort 추상화 (ResendEmailProvider) | 주간 이메일도 Resend 재사용(MVP 저볼륨). EmailPort 인터페이스로 추상화하여 향후 볼륨 증가 시 SES 구현체로 무중단 교체 가능. |

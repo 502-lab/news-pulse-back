@@ -75,7 +75,7 @@ EmailPort (interface)
 ```
 [Scheduler] FOR UPDATE SKIP LOCKED
   → PENDING → PROCESSING (tx commit)
-  → [밖에서] FCM or SES 호출
+  → [밖에서] FCM or Resend 호출
   → 성공: PROCESSING → SENT
   → 실패: PROCESSING → FAILED (attempt_count++, next_retry_at = now + backoff)
   → attempt_count >= 3: FAILED 유지 (재시도 중단)

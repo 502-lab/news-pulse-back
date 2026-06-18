@@ -9,7 +9,7 @@
 - Docker 실행 중 (Testcontainers)
 - `./gradlew build` 통과 상태
 - Firebase Admin SDK 환경변수 미설정 시 FCM 발송은 Runtime 검증 항목
-- AWS SES 환경변수 미설정 시 이메일 발송은 Runtime 검증 항목
+- Resend API 키 미설정 시 이메일 발송은 Runtime 검증 항목
 
 ---
 
@@ -159,11 +159,11 @@ curl -s -X POST localhost:8080/api/v1/admin/notifications/send \
 
 ```bash
 # ./gradlew test 실행 후 아래 테스트 클래스 통과 확인
-# 실제 FCM/SES 연동은 Runtime 검증 필요
+# 실제 FCM/Resend 연동은 Runtime 검증 필요
 
 # NotificationOutboxProcessorTest:
 # - PENDING 항목 클레임 → PROCESSING 전환 확인
-# - MockFcmClient/MockSesClient 성공 시 → SENT 전환 확인
+# - MockFcmClient/MockEmailPort 성공 시 → SENT 전환 확인
 # - MockFcmClient 실패(3회) → FAILED 상태 확인
 # - UNREGISTERED 에러 → device_tokens 행 삭제 확인
 
