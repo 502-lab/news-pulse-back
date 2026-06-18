@@ -20,9 +20,9 @@
 
 **Purpose**: Flyway 마이그레이션 + 신규 Enum 생성 — 모든 도메인 엔티티의 전제 조건
 
-- [ ] T001 Create Flyway migration `src/main/resources/db/migration/V10__add_tts_tables.sql` — `voices` CREATE TABLE + INSERT [TBD] × 2 (하린/준서), `tts_audios` CREATE TABLE (audio_key TEXT, UNIQUE(owner_type,ref_id,voice_id), idx_tts_audios_status PARTIAL WHERE IN('PENDING','PROCESSING')), `daily_briefs` CREATE TABLE (article_ids BIGINT[], UNIQUE(account_id,brief_date)), `ALTER TABLE reading_preferences ADD COLUMN voice_id VARCHAR(50) REFERENCES voices(id) ON DELETE SET NULL`
-- [ ] T002 [P] Create `src/main/java/com/newscurator/domain/enums/TtsOwnerType.java` — `enum TtsOwnerType { ARTICLE }` (BRIEF 없음)
-- [ ] T003 [P] Create `src/main/java/com/newscurator/domain/enums/TtsStatus.java` — `enum TtsStatus { PENDING, PROCESSING, READY, FAILED }`
+- [x] T001 Create Flyway migration `src/main/resources/db/migration/V10__add_tts_tables.sql` — `voices` CREATE TABLE + INSERT [TBD] × 2 (하린/준서), `tts_audios` CREATE TABLE (audio_key TEXT, UNIQUE(owner_type,ref_id,voice_id), idx_tts_audios_status PARTIAL WHERE IN('PENDING','PROCESSING')), `daily_briefs` CREATE TABLE (article_ids BIGINT[], UNIQUE(account_id,brief_date)), `ALTER TABLE reading_preferences ADD COLUMN voice_id VARCHAR(50) REFERENCES voices(id) ON DELETE SET NULL`
+- [x] T002 [P] Create `src/main/java/com/newscurator/domain/enums/TtsOwnerType.java` — `enum TtsOwnerType { ARTICLE }` (BRIEF 없음)
+- [x] T003 [P] Create `src/main/java/com/newscurator/domain/enums/TtsStatus.java` — `enum TtsStatus { PENDING, PROCESSING, READY, FAILED }`
 
 **Checkpoint**: 마이그레이션 + Enum — 엔티티 작성 시작 가능
 
@@ -34,16 +34,16 @@
 
 **⚠️ CRITICAL**: 이 Phase 완료 전까지 유저 스토리 구현 시작 불가
 
-- [ ] T004 Extend `src/main/java/com/newscurator/domain/ReadingPreference.java` — `private String voiceId;` 필드 추가, `update()` 메서드 파라미터에 `String voiceId` 추가하여 저장. 기존 summaryDepth·consumeMode 로직 유지.
-- [ ] T005 [P] Create `src/main/java/com/newscurator/domain/Voice.java` — `@Entity @Table("voices")`, `@Id String id`, `String name`, `String gender` (VARCHAR — Gender enum 없음, A7: 기존 enums에 Gender 미존재 확인), `String previewUrl`, `Instant createdAt`. @Getter @NoArgsConstructor @Builder.
-- [ ] T006 [P] Create `src/main/java/com/newscurator/domain/TtsAudio.java` — `@Entity @Table(uniqueConstraints = @UniqueConstraint({owner_type,ref_id,voice_id}))`, UUID id, `@Enumerated TtsOwnerType ownerType`, String refId, String voiceId, `@Enumerated TtsStatus status` DEFAULT PENDING, `String audioKey` (S3 key, NOT URL), `Integer durationSec` (nullable), `String errorMsg`, Instant createdAt·updatedAt. `resetToPending()` 메서드: status=PENDING, audioKey=null, errorMsg=null, updatedAt=now(). @Getter @NoArgsConstructor @Builder.
-- [ ] T007 [P] Create `src/main/java/com/newscurator/domain/DailyBrief.java` — `@Entity @Table(uniqueConstraints = @UniqueConstraint({account_id,brief_date}))`, UUID id, `@ManyToOne LAZY Account account`, `LocalDate briefDate`, `@Column(columnDefinition="BIGINT[]") Long[] articleIds`, String voiceId, Instant createdAt. @Getter @NoArgsConstructor @Builder.
-- [ ] T008 [P] Create `src/main/java/com/newscurator/repository/VoiceRepository.java` — `JpaRepository<Voice, String>`. 추가 메서드 불필요 (findAll, findById 충분).
-- [ ] T009 Create `src/main/java/com/newscurator/repository/TtsAudioRepository.java` — `JpaRepository<TtsAudio, UUID>`. 추가 메서드: (1) `Optional<TtsAudio> findByOwnerTypeAndRefIdAndVoiceId(TtsOwnerType, String, String)` (2) `@Query(value="SELECT * FROM tts_audios WHERE status='PENDING' LIMIT :limit FOR UPDATE SKIP LOCKED", nativeQuery=true) List<TtsAudio> findPendingWithLock(@Param("limit") int limit)` — 멀티 인스턴스 중복 처리 방지 필수.
-- [ ] T010 [P] Create `src/main/java/com/newscurator/repository/DailyBriefRepository.java` — `JpaRepository<DailyBrief, UUID>`. 메서드: `Optional<DailyBrief> findByAccountIdAndBriefDate(UUID accountId, LocalDate date)`.
-- [ ] T011 Create `src/main/java/com/newscurator/client/ai/NaverClovaVoiceClient.java` — 생성자에서 `@Value("${naver.clova.voice.api-key-id}")` / `@Value("${naver.clova.voice.api-key}")` / `@Value("${naver.clova.voice.base-url}")` 주입. `byte[] generate(String voiceId, String text)` 메서드: RestClient로 `POST {base-url}/tts-premium/v1/tts`, 헤더 `X-NCP-APIGW-API-KEY-ID`·`X-NCP-APIGW-API-KEY`, form body `speaker={voiceId}&text={text}&volume=0&speed=0&pitch=0&format=mp3`, 응답 `byte[]` 반환. 4xx/5xx 응답 시 `AiProviderException` throw.
-- [ ] T012 Create `src/main/java/com/newscurator/service/S3AudioUploader.java` — (1) `String upload(byte[] mp3Bytes, String audioKey)`: S3 PutObject(key=audioKey, content-type=audio/mpeg) 후 audioKey 반환. (2) `String generateUrl(String audioKey)`: CloudFront 도메인 + audioKey 조합 → URL 반환. `@Value("${cloud.aws.s3.bucket}")`, `@Value("${cloud.aws.cloudfront.domain}")` 주입.
-- [ ] T013 Add TTS config to `src/main/resources/application.yaml` and `src/main/resources/application-example.yaml` — `naver.clova.voice.*`(api-key-id/api-key/base-url placeholder), `app.tts.briefing.article-count: 5`, `app.tts.scheduler.cron: "*/30 * * * * *"`, `app.tts.default-voice-id: "[TBD]"` (A6: BriefingService 기본 음성 결정적 선정에 사용), `cloud.aws.cloudfront.domain` placeholder.
+- [x] T004 Extend `src/main/java/com/newscurator/domain/ReadingPreference.java` — `private String voiceId;` 필드 추가, `update()` 메서드 파라미터에 `String voiceId` 추가하여 저장. 기존 summaryDepth·consumeMode 로직 유지.
+- [x] T005 [P] Create `src/main/java/com/newscurator/domain/Voice.java` — `@Entity @Table("voices")`, `@Id String id`, `String name`, `String gender` (VARCHAR — Gender enum 없음, A7: 기존 enums에 Gender 미존재 확인), `String previewUrl`, `Instant createdAt`. @Getter @NoArgsConstructor @Builder.
+- [x] T006 [P] Create `src/main/java/com/newscurator/domain/TtsAudio.java` — `@Entity @Table(uniqueConstraints = @UniqueConstraint({owner_type,ref_id,voice_id}))`, UUID id, `@Enumerated TtsOwnerType ownerType`, String refId, String voiceId, `@Enumerated TtsStatus status` DEFAULT PENDING, `String audioKey` (S3 key, NOT URL), `Integer durationSec` (nullable), `String errorMsg`, Instant createdAt·updatedAt. `resetToPending()` 메서드: status=PENDING, audioKey=null, errorMsg=null, updatedAt=now(). @Getter @NoArgsConstructor @Builder.
+- [x] T007 [P] Create `src/main/java/com/newscurator/domain/DailyBrief.java` — `@Entity @Table(uniqueConstraints = @UniqueConstraint({account_id,brief_date}))`, UUID id, `@ManyToOne LAZY Account account`, `LocalDate briefDate`, `@Column(columnDefinition="BIGINT[]") Long[] articleIds`, String voiceId, Instant createdAt. @Getter @NoArgsConstructor @Builder.
+- [x] T008 [P] Create `src/main/java/com/newscurator/repository/VoiceRepository.java` — `JpaRepository<Voice, String>`. 추가 메서드 불필요 (findAll, findById 충분).
+- [x] T009 Create `src/main/java/com/newscurator/repository/TtsAudioRepository.java` — `JpaRepository<TtsAudio, UUID>`. 추가 메서드: (1) `Optional<TtsAudio> findByOwnerTypeAndRefIdAndVoiceId(TtsOwnerType, String, String)` (2) `@Query(value="SELECT * FROM tts_audios WHERE status='PENDING' LIMIT :limit FOR UPDATE SKIP LOCKED", nativeQuery=true) List<TtsAudio> findPendingWithLock(@Param("limit") int limit)` — 멀티 인스턴스 중복 처리 방지 필수.
+- [x] T010 [P] Create `src/main/java/com/newscurator/repository/DailyBriefRepository.java` — `JpaRepository<DailyBrief, UUID>`. 메서드: `Optional<DailyBrief> findByAccountIdAndBriefDate(UUID accountId, LocalDate date)`.
+- [x] T011 Create `src/main/java/com/newscurator/client/ai/NaverClovaVoiceClient.java` — 생성자에서 `@Value("${naver.clova.voice.api-key-id}")` / `@Value("${naver.clova.voice.api-key}")` / `@Value("${naver.clova.voice.base-url}")` 주입. `byte[] generate(String voiceId, String text)` 메서드: RestClient로 `POST {base-url}/tts-premium/v1/tts`, 헤더 `X-NCP-APIGW-API-KEY-ID`·`X-NCP-APIGW-API-KEY`, form body `speaker={voiceId}&text={text}&volume=0&speed=0&pitch=0&format=mp3`, 응답 `byte[]` 반환. 4xx/5xx 응답 시 `AiProviderException` throw.
+- [x] T012 Create `src/main/java/com/newscurator/service/S3AudioUploader.java` — (1) `String upload(byte[] mp3Bytes, String audioKey)`: S3 PutObject(key=audioKey, content-type=audio/mpeg) 후 audioKey 반환. (2) `String generateUrl(String audioKey)`: CloudFront 도메인 + audioKey 조합 → URL 반환. `@Value("${cloud.aws.s3.bucket}")`, `@Value("${cloud.aws.cloudfront.domain}")` 주입.
+- [x] T013 Add TTS config to `src/main/resources/application.yaml` and `src/main/resources/application-example.yaml` — `naver.clova.voice.*`(api-key-id/api-key/base-url placeholder), `app.tts.briefing.article-count: 5`, `app.tts.scheduler.cron: "*/30 * * * * *"`, `app.tts.default-voice-id: "[TBD]"` (A6: BriefingService 기본 음성 결정적 선정에 사용), `cloud.aws.cloudfront.domain` placeholder.
 
 **Checkpoint**: 도메인·리포지토리·클라이언트 뼈대 완성 — 유저 스토리 구현 시작 가능
 
@@ -57,19 +57,19 @@
 
 ### Implementation
 
-- [ ] T014 [P] [US1] Create `src/main/java/com/newscurator/dto/response/VoiceResponse.java` — Java record: `(String id, String name, String gender, String previewUrl)`. gender는 String ("FEMALE"/"MALE", A7: Gender enum 미존재). 각 필드 `@Schema(description, example)`.
-- [ ] T015 [P] [US1] Create `src/main/java/com/newscurator/service/VoiceService.java` — `List<VoiceResponse> findAll()`: VoiceRepository.findAll() → VoiceResponse 매핑. `void validateVoiceId(String voiceId)`: VoiceRepository.existsById() → false면 throw `InvalidVoiceIdException` (새 exception 또는 IllegalArgumentException — 422로 매핑).
-- [ ] T016 [US1] Create `src/main/java/com/newscurator/controller/VoiceController.java` — `@Tag(name="Voice")`, `GET /api/v1/voices`, `@Operation(summary="음성 목록 조회")`, `@ApiResponses(200, 401, 403)`. `ApiResponse<List<VoiceResponse>>` 반환.
-- [ ] T017 [P] [US1] Extend `src/main/java/com/newscurator/dto/request/ReadingPreferenceRequest.java` — 기존 `summaryDepth, consumeMode` 유지. `@Schema(description="선호 음성 ID, optional") String voiceId` 필드 추가 (nullable, @Valid 없음).
-- [ ] T018 [P] [US1] Extend `src/main/java/com/newscurator/dto/response/ReadingPreferenceResponse.java` — `String voiceId` 필드 추가 (nullable). 기존 `summaryDepth, consumeMode` 유지.
-- [ ] T019 [US1] Extend `src/main/java/com/newscurator/service/ProfileService.java` — `updateReadingPreference()`: req.voiceId() non-null이면 VoiceService.validateVoiceId() 호출 (유효하지 않으면 422). ReadingPreference.update(summaryDepth, consumeMode, voiceId) 갱신. `getReadingPreference()`: voiceId 포함 ReadingPreferenceResponse 반환.
+- [x] T014 [P] [US1] Create `src/main/java/com/newscurator/dto/response/VoiceResponse.java` — Java record: `(String id, String name, String gender, String previewUrl)`. gender는 String ("FEMALE"/"MALE", A7: Gender enum 미존재). 각 필드 `@Schema(description, example)`.
+- [x] T015 [P] [US1] Create `src/main/java/com/newscurator/service/VoiceService.java` — `List<VoiceResponse> findAll()`: VoiceRepository.findAll() → VoiceResponse 매핑. `void validateVoiceId(String voiceId)`: VoiceRepository.existsById() → false면 throw `InvalidVoiceIdException` (새 exception 또는 IllegalArgumentException — 422로 매핑).
+- [x] T016 [US1] Create `src/main/java/com/newscurator/controller/VoiceController.java` — `@Tag(name="Voice")`, `GET /api/v1/voices`, `@Operation(summary="음성 목록 조회")`, `@ApiResponses(200, 401, 403)`. `ApiResponse<List<VoiceResponse>>` 반환.
+- [x] T017 [P] [US1] Extend `src/main/java/com/newscurator/dto/request/ReadingPreferenceRequest.java` — 기존 `summaryDepth, consumeMode` 유지. `@Schema(description="선호 음성 ID, optional") String voiceId` 필드 추가 (nullable, @Valid 없음).
+- [x] T018 [P] [US1] Extend `src/main/java/com/newscurator/dto/response/ReadingPreferenceResponse.java` — `String voiceId` 필드 추가 (nullable). 기존 `summaryDepth, consumeMode` 유지.
+- [x] T019 [US1] Extend `src/main/java/com/newscurator/service/ProfileService.java` — `updateReadingPreference()`: req.voiceId() non-null이면 VoiceService.validateVoiceId() 호출 (유효하지 않으면 422). ReadingPreference.update(summaryDepth, consumeMode, voiceId) 갱신. `getReadingPreference()`: voiceId 포함 ReadingPreferenceResponse 반환.
 
 ### Tests
 
-- [ ] T020 [US1] Unit test `src/test/java/com/newscurator/service/VoiceServiceTest.java` — (1) findAll: mockRepository.findAll() → 2건 VoiceResponse 반환 검증. (2) validateVoiceId valid → no exception. (3) validateVoiceId invalid → exception 발생.
-- [ ] T021 [US1] @WebMvcTest `src/test/java/com/newscurator/controller/VoiceControllerTest.java` — (1) GET /api/v1/voices 인증O → 200 + 배열 반환. (2) 미인증 → 401.
-- [ ] T022 [US1] @WebMvcTest `src/test/java/com/newscurator/controller/MeControllerTest.java` (기존 파일 확장) — PUT /api/v1/me/reading-preference `{voiceId: "[TBD]"}` → 200, 응답에 voiceId 포함. PUT with 존재하지 않는 voiceId → 422.
-- [ ] T023 [US1] @DataJpaTest `src/test/java/com/newscurator/repository/VoiceRepositoryTest.java` — V10 마이그레이션 시드 적용 후 findAll() 2건 반환 확인.
+- [x] T020 [US1] Unit test `src/test/java/com/newscurator/service/VoiceServiceTest.java` — (1) findAll: mockRepository.findAll() → 2건 VoiceResponse 반환 검증. (2) validateVoiceId valid → no exception. (3) validateVoiceId invalid → exception 발생.
+- [x] T021 [US1] @WebMvcTest `src/test/java/com/newscurator/controller/VoiceControllerTest.java` — (1) GET /api/v1/voices 인증O → 200 + 배열 반환. (2) 미인증 → 401.
+- [x] T022 [US1] @WebMvcTest `src/test/java/com/newscurator/controller/MeControllerTest.java` (기존 파일 확장) — PUT /api/v1/me/reading-preference `{voiceId: "[TBD]"}` → 200, 응답에 voiceId 포함. PUT with 존재하지 않는 voiceId → 422.
+- [x] T023 [US1] @DataJpaTest `src/test/java/com/newscurator/repository/VoiceRepositoryTest.java` — V10 마이그레이션 시드 적용 후 findAll() 2건 반환 확인.
 
 **Checkpoint**: US1 독립 검증 — 음성 목록 조회·저장 완전 동작
 
@@ -83,30 +83,30 @@
 
 ### Implementation
 
-- [ ] T024 [P] [US2] Create `src/main/java/com/newscurator/exception/SummaryNotReadyException.java` and `NoFeedArticlesException.java` — 둘 다 RuntimeException. GlobalExceptionHandler(`src/main/java/com/newscurator/exception/GlobalExceptionHandler.java`)에 각각 추가: `SummaryNotReadyException` → HTTP 409 (`SUMMARY_NOT_READY`), `NoFeedArticlesException` → HTTP 404 (`NO_FEED_ARTICLES`).
-- [ ] T025 [P] [US2] Create `src/main/java/com/newscurator/dto/request/TtsRequest.java` — record: `(@NotBlank String voiceId)`. @Schema 포함.
-- [ ] T026 [P] [US2] Create `src/main/java/com/newscurator/dto/response/TtsStatusResponse.java` — record: `(UUID id, TtsOwnerType ownerType, String refId, String voiceId, TtsStatus status, String audioUrl, Integer durationSec, String errorMsg)`. audioUrl은 응답 시 S3AudioUploader.generateUrl(audioKey)로 생성. **audioKey==null이면 generateUrl 미호출, audioUrl=null 반환** (PENDING/PROCESSING/FAILED 상태 대응 — A8). @Schema 포함.
-- [ ] T027 [US2] Create `src/main/java/com/newscurator/service/TtsService.java` — `TtsStatusResponse requestArticleTts(Long articleId, String voiceId, Account account)` 멱등 4분기: (1) READY → 즉시 반환 (2) PENDING/PROCESSING → 기존 TtsAudio 반환 (3) FAILED → ttsAudio.resetToPending() + save → 반환 (4) 없음 → NEW TtsAudio(PENDING) INSERT. 검증: voiceId VoiceRepository.existsById() false → 422. Article 조회 후 summaryStatus≠COMPLETED → SummaryNotReadyException. **audioUrl 생성 시 `audioKey != null ? s3AudioUploader.generateUrl(audioKey) : null` null 가드 필수 (A8)**.
-- [ ] T028 [US2] Add `TtsStatusResponse getArticleTtsStatus(Long articleId, String voiceId)` to `src/main/java/com/newscurator/service/TtsService.java` — TtsAudioRepository.findByOwnerTypeAndRefIdAndVoiceId() → 없으면 404, 있으면 TtsStatusResponse 반환. **audioUrl = audioKey != null ? generateUrl(audioKey) : null (A8)**.
-- [ ] T029 [US2] Create `src/main/java/com/newscurator/controller/TtsController.java` — `@Tag(name="TTS")`. `POST /api/v1/articles/{articleId}/tts` (`@Operation`, `@ApiResponses(200,202,401,403,404,409,422)`). `GET /api/v1/articles/{articleId}/tts?voiceId` (`@Parameter(description)`). 200 vs 202 분기: TtsService가 반환한 TtsAudio.status == READY이면 200, 아니면 202.
-- [ ] T030 [US2] Implement `src/main/java/com/newscurator/client/ai/NaverClovaVoiceClient.java` full body — T011 skeleton에 실제 RestClient 로직 구현: form-encoded POST, audio/mpeg binary response body to byte[], 4xx/5xx JSON 파싱 후 AiProviderException(errorCode, errorMessage). @Slf4j 추가, API 키 로그 출력 절대 금지.
-- [ ] T031 [US2] Create `src/main/java/com/newscurator/scheduler/TtsProcessingScheduler.java` — `@Scheduled(cron="${app.tts.scheduler.cron}")`. `@Transactional`로 `ttsAudioRepository.findPendingWithLock(batchSize)` 조회(FOR UPDATE SKIP LOCKED). 각 TtsAudio: status→PROCESSING 저장 → naverClovaVoiceClient.generate() → s3AudioUploader.upload() → status=READY, audioKey 저장. 실패 시 status=FAILED, errorMsg 저장. 단순 findByStatus(PENDING) 폴링 절대 사용 금지.
+- [x] T024 [P] [US2] Create `src/main/java/com/newscurator/exception/SummaryNotReadyException.java` and `NoFeedArticlesException.java` — 둘 다 RuntimeException. GlobalExceptionHandler(`src/main/java/com/newscurator/exception/GlobalExceptionHandler.java`)에 각각 추가: `SummaryNotReadyException` → HTTP 409 (`SUMMARY_NOT_READY`), `NoFeedArticlesException` → HTTP 404 (`NO_FEED_ARTICLES`).
+- [x] T025 [P] [US2] Create `src/main/java/com/newscurator/dto/request/TtsRequest.java` — record: `(@NotBlank String voiceId)`. @Schema 포함.
+- [x] T026 [P] [US2] Create `src/main/java/com/newscurator/dto/response/TtsStatusResponse.java` — record: `(UUID id, TtsOwnerType ownerType, String refId, String voiceId, TtsStatus status, String audioUrl, Integer durationSec, String errorMsg)`. audioUrl은 응답 시 S3AudioUploader.generateUrl(audioKey)로 생성. **audioKey==null이면 generateUrl 미호출, audioUrl=null 반환** (PENDING/PROCESSING/FAILED 상태 대응 — A8). @Schema 포함.
+- [x] T027 [US2] Create `src/main/java/com/newscurator/service/TtsService.java` — `TtsStatusResponse requestArticleTts(Long articleId, String voiceId, Account account)` 멱등 4분기: (1) READY → 즉시 반환 (2) PENDING/PROCESSING → 기존 TtsAudio 반환 (3) FAILED → ttsAudio.resetToPending() + save → 반환 (4) 없음 → NEW TtsAudio(PENDING) INSERT. 검증: voiceId VoiceRepository.existsById() false → 422. Article 조회 후 summaryStatus≠COMPLETED → SummaryNotReadyException. **audioUrl 생성 시 `audioKey != null ? s3AudioUploader.generateUrl(audioKey) : null` null 가드 필수 (A8)**.
+- [x] T028 [US2] Add `TtsStatusResponse getArticleTtsStatus(Long articleId, String voiceId)` to `src/main/java/com/newscurator/service/TtsService.java` — TtsAudioRepository.findByOwnerTypeAndRefIdAndVoiceId() → 없으면 404, 있으면 TtsStatusResponse 반환. **audioUrl = audioKey != null ? generateUrl(audioKey) : null (A8)**.
+- [x] T029 [US2] Create `src/main/java/com/newscurator/controller/TtsController.java` — `@Tag(name="TTS")`. `POST /api/v1/articles/{articleId}/tts` (`@Operation`, `@ApiResponses(200,202,401,403,404,409,422)`). `GET /api/v1/articles/{articleId}/tts?voiceId` (`@Parameter(description)`). 200 vs 202 분기: TtsService가 반환한 TtsAudio.status == READY이면 200, 아니면 202.
+- [x] T030 [US2] Implement `src/main/java/com/newscurator/client/ai/NaverClovaVoiceClient.java` full body — T011 skeleton에 실제 RestClient 로직 구현: form-encoded POST, audio/mpeg binary response body to byte[], 4xx/5xx JSON 파싱 후 AiProviderException(errorCode, errorMessage). @Slf4j 추가, API 키 로그 출력 절대 금지.
+- [x] T031 [US2] Create `src/main/java/com/newscurator/scheduler/TtsProcessingScheduler.java` — `@Scheduled(cron="${app.tts.scheduler.cron}")`. `@Transactional`로 `ttsAudioRepository.findPendingWithLock(batchSize)` 조회(FOR UPDATE SKIP LOCKED). 각 TtsAudio: status→PROCESSING 저장 → naverClovaVoiceClient.generate() → s3AudioUploader.upload() → status=READY, audioKey 저장. 실패 시 status=FAILED, errorMsg 저장. 단순 findByStatus(PENDING) 폴링 절대 사용 금지.
 
 ### Tests
 
-- [ ] T032 [US2] Unit test `src/test/java/com/newscurator/service/TtsServiceTest.java` — 멱등 4분기 **행 생성 여부 단언 포함 (A1)**:
+- [x] T032 [US2] Unit test `src/test/java/com/newscurator/service/TtsServiceTest.java` — 멱등 4분기 **행 생성 여부 단언 포함 (A1)**:
   - **(1) READY 분기**: `verify(ttsAudioRepository, never()).save(any())` — 기존 READY 행 재사용, DB 수정 없음 단언.
   - **(2) PENDING/PROCESSING 분기**: `verify(ttsAudioRepository, never()).save(any())` — 중복 생성 없음 단언.
   - **(3) FAILED 분기**: `verify(ttsAudio).resetToPending()` 호출됨 + `verify(ttsAudioRepository, times(1)).save(same(existingTtsAudio))` — 동일 객체 1회 save, 새 객체 INSERT 아님 단언.
   - **(4) 없음 분기**: `verify(ttsAudioRepository, times(1)).save(argThat(a -> a.getId() == null || a.getStatus() == PENDING))` — 신규 행 1회 save 단언.
   - 추가: summaryStatus≠COMPLETED → SummaryNotReadyException. 유효하지 않은 voiceId → exception.
-- [ ] T033 [US2] WireMock test `src/test/java/com/newscurator/client/NaverClovaVoiceClientTest.java` — WireMock.stubFor(POST .../tts-premium/v1/tts).willReturn(aResponse().withBody(mp3bytes)) → generate() 반환 byte[] 검증. WireMock 4xx → AiProviderException 검증. X-NCP-* 헤더 존재 확인. API 키 값 로그 미포함 단언.
-- [ ] T034 [US2] @DataJpaTest `src/test/java/com/newscurator/repository/TtsAudioRepositoryTest.java` —
+- [x] T033 [US2] WireMock test `src/test/java/com/newscurator/client/NaverClovaVoiceClientTest.java` — WireMock.stubFor(POST .../tts-premium/v1/tts).willReturn(aResponse().withBody(mp3bytes)) → generate() 반환 byte[] 검증. WireMock 4xx → AiProviderException 검증. X-NCP-* 헤더 존재 확인. API 키 값 로그 미포함 단언.
+- [x] T034 [US2] @DataJpaTest `src/test/java/com/newscurator/repository/TtsAudioRepositoryTest.java` —
   - **(1) UNIQUE 제약**: 동일(ownerType,refId,voiceId) 두 번 save → DataIntegrityViolationException.
   - **(2) findPendingWithLock**: PENDING 2건·PROCESSING 1건·READY 1건 → 2건만 반환 확인.
   - **(3) resetToPending UPDATE 검증 (A2)**: FAILED TtsAudio 1건 INSERT 후 `ttsAudio.resetToPending()` + `repository.save(ttsAudio)` 실행 → DB 재조회: `SELECT COUNT(*) WHERE owner_type=? AND ref_id=? AND voice_id=? == 1` (행 수 불변 — INSERT 아닌 UPDATE), `id` 동일, `status=='PENDING'`, `audioKey IS NULL` 단언.
-- [ ] T035 [US2] @WebMvcTest `src/test/java/com/newscurator/controller/TtsControllerTest.java` — (1) POST 신규 → 202 + status=PENDING. (2) POST READY 상태 → 200 + audioUrl. (3) POST summaryNotReady → 409. (4) GET 존재하지 않는 TTS → 404.
-- [ ] T036 [US2] Unit test `src/test/java/com/newscurator/scheduler/TtsProcessingSchedulerTest.java` — NaverClovaVoiceClient·S3AudioUploader mock 사용 (A4):
+- [x] T035 [US2] @WebMvcTest `src/test/java/com/newscurator/controller/TtsControllerTest.java` — (1) POST 신규 → 202 + status=PENDING. (2) POST READY 상태 → 200 + audioUrl. (3) POST summaryNotReady → 409. (4) GET 존재하지 않는 TTS → 404.
+- [x] T036 [US2] Unit test `src/test/java/com/newscurator/scheduler/TtsProcessingSchedulerTest.java` — NaverClovaVoiceClient·S3AudioUploader mock 사용 (A4):
   - **(1) 정상 처리**: mock PENDING TtsAudio → `scheduler.process()` 호출 → `ttsAudio.status == PROCESSING` 저장 확인 → `naverClovaVoiceClient.generate()` 1회 호출 → `s3AudioUploader.upload()` 1회 호출 → DB TtsAudio `status == READY`, `audioKey != null` 단언.
   - **(2) Naver API 실패**: `naverClovaVoiceClient.generate()` → AiProviderException throw → DB TtsAudio `status == FAILED`, `errorMsg != null` 단언. S3 업로드 미호출 `verify(s3AudioUploader, never()).upload(any(), any())` 확인.
 
@@ -122,19 +122,19 @@
 
 ### Implementation
 
-- [ ] T037 [P] [US3] Create `src/main/java/com/newscurator/dto/response/BriefingResponse.java` — record: `(LocalDate briefDate, List<Long> articleIds, String voiceId, List<TtsStatusResponse> ttsItems)`. `@Schema(description)` 포함. "브리핑 READY" = ttsItems 전체 status=READY.
-- [ ] T038 [US3] Create `src/main/java/com/newscurator/service/BriefingService.java` — `BriefingResponse getOrCreateTodayBrief(Account account)`: (1) DailyBriefRepository.findByAccountIdAndBriefDate(today) 존재 → ttsItems 조합하여 반환. (2) 없으면: FeedService를 통해 `summary_status=COMPLETED` 기사 상위 N건 선정(부족 시 가용한 수 사용, **0건이면 NoFeedArticlesException throw → 404**, A5). DailyBrief(articleIds) 저장, 각 articleId에 대해 TtsService.requestArticleTts() 호출(기존 READY 재사용), ttsItems 조합 반환. **voiceId 결정: account.readingPreferences.voiceId 우선, null이면 `${app.tts.default-voice-id}` config 값 사용 (A6 — "첫 번째 행" 비결정적 방식 금지)**.
-- [ ] T039 [US3] Create `src/main/java/com/newscurator/controller/BriefingController.java` — `@Tag(name="Briefing")`. `GET /api/v1/briefing/today`, `@Operation`, `@ApiResponses(200,202,401,403,404)`. ttsItems 전체 READY → 200; 아니면 → 202.
+- [x] T037 [P] [US3] Create `src/main/java/com/newscurator/dto/response/BriefingResponse.java` — record: `(LocalDate briefDate, List<Long> articleIds, String voiceId, List<TtsStatusResponse> ttsItems)`. `@Schema(description)` 포함. "브리핑 READY" = ttsItems 전체 status=READY.
+- [x] T038 [US3] Create `src/main/java/com/newscurator/service/BriefingService.java` — `BriefingResponse getOrCreateTodayBrief(Account account)`: (1) DailyBriefRepository.findByAccountIdAndBriefDate(today) 존재 → ttsItems 조합하여 반환. (2) 없으면: FeedService를 통해 `summary_status=COMPLETED` 기사 상위 N건 선정(부족 시 가용한 수 사용, **0건이면 NoFeedArticlesException throw → 404**, A5). DailyBrief(articleIds) 저장, 각 articleId에 대해 TtsService.requestArticleTts() 호출(기존 READY 재사용), ttsItems 조합 반환. **voiceId 결정: account.readingPreferences.voiceId 우선, null이면 `${app.tts.default-voice-id}` config 값 사용 (A6 — "첫 번째 행" 비결정적 방식 금지)**.
+- [x] T039 [US3] Create `src/main/java/com/newscurator/controller/BriefingController.java` — `@Tag(name="Briefing")`. `GET /api/v1/briefing/today`, `@Operation`, `@ApiResponses(200,202,401,403,404)`. ttsItems 전체 READY → 200; 아니면 → 202.
 
 ### Tests
 
-- [ ] T040 [US3] Unit test `src/test/java/com/newscurator/service/BriefingServiceTest.java` —
+- [x] T040 [US3] Unit test `src/test/java/com/newscurator/service/BriefingServiceTest.java` —
   - **(1) 캐시 히트**: 당일 DailyBrief 존재 → `dailyBriefRepository.save()` 미호출, ttsItems 반환.
   - **(2) 신규 생성**: 당일 없을 때 → N건 COMPLETED 기사 선정·DailyBrief 저장·TtsService 호출 N회.
   - **(3) COMPLETED/비-COMPLETED 혼합 선정 단언 (A3)**: 피드 후보를 [COMPLETED-A, non-COMPLETED-B, COMPLETED-C, non-COMPLETED-D, COMPLETED-E] 순으로 mock. N=3 요청 → 생성된 `DailyBrief.articleIds`에 A·C·E만 포함, B·D 제외 단언. 부족분 채우기: COMPLETED 3건 존재하므로 `articleIds.size() == 3` 단언.
   - **(4) COMPLETED 0건**: COMPLETED 기사 0건 mock → `NoFeedArticlesException` 발생 단언 (A5).
-- [ ] T041 [US3] @WebMvcTest `src/test/java/com/newscurator/controller/BriefingControllerTest.java` — (1) 신규 → 202 + `ttsItems` 배열 포함(각 항목 id/status 확인). (2) 캐시(전체 READY) → 200. (3) 미인증 → 401. (4) COMPLETED 0건 → 404.
-- [ ] T042 [US3] @DataJpaTest `src/test/java/com/newscurator/repository/DailyBriefRepositoryTest.java` — (1) UNIQUE(account_id, brief_date) 중복 저장 → exception. (2) findByAccountIdAndBriefDate 정상 반환.
+- [x] T041 [US3] @WebMvcTest `src/test/java/com/newscurator/controller/BriefingControllerTest.java` — (1) 신규 → 202 + `ttsItems` 배열 포함(각 항목 id/status 확인). (2) 캐시(전체 READY) → 200. (3) 미인증 → 401. (4) COMPLETED 0건 → 404.
+- [x] T042 [US3] @DataJpaTest `src/test/java/com/newscurator/repository/DailyBriefRepositoryTest.java` — (1) UNIQUE(account_id, brief_date) 중복 저장 → exception. (2) findByAccountIdAndBriefDate 정상 반환.
 
 **Checkpoint**: US3 독립 검증 — 브리핑 재생 큐 생성·캐시 동작
 
@@ -148,13 +148,13 @@
 
 ### Implementation
 
-- [ ] T043 [US4] Extend `src/main/java/com/newscurator/repository/SavedArticleRepository.java` — `listenable` 필터 쿼리 추가: JPQL 또는 native query로 `tts_audios` JOIN `WHERE ta.status='READY' AND ta.owner_type='ARTICLE' AND CAST(ta.ref_id AS BIGINT) = sa.article_id AND ta.voice_id = :voiceId`(voiceId null이면 any). 기존 커서 페이지네이션 파라미터 유지.
-- [ ] T044 [US4] Extend `src/main/java/com/newscurator/service/SavedArticleService.java` — `getSavedArticles()` 오버로드 또는 파라미터 추가: `boolean listenable, String voiceId`. listenable=false → 기존 쿼리. listenable=true → T043 쿼리 사용.
-- [ ] T045 [US4] Extend `src/main/java/com/newscurator/controller/SavedArticleController.java` — GET /api/v1/me/saved-articles에 `@RequestParam(defaultValue="false") boolean listenable`, `@RequestParam(required=false) String voiceId` 추가. `@Parameter(description)` 포함. 기존 파라미터(cursor, size) 유지.
+- [x] T043 [US4] Extend `src/main/java/com/newscurator/repository/SavedArticleRepository.java` — `listenable` 필터 쿼리 추가: JPQL 또는 native query로 `tts_audios` JOIN `WHERE ta.status='READY' AND ta.owner_type='ARTICLE' AND CAST(ta.ref_id AS BIGINT) = sa.article_id AND ta.voice_id = :voiceId`(voiceId null이면 any). 기존 커서 페이지네이션 파라미터 유지.
+- [x] T044 [US4] Extend `src/main/java/com/newscurator/service/SavedArticleService.java` — `getSavedArticles()` 오버로드 또는 파라미터 추가: `boolean listenable, String voiceId`. listenable=false → 기존 쿼리. listenable=true → T043 쿼리 사용.
+- [x] T045 [US4] Extend `src/main/java/com/newscurator/controller/SavedArticleController.java` — GET /api/v1/me/saved-articles에 `@RequestParam(defaultValue="false") boolean listenable`, `@RequestParam(required=false) String voiceId` 추가. `@Parameter(description)` 포함. 기존 파라미터(cursor, size) 유지.
 
 ### Tests
 
-- [ ] T046 [US4] @WebMvcTest `src/test/java/com/newscurator/controller/SavedArticleControllerTest.java` (기존 파일 확장) — (1) listenable=true → READY 기사만 반환. (2) listenable=false(또는 미제공) → 전체 반환(기존 동작 회귀 없음). (3) listenable=true + voiceId → 해당 voiceId READY만 반환.
+- [x] T046 [US4] @WebMvcTest `src/test/java/com/newscurator/controller/SavedArticleControllerTest.java` (기존 파일 확장) — (1) listenable=true → READY 기사만 반환. (2) listenable=false(또는 미제공) → 전체 반환(기존 동작 회귀 없음). (3) listenable=true + voiceId → 해당 voiceId READY만 반환.
 
 **Checkpoint**: US4 독립 검증 — listenable 필터 동작 + 기존 동작 회귀 없음
 
@@ -164,10 +164,10 @@
 
 **Purpose**: Swagger 문서화, 설정 파일, CHANGELOG, 빌드 검증
 
-- [ ] T047 Add Swagger annotations to all new controllers and DTOs — VoiceController: `@Tag`, `@Operation`, `@ApiResponses`. TtsController: 동일. BriefingController: 동일. VoiceResponse/TtsRequest/TtsStatusResponse/BriefingResponse/ReadingPreferenceRequest·Response 확장분: `@Schema(description, example)` 각 필드. `@Parameter(description)` for all @RequestParam/@PathVariable.
-- [ ] T048 Update `src/main/resources/application-example.yaml` — `naver.clova.voice.*` 섹션(api-key-id/api-key/base-url 환경변수 참조), `app.tts.briefing.article-count: 5`, `app.tts.scheduler.cron: "*/30 * * * * *"`, `app.tts.default-voice-id: "[TBD]"` (A6), `cloud.aws.cloudfront.domain` placeholder 추가.
-- [ ] T049 Add CHANGELOG.html entry — `tag-feature` 카테고리, 날짜 그룹(오늘), 기능 설명(US1~US4), 결정 이유(Naver Clova Voice 선택 근거, Model B 선택 근거, FAILED UPDATE 방식), 영향 파일 목록. stats bar 항목 수 갱신.
-- [ ] T050 Run full build `./gradlew build` — 기존 테스트 회귀 없음 + 신규 테스트 통과. 실패 시 원인 특정·수정 후 재실행.
+- [x] T047 Add Swagger annotations to all new controllers and DTOs — VoiceController: `@Tag`, `@Operation`, `@ApiResponses`. TtsController: 동일. BriefingController: 동일. VoiceResponse/TtsRequest/TtsStatusResponse/BriefingResponse/ReadingPreferenceRequest·Response 확장분: `@Schema(description, example)` 각 필드. `@Parameter(description)` for all @RequestParam/@PathVariable.
+- [x] T048 Update `src/main/resources/application-example.yaml` — `naver.clova.voice.*` 섹션(api-key-id/api-key/base-url 환경변수 참조), `app.tts.briefing.article-count: 5`, `app.tts.scheduler.cron: "*/30 * * * * *"`, `app.tts.default-voice-id: "[TBD]"` (A6), `cloud.aws.cloudfront.domain` placeholder 추가.
+- [x] T049 Add CHANGELOG.html entry — `tag-feature` 카테고리, 날짜 그룹(오늘), 기능 설명(US1~US4), 결정 이유(Naver Clova Voice 선택 근거, Model B 선택 근거, FAILED UPDATE 방식), 영향 파일 목록. stats bar 항목 수 갱신.
+- [x] T050 Run full build `./gradlew build` — 기존 테스트 회귀 없음 + 신규 테스트 통과. 실패 시 원인 특정·수정 후 재실행.
 
 ---
 

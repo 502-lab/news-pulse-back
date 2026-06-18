@@ -20,10 +20,10 @@
 
 **Purpose**: Flyway 마이그레이션, 테스트 인프라, 설정 클래스 준비
 
-- [ ] T001 V9 Flyway 마이그레이션 파일 작성 (pg_bigm 확장 + saved_articles 테이블 + GIN 인덱스) in `src/main/resources/db/migration/V9__saved_articles_search_indexes.sql`
-- [ ] T002 [P] Testcontainers 커스텀 Dockerfile 작성 (postgres:16 + postgresql-16-pg-bigm 설치 + `CMD ["postgres", "-c", "shared_preload_libraries=pg_bigm"]` 지정; 미설정 시 gin_bigm_ops 연산자 미로드로 V9 GIN 인덱스 사용 불가) in `src/test/resources/postgres-bigm/Dockerfile`
-- [ ] T003 [P] `FeedRankingProperties` @ConfigurationProperties 클래스 작성 (`feed.ranking.*` 바인딩) + `AppConfig.java`의 `@EnableConfigurationProperties` 목록에 `FeedRankingProperties.class` 추가 (기존 패턴 — `@SpringBootApplication`에 `@ConfigurationPropertiesScan` 없으므로 수동 등록 필수) in `src/main/java/com/newscurator/config/FeedRankingProperties.java`, `src/main/java/com/newscurator/config/AppConfig.java`
-- [ ] T004 `application.yaml` 에 `feed.ranking` 기본값 추가 (category-match-score: 50, keyword-match-score: 30, recency-window-hours: 30, recency-max-score: 20, feed-window-days: 7)
+- [x] T001 V9 Flyway 마이그레이션 파일 작성 (pg_bigm 확장 + saved_articles 테이블 + GIN 인덱스) in `src/main/resources/db/migration/V9__saved_articles_search_indexes.sql`
+- [x] T002 [P] Testcontainers 커스텀 Dockerfile 작성 (postgres:16 + postgresql-16-pg-bigm 설치 + `CMD ["postgres", "-c", "shared_preload_libraries=pg_bigm"]` 지정; 미설정 시 gin_bigm_ops 연산자 미로드로 V9 GIN 인덱스 사용 불가) in `src/test/resources/postgres-bigm/Dockerfile`
+- [x] T003 [P] `FeedRankingProperties` @ConfigurationProperties 클래스 작성 (`feed.ranking.*` 바인딩) + `AppConfig.java`의 `@EnableConfigurationProperties` 목록에 `FeedRankingProperties.class` 추가 (기존 패턴 — `@SpringBootApplication`에 `@ConfigurationPropertiesScan` 없으므로 수동 등록 필수) in `src/main/java/com/newscurator/config/FeedRankingProperties.java`, `src/main/java/com/newscurator/config/AppConfig.java`
+- [x] T004 `application.yaml` 에 `feed.ranking` 기본값 추가 (category-match-score: 50, keyword-match-score: 30, recency-window-hours: 30, recency-max-score: 20, feed-window-days: 7)
 
 **Checkpoint**: `./gradlew bootRun` 기동 시 Flyway V9 통과, `ddl-auto=validate` 성공
 
@@ -35,11 +35,11 @@
 
 **⚠️ CRITICAL**: 이 Phase 완료 전 US1~US3 구현 착수 불가
 
-- [ ] T005 `SavedArticle` Entity 작성 (`@Table(name = "saved_articles")`, id/accountId/articleId/savedAt 필드, `@PrePersist` savedAt 자동 설정) in `src/main/java/com/newscurator/domain/SavedArticle.java`
-- [ ] T006 `SavedArticleRepository` JPA Repository 작성 (`findByAccountIdOrderBySavedAtDesc(Pageable)`, `existsByAccountIdAndArticleId(UUID, Long)`, `countByAccountId(UUID)`, `deleteByAccountIdAndArticleId(UUID, Long)`, `findSavedArticleIdsByAccountIdAndArticleIdIn(UUID accountId, Collection<Long> articleIds)` — 피드·검색 ArticleItem.saved 배치 조회용, N+1 방지) in `src/main/java/com/newscurator/repository/SavedArticleRepository.java`
-- [ ] T007 `SaveLimitExceededException` 예외 클래스 신규 작성 + `GlobalExceptionHandler` 에 409 `SAVE_LIMIT_EXCEEDED` 핸들러 추가 (`ArticleNotFoundException`→404는 이미 등록됨, 추가 불필요) in `src/main/java/com/newscurator/exception/SaveLimitExceededException.java`, `src/main/java/com/newscurator/exception/GlobalExceptionHandler.java`
-- [ ] T008 [P] `ArticleItem` 공통 응답 DTO 작성 (피드·검색 공용, id/title/category/publishedAt/sourceName/summary/rankScore/saved 필드; sourceName은 `article_sources → sources.name` JOIN — Article이 복수 출처를 가질 수 있으므로 `article.getSources().get(0).getSource().getName()` 또는 native 쿼리 서브셀렉트로 첫 수집 출처명 취득, N+1 금지) in `src/main/java/com/newscurator/dto/response/ArticleItem.java`
-- [ ] T009 [P] `SummarySlot` 응답 DTO 작성 (text/depth/isFallback 필드; depth는 실제 반환된 슬롯, isFallback은 reading_preferences.summary_depth 불일치 여부) in `src/main/java/com/newscurator/dto/response/SummarySlot.java`
+- [x] T005 `SavedArticle` Entity 작성 (`@Table(name = "saved_articles")`, id/accountId/articleId/savedAt 필드, `@PrePersist` savedAt 자동 설정) in `src/main/java/com/newscurator/domain/SavedArticle.java`
+- [x] T006 `SavedArticleRepository` JPA Repository 작성 (`findByAccountIdOrderBySavedAtDesc(Pageable)`, `existsByAccountIdAndArticleId(UUID, Long)`, `countByAccountId(UUID)`, `deleteByAccountIdAndArticleId(UUID, Long)`, `findSavedArticleIdsByAccountIdAndArticleIdIn(UUID accountId, Collection<Long> articleIds)` — 피드·검색 ArticleItem.saved 배치 조회용, N+1 방지) in `src/main/java/com/newscurator/repository/SavedArticleRepository.java`
+- [x] T007 `SaveLimitExceededException` 예외 클래스 신규 작성 + `GlobalExceptionHandler` 에 409 `SAVE_LIMIT_EXCEEDED` 핸들러 추가 (`ArticleNotFoundException`→404는 이미 등록됨, 추가 불필요) in `src/main/java/com/newscurator/exception/SaveLimitExceededException.java`, `src/main/java/com/newscurator/exception/GlobalExceptionHandler.java`
+- [x] T008 [P] `ArticleItem` 공통 응답 DTO 작성 (피드·검색 공용, id/title/category/publishedAt/sourceName/summary/rankScore/saved 필드; sourceName은 `article_sources → sources.name` JOIN — Article이 복수 출처를 가질 수 있으므로 `article.getSources().get(0).getSource().getName()` 또는 native 쿼리 서브셀렉트로 첫 수집 출처명 취득, N+1 금지) in `src/main/java/com/newscurator/dto/response/ArticleItem.java`
+- [x] T009 [P] `SummarySlot` 응답 DTO 작성 (text/depth/isFallback 필드; depth는 실제 반환된 슬롯, isFallback은 reading_preferences.summary_depth 불일치 여부) in `src/main/java/com/newscurator/dto/response/SummarySlot.java`
 
 **Checkpoint**: `./gradlew compileJava` 성공 — Foundational 코드 컴파일 오류 없음
 
@@ -53,15 +53,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T010 `FeedServiceTest` 단위 테스트 작성 (7 시나리오: 관심 카테고리 기사 점수 우위, 키워드 매칭 +30점, recency 가산점 검증, 관심사·키워드 모두 없는 사용자 → personalized=false+published_at DESC, category 파라미터 필터링, DEEP 미생성·BALANCED 존재 시 isFallback=true+depth=balanced, 요약 슬롯 전혀 없음 시 summary.text=null+isFallback=false) in `src/test/java/com/newscurator/service/FeedServiceTest.java`
-- [ ] T011 `FeedIntegrationTest` Testcontainers 통합 테스트 작성 (커스텀 postgres-bigm 이미지 사용; 실 DB 삽입 후 피드 API 랭킹 순서 단언, fallback 최신순 200, **커서 전달 시 2페이지 결과가 1페이지와 중복 없음 단언(AS1.6)**, 미인증 401, 이메일 미인증 403) in `src/test/java/com/newscurator/integration/FeedIntegrationTest.java`
+- [x] T010 `FeedServiceTest` 단위 테스트 작성 (7 시나리오: 관심 카테고리 기사 점수 우위, 키워드 매칭 +30점, recency 가산점 검증, 관심사·키워드 모두 없는 사용자 → personalized=false+published_at DESC, category 파라미터 필터링, DEEP 미생성·BALANCED 존재 시 isFallback=true+depth=balanced, 요약 슬롯 전혀 없음 시 summary.text=null+isFallback=false) in `src/test/java/com/newscurator/service/FeedServiceTest.java`
+- [x] T011 `FeedIntegrationTest` Testcontainers 통합 테스트 작성 (커스텀 postgres-bigm 이미지 사용; 실 DB 삽입 후 피드 API 랭킹 순서 단언, fallback 최신순 200, **커서 전달 시 2페이지 결과가 1페이지와 중복 없음 단언(AS1.6)**, 미인증 401, 이메일 미인증 403) in `src/test/java/com/newscurator/integration/FeedIntegrationTest.java`
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] `FeedRequest` 요청 DTO 작성 (`?category` Category enum, `?cursor` Base64 커서, `?size` int 기본 20, @Parameter Swagger 어노테이션 포함) in `src/main/java/com/newscurator/dto/request/FeedRequest.java`
-- [ ] T013 [P] `FeedResponse` 응답 DTO 작성 (`articles: List<ArticleItem>`, `personalized: boolean`, `nextCursor: String`, `hasNext: boolean`) in `src/main/java/com/newscurator/dto/response/FeedResponse.java`
-- [ ] T014 `FeedService` 구현 (후보 기사 조회 7일·Java 내 점수 계산·정렬·슬라이스; rank_score = category_score(50) + keyword_score(30×n, 최대 5개 = 150) + recency_score(최대 20, 30h 선형 감쇠); **fallback 분기(런타임 상태 기준, category 미지정 피드 한정)**: `UserInterestsRepository.findByAccountId` + `FollowKeywordRepository.findByAccountId` 결과가 모두 비어있으면 personalized=false+published_at DESC, 하나라도 있으면 rank_score 내림차순+personalized=true. `account.personalizationActive` 는 참조하지 않음 — `PUT /me/interests`가 동 플래그를 재계산하지 않아 stale 가능, 런타임 interests/keywords가 단일 진실 출처임. category 지정 피드는 fallback 없음(결과 0건 시 빈 목록); **saved 배치 조회**: 결과 articleId 목록으로 `SavedArticleRepository.findSavedArticleIdsByAccountIdAndArticleIdIn` 단일 쿼리 → Set 변환 후 ArticleItem.saved 설정(N+1 금지); 요약 fallback 매트릭스 DEEP→BALANCED→BRIEF; 슬롯 없음 시 text=null; 커서: Base64(rank_score|published_at|article_id|reference_ts) 4-component 인코딩; @Transactional(readOnly=true)) in `src/main/java/com/newscurator/service/FeedService.java`
-- [ ] T015 `FeedController` 구현 (`GET /api/v1/feed` → 응답 `ApiResponse.success(feedResponse)`로 래핑(FR-020), JWT+이메일인증 게이팅, @Tag/@Operation/@ApiResponses 포함) in `src/main/java/com/newscurator/controller/FeedController.java`
+- [x] T012 [P] `FeedRequest` 요청 DTO 작성 (`?category` Category enum, `?cursor` Base64 커서, `?size` int 기본 20, @Parameter Swagger 어노테이션 포함) in `src/main/java/com/newscurator/dto/request/FeedRequest.java`
+- [x] T013 [P] `FeedResponse` 응답 DTO 작성 (`articles: List<ArticleItem>`, `personalized: boolean`, `nextCursor: String`, `hasNext: boolean`) in `src/main/java/com/newscurator/dto/response/FeedResponse.java`
+- [x] T014 `FeedService` 구현 (후보 기사 조회 7일·Java 내 점수 계산·정렬·슬라이스; rank_score = category_score(50) + keyword_score(30×n, 최대 5개 = 150) + recency_score(최대 20, 30h 선형 감쇠); **fallback 분기(런타임 상태 기준, category 미지정 피드 한정)**: `UserInterestsRepository.findByAccountId` + `FollowKeywordRepository.findByAccountId` 결과가 모두 비어있으면 personalized=false+published_at DESC, 하나라도 있으면 rank_score 내림차순+personalized=true. `account.personalizationActive` 는 참조하지 않음 — `PUT /me/interests`가 동 플래그를 재계산하지 않아 stale 가능, 런타임 interests/keywords가 단일 진실 출처임. category 지정 피드는 fallback 없음(결과 0건 시 빈 목록); **saved 배치 조회**: 결과 articleId 목록으로 `SavedArticleRepository.findSavedArticleIdsByAccountIdAndArticleIdIn` 단일 쿼리 → Set 변환 후 ArticleItem.saved 설정(N+1 금지); 요약 fallback 매트릭스 DEEP→BALANCED→BRIEF; 슬롯 없음 시 text=null; 커서: Base64(rank_score|published_at|article_id|reference_ts) 4-component 인코딩; @Transactional(readOnly=true)) in `src/main/java/com/newscurator/service/FeedService.java`
+- [x] T015 `FeedController` 구현 (`GET /api/v1/feed` → 응답 `ApiResponse.success(feedResponse)`로 래핑(FR-020), JWT+이메일인증 게이팅, @Tag/@Operation/@ApiResponses 포함) in `src/main/java/com/newscurator/controller/FeedController.java`
 
 **Checkpoint**: T010·T011 전체 통과 — 랭킹 순서, fallback, 인증 오류 응답 단언 완료
 
@@ -75,17 +75,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T016 `ArticleRepositorySearchTest` @DataJpaTest + Testcontainers 테스트 작성 (커스텀 postgres-bigm 이미지 사용; "경제" 검색 → "경제성장" 기사 포함 단언, 무관 기사 미포함, 90일 초과 기사 제외, GREATEST(bigm_similarity) 정렬 확인) in `src/test/java/com/newscurator/repository/ArticleRepositorySearchTest.java`
-- [ ] T017 [P] `SearchServiceTest` 단위 테스트 작성 (쿼리 정규화, 결과 없음 빈 목록 200, 검색 커서 Base64 인코딩/디코딩, 빈 쿼리 422 검증) in `src/test/java/com/newscurator/service/SearchServiceTest.java`
-- [ ] T018 `SearchIntegrationTest` Testcontainers 통합 테스트 작성 (검색 API relevance 순 결과, 0건 응답 200, 빈 쿼리 422, 101자 초과 422, **커서 전달 시 2페이지 결과가 1페이지와 중복 없음 단언(AS2.6)**, 미인증 401) in `src/test/java/com/newscurator/integration/SearchIntegrationTest.java`
+- [x] T016 `ArticleRepositorySearchTest` @DataJpaTest + Testcontainers 테스트 작성 (커스텀 postgres-bigm 이미지 사용; "경제" 검색 → "경제성장" 기사 포함 단언, 무관 기사 미포함, 90일 초과 기사 제외, GREATEST(bigm_similarity) 정렬 확인) in `src/test/java/com/newscurator/repository/ArticleRepositorySearchTest.java`
+- [x] T017 [P] `SearchServiceTest` 단위 테스트 작성 (쿼리 정규화, 결과 없음 빈 목록 200, 검색 커서 Base64 인코딩/디코딩, 빈 쿼리 422 검증) in `src/test/java/com/newscurator/service/SearchServiceTest.java`
+- [x] T018 `SearchIntegrationTest` Testcontainers 통합 테스트 작성 (검색 API relevance 순 결과, 0건 응답 200, 빈 쿼리 422, 101자 초과 422, **커서 전달 시 2페이지 결과가 1페이지와 중복 없음 단언(AS2.6)**, 미인증 401) in `src/test/java/com/newscurator/integration/SearchIntegrationTest.java`
 
 ### Implementation for User Story 2
 
-- [ ] T019 [P] `ArticleSearchRequest` 요청 DTO 작성 (`?q` @Size(min=2, max=100) @NotBlank, `?cursor` Base64, `?size` int 기본 20) in `src/main/java/com/newscurator/dto/request/ArticleSearchRequest.java`
-- [ ] T020 [P] `ArticleSearchResponse` 응답 DTO 작성 (`articles: List<ArticleItem>`, `nextCursor: String`, `hasNext: boolean`) in `src/main/java/com/newscurator/dto/response/ArticleSearchResponse.java`
-- [ ] T021 `ArticleRepository` 에 `searchByQuery` 네이티브 쿼리 추가 (DISTINCT + `a.title LIKE '%' || :query || '%'` + `a.content LIKE '%' || :query || '%'` + `EXISTS (SELECT 1 FROM summaries s WHERE s.article_id=a.id AND s.text LIKE '%' || :query || '%')` + GREATEST(bigm_similarity) 내림차순 + published_at >= 90일 필터 + 커서 조건 + `(SELECT s2.name FROM article_sources asrc JOIN sources s2 ON s2.id=asrc.source_id WHERE asrc.article_id=a.id ORDER BY asrc.collected_at ASC LIMIT 1) AS source_name` 서브셀렉트; nativeQuery=true. 주의: `LIKE '%:query%'`는 JPA 네이티브에서 ':query'를 리터럴로 처리해 빈 결과 유발 — 반드시 `'%' || :query || '%'` 패턴 사용) in `src/main/java/com/newscurator/repository/ArticleRepository.java`
-- [ ] T022 `SearchService` 구현 (쿼리 공백 trim·2자 미만 검증, `ArticleRepository.searchByQuery` 호출, `ArticleItem` 변환; **개인화 가중치 미적용 — relevance(bigm_similarity) 정렬만 수행(FR-013)**, user_interests/follow_keywords 참조 금지; **saved 배치 조회**: resultIds로 `SavedArticleRepository.findSavedArticleIdsByAccountIdAndArticleIdIn` 단일 쿼리 → Set 변환 후 ArticleItem.saved 설정(N+1 금지); 커서 Base64(similarity|published_at|article_id) 인코딩; @Transactional(readOnly=true)) in `src/main/java/com/newscurator/service/SearchService.java`
-- [ ] T023 `ArticleSearchController` 구현 (`GET /api/v1/articles/search` → 응답 `ApiResponse.success(articleSearchResponse)`로 래핑(FR-020), JWT+이메일인증 게이팅, @Tag/@Operation/@ApiResponses 포함) in `src/main/java/com/newscurator/controller/ArticleSearchController.java`
+- [x] T019 [P] `ArticleSearchRequest` 요청 DTO 작성 (`?q` @Size(min=2, max=100) @NotBlank, `?cursor` Base64, `?size` int 기본 20) in `src/main/java/com/newscurator/dto/request/ArticleSearchRequest.java`
+- [x] T020 [P] `ArticleSearchResponse` 응답 DTO 작성 (`articles: List<ArticleItem>`, `nextCursor: String`, `hasNext: boolean`) in `src/main/java/com/newscurator/dto/response/ArticleSearchResponse.java`
+- [x] T021 `ArticleRepository` 에 `searchByQuery` 네이티브 쿼리 추가 (DISTINCT + `a.title LIKE '%' || :query || '%'` + `a.content LIKE '%' || :query || '%'` + `EXISTS (SELECT 1 FROM summaries s WHERE s.article_id=a.id AND s.text LIKE '%' || :query || '%')` + GREATEST(bigm_similarity) 내림차순 + published_at >= 90일 필터 + 커서 조건 + `(SELECT s2.name FROM article_sources asrc JOIN sources s2 ON s2.id=asrc.source_id WHERE asrc.article_id=a.id ORDER BY asrc.collected_at ASC LIMIT 1) AS source_name` 서브셀렉트; nativeQuery=true. 주의: `LIKE '%:query%'`는 JPA 네이티브에서 ':query'를 리터럴로 처리해 빈 결과 유발 — 반드시 `'%' || :query || '%'` 패턴 사용) in `src/main/java/com/newscurator/repository/ArticleRepository.java`
+- [x] T022 `SearchService` 구현 (쿼리 공백 trim·2자 미만 검증, `ArticleRepository.searchByQuery` 호출, `ArticleItem` 변환; **개인화 가중치 미적용 — relevance(bigm_similarity) 정렬만 수행(FR-013)**, user_interests/follow_keywords 참조 금지; **saved 배치 조회**: resultIds로 `SavedArticleRepository.findSavedArticleIdsByAccountIdAndArticleIdIn` 단일 쿼리 → Set 변환 후 ArticleItem.saved 설정(N+1 금지); 커서 Base64(similarity|published_at|article_id) 인코딩; @Transactional(readOnly=true)) in `src/main/java/com/newscurator/service/SearchService.java`
+- [x] T023 `ArticleSearchController` 구현 (`GET /api/v1/articles/search` → 응답 `ApiResponse.success(articleSearchResponse)`로 래핑(FR-020), JWT+이메일인증 게이팅, @Tag/@Operation/@ApiResponses 포함) in `src/main/java/com/newscurator/controller/ArticleSearchController.java`
 
 **Checkpoint**: T016·T017·T018 전체 통과 — 한국어 bigram 검색, relevance 정렬, 입력 검증 단언 완료
 
@@ -99,14 +99,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 `SavedArticleServiceTest` 단위 테스트 작성 (5 시나리오: 재저장 멱등 200·DB 중복 없음, 미저장 해제 멱등 204, 1001번째 저장 409 SAVE_LIMIT_EXCEEDED, 미존재 articleId 404 ARTICLE_NOT_FOUND, **count=1000 + 기존 저장 기사 재저장 → 200(exists 단락, 상한 검사 도달 안 함)**) in `src/test/java/com/newscurator/service/SavedArticleServiceTest.java`
-- [ ] T025 `SavedArticleIntegrationTest` Testcontainers 통합 테스트 작성 (저장→목록→포함 단언, 해제→재조회→미포함 단언, 1000건 초과→409, savedAt 역순 정렬, 미인증 401) in `src/test/java/com/newscurator/integration/SavedArticleIntegrationTest.java`
+- [x] T024 `SavedArticleServiceTest` 단위 테스트 작성 (5 시나리오: 재저장 멱등 200·DB 중복 없음, 미저장 해제 멱등 204, 1001번째 저장 409 SAVE_LIMIT_EXCEEDED, 미존재 articleId 404 ARTICLE_NOT_FOUND, **count=1000 + 기존 저장 기사 재저장 → 200(exists 단락, 상한 검사 도달 안 함)**) in `src/test/java/com/newscurator/service/SavedArticleServiceTest.java`
+- [x] T025 `SavedArticleIntegrationTest` Testcontainers 통합 테스트 작성 (저장→목록→포함 단언, 해제→재조회→미포함 단언, 1000건 초과→409, savedAt 역순 정렬, 미인증 401) in `src/test/java/com/newscurator/integration/SavedArticleIntegrationTest.java`
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] `SavedArticleItem` record 신규 작성 (savedAt: Instant, article: ArticleItem) + `SavedArticleListResponse` 응답 DTO 작성 (`articles: List<SavedArticleItem>`, `nextCursor: String`, `hasNext: boolean`; openapi SavedArticleItem 래퍼 구조와 일치) in `src/main/java/com/newscurator/dto/response/SavedArticleItem.java`, `src/main/java/com/newscurator/dto/response/SavedArticleListResponse.java`
-- [ ] T027 `SavedArticleService` 구현 (save 순서: ①`existsByAccountIdAndArticleId` 먼저 확인 → 있으면 상한 검사 없이 멱등 200 즉시 반환; ②없으면 `countByAccountId >= 1000`이면 SaveLimitExceededException(409); ③아니면 신규 저장 201; unsave: `deleteByAccountIdAndArticleId`(미저장 시 no-op, 204); list: cursor 기반 savedAt DESC 페이지네이션; @Transactional) in `src/main/java/com/newscurator/service/SavedArticleService.java`
-- [ ] T028 `SavedArticleController` 구현 (`POST /api/v1/articles/{articleId}/save` 201/200, `DELETE /api/v1/articles/{articleId}/save` 204, `GET /api/v1/me/saved-articles` 200 → 목록 응답은 `ApiResponse.success(savedArticleListResponse)`로 래핑(FR-020); JWT+이메일인증 게이팅, @Tag/@Operation/@ApiResponses 포함) in `src/main/java/com/newscurator/controller/SavedArticleController.java`
+- [x] T026 [P] `SavedArticleItem` record 신규 작성 (savedAt: Instant, article: ArticleItem) + `SavedArticleListResponse` 응답 DTO 작성 (`articles: List<SavedArticleItem>`, `nextCursor: String`, `hasNext: boolean`; openapi SavedArticleItem 래퍼 구조와 일치) in `src/main/java/com/newscurator/dto/response/SavedArticleItem.java`, `src/main/java/com/newscurator/dto/response/SavedArticleListResponse.java`
+- [x] T027 `SavedArticleService` 구현 (save 순서: ①`existsByAccountIdAndArticleId` 먼저 확인 → 있으면 상한 검사 없이 멱등 200 즉시 반환; ②없으면 `countByAccountId >= 1000`이면 SaveLimitExceededException(409); ③아니면 신규 저장 201; unsave: `deleteByAccountIdAndArticleId`(미저장 시 no-op, 204); list: cursor 기반 savedAt DESC 페이지네이션; @Transactional) in `src/main/java/com/newscurator/service/SavedArticleService.java`
+- [x] T028 `SavedArticleController` 구현 (`POST /api/v1/articles/{articleId}/save` 201/200, `DELETE /api/v1/articles/{articleId}/save` 204, `GET /api/v1/me/saved-articles` 200 → 목록 응답은 `ApiResponse.success(savedArticleListResponse)`로 래핑(FR-020); JWT+이메일인증 게이팅, @Tag/@Operation/@ApiResponses 포함) in `src/main/java/com/newscurator/controller/SavedArticleController.java`
 
 **Checkpoint**: T024·T025 전체 통과 — 저장/해제 멱등성, 1000건 상한, 목록 정렬 단언 완료
 

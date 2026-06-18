@@ -199,25 +199,25 @@
 
 ### 엔티티 & 리포지토리
 
-- [ ] T051 [P] [US3] SocialConnection.java Entity 생성: id, account(ManyToOne), provider(SocialProvider), providerUserId, connectedAt (`…/domain/SocialConnection.java`)
-- [ ] T052 [P] [US3] SocialConnectionRepository.java 생성: findByProviderAndProviderUserId (`…/repository/SocialConnectionRepository.java`)
+- [x] T051 [P] [US3] SocialConnection.java Entity 생성: id, account(ManyToOne), provider(SocialProvider), providerUserId, connectedAt (`…/domain/SocialConnection.java`)
+- [x] T052 [P] [US3] SocialConnectionRepository.java 생성: findByProviderAndProviderUserId (`…/repository/SocialConnectionRepository.java`)
 
 ### 소셜 client 포트·어댑터
 
-- [ ] T053 [P] [US3] OAuthProviderPort.java interface + OAuthUserInfo.java record(providerId, email, provider) + OAuthProviderFactory.java(SocialProvider→adapter 매핑) 생성 (`…/client/social/OAuthProviderPort.java`, `OAuthUserInfo.java`, `OAuthProviderFactory.java`)
-- [ ] T054 [P] [US3] KakaoOAuthAdapter.java 구현: authorizationUrl 생성, 토큰 교환(RestClient), userInfo 조회, OAuthUserInfo 매핑(이메일 nullable) (`…/client/social/KakaoOAuthAdapter.java`)
-- [ ] T055 [P] [US3] GoogleOAuthAdapter.java 구현: authorizationUrl 생성, 토큰 교환·ID Token decode 또는 userInfo API 호출, OAuthUserInfo 매핑 (`…/client/social/GoogleOAuthAdapter.java`)
-- [ ] T056 [US3] AppleOAuthAdapter.java 구현: client_secret JWT 생성(ES256, 6개월 TTL, 기동 시 캐싱), form_post 콜백에서 ID Token decode(sub/email 추출), 중계 이메일(@privaterelay.appleid.com) 그대로 저장 (`…/client/social/AppleOAuthAdapter.java`)
+- [x] T053 [P] [US3] OAuthProviderPort.java interface + OAuthUserInfo.java record(providerId, email, provider) + OAuthProviderFactory.java(SocialProvider→adapter 매핑) 생성 (`…/client/social/OAuthProviderPort.java`, `OAuthUserInfo.java`, `OAuthProviderFactory.java`)
+- [x] T054 [P] [US3] KakaoOAuthAdapter.java 구현: authorizationUrl 생성, 토큰 교환(RestClient), userInfo 조회, OAuthUserInfo 매핑(이메일 nullable) (`…/client/social/KakaoOAuthAdapter.java`)
+- [x] T055 [P] [US3] GoogleOAuthAdapter.java 구현: authorizationUrl 생성, 토큰 교환·ID Token decode 또는 userInfo API 호출, OAuthUserInfo 매핑 (`…/client/social/GoogleOAuthAdapter.java`)
+- [x] T056 [US3] AppleOAuthAdapter.java 구현: client_secret JWT 생성(ES256, 6개월 TTL, 기동 시 캐싱), form_post 콜백에서 ID Token decode(sub/email 추출), 중계 이메일(@privaterelay.appleid.com) 그대로 저장 (`…/client/social/AppleOAuthAdapter.java`)
 
 ### DTO & 서비스 & 컨트롤러
 
-- [ ] T057 [P] [US3] SocialCallbackRequest.java(record) + SocialAuthorizeResponse.java(record) 생성 (`…/dto/request/SocialCallbackRequest.java`, `…/dto/response/SocialAuthorizeResponse.java`)
-- [ ] T058 [US3] SocialAuthService.java 구현: `getAuthorizationUrl()` — HMAC JWT state 생성(Claims: nonce UUID·provider·exp 10분); `handleCallback()` — state 서명·exp·provider 검증(실패 시 400), OAuthProviderFactory로 어댑터 선택, fetchOAuthUserInfo(), SocialConnection 조회(기존→로그인/신규→가입 분기), 이메일 충돌 체크(409), 신규 가입 시 약관 동의 검증(422), Account+SocialConnection 저장(emailVerified=true), 토큰 발급 (`…/service/SocialAuthService.java`)
-- [ ] T059 [US3] SocialAuthController.java 구현: `GET /api/v1/auth/social/{provider}/authorize` + `POST /api/v1/auth/social/{provider}/callback` (모두 permitAll) (`…/controller/SocialAuthController.java`)
+- [x] T057 [P] [US3] SocialCallbackRequest.java(record) + SocialAuthorizeResponse.java(record) 생성 (`…/dto/request/SocialCallbackRequest.java`, `…/dto/response/SocialAuthorizeResponse.java`)
+- [x] T058 [US3] SocialAuthService.java 구현: `getAuthorizationUrl()` — HMAC JWT state 생성(Claims: nonce UUID·provider·exp 10분); `handleCallback()` — state 서명·exp·provider 검증(실패 시 400), OAuthProviderFactory로 어댑터 선택, fetchOAuthUserInfo(), SocialConnection 조회(기존→로그인/신규→가입 분기), 이메일 충돌 체크(409), 신규 가입 시 약관 동의 검증(422), Account+SocialConnection 저장(emailVerified=true), 토큰 발급 (`…/service/SocialAuthService.java`)
+- [x] T059 [US3] SocialAuthController.java 구현: `GET /api/v1/auth/social/{provider}/authorize` + `POST /api/v1/auth/social/{provider}/callback` (모두 permitAll) (`…/controller/SocialAuthController.java`)
 
 ### 통합 테스트
 
-- [ ] T060 [US3] SocialAuthIntegrationTest.java 생성 — WireMock 카카오/구글 provider stub으로 5개 시나리오: state CSRF 위조 400·신규 소셜 가입 201·기존 소셜 로그인 200·이메일 계정 충돌 409·약관 미동의 422 (`src/test/java/com/newscurator/integration/SocialAuthIntegrationTest.java`)
+- [x] T060 [US3] SocialAuthIntegrationTest.java 생성 — WireMock 카카오/구글 provider stub으로 5개 시나리오: state CSRF 위조 400·신규 소셜 가입 201·기존 소셜 로그인 200·이메일 계정 충돌 409·약관 미동의 422 (`src/test/java/com/newscurator/integration/SocialAuthIntegrationTest.java`)
 
 **Checkpoint**: 소셜 로그인 독립 동작(WireMock 기반), T060 모두 PASS
 
