@@ -4,9 +4,12 @@ import com.newscurator.client.ai.TtsProvider;
 import com.newscurator.domain.TtsAudio;
 import com.newscurator.domain.enums.SummaryDepth;
 import com.newscurator.domain.enums.SummarySlotStatus;
+import com.newscurator.repository.DailyBriefRepository;
 import com.newscurator.repository.SummaryRepository;
+import com.newscurator.service.NotificationSendService;
 import com.newscurator.service.S3AudioUploader;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +36,8 @@ public class TtsProcessingScheduler {
     private final TtsProvider ttsProvider;
     private final S3AudioUploader s3AudioUploader;
     private final SummaryRepository summaryRepository;
+    private final NotificationSendService notificationSendService;
+    private final DailyBriefRepository dailyBriefRepository;
     private final int batchSize;
 
     public TtsProcessingScheduler(
@@ -40,11 +45,15 @@ public class TtsProcessingScheduler {
             TtsProvider ttsProvider,
             S3AudioUploader s3AudioUploader,
             SummaryRepository summaryRepository,
+            NotificationSendService notificationSendService,
+            DailyBriefRepository dailyBriefRepository,
             @Value("${app.tts.scheduler.batch-size:10}") int batchSize) {
         this.claimer = claimer;
         this.ttsProvider = ttsProvider;
         this.s3AudioUploader = s3AudioUploader;
         this.summaryRepository = summaryRepository;
+        this.notificationSendService = notificationSendService;
+        this.dailyBriefRepository = dailyBriefRepository;
         this.batchSize = batchSize;
     }
 
@@ -66,12 +75,26 @@ public class TtsProcessingScheduler {
                 s3AudioUploader.upload(mp3, audioKey);
                 tts.complete(audioKey, null);
                 log.info("[TTS] READY: id={}, key={}", tts.getId(), audioKey);
+                triggerTtsReadyNotifications(tts);
             } catch (Exception e) {
                 log.warn("[TTS] FAILED: id={}: {}", tts.getId(), e.getMessage());
                 tts.fail(e.getMessage());
             }
             // Phase 3: 결과 저장 — 자체 @Transactional
             claimer.persistResult(tts);
+        }
+    }
+
+    private void triggerTtsReadyNotifications(TtsAudio tts) {
+        try {
+            long articleId = Long.parseLong(tts.getRefId());
+            List<UUID> accountIds = dailyBriefRepository
+                    .findAccountIdsByArticleIdAndVoiceId(articleId, tts.getVoiceId());
+            for (UUID accountId : accountIds) {
+                notificationSendService.enqueueTtsReady(accountId, tts.getRefId());
+            }
+        } catch (Exception e) {
+            log.warn("[NOTIFICATION] enqueueTtsReady 실패: ttsId={}, msg={}", tts.getId(), e.getMessage());
         }
     }
 

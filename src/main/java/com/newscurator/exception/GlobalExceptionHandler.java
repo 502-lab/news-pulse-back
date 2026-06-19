@@ -164,11 +164,23 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("NO_FEED_ARTICLES", ex.getMessage()));
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of("NOT_FOUND", ex.getMessage()));
+    }
+
     @ExceptionHandler(AiProviderException.class)
     public ResponseEntity<ErrorResponse> handleAiProvider(AiProviderException ex) {
         log.error("AI provider error", ex);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ErrorResponse.of("AI_PROVIDER_ERROR", "AI processing temporarily unavailable"));
+    }
+
+    @ExceptionHandler(AlreadySubscribedException.class)
+    public ResponseEntity<ErrorResponse> handleAlreadySubscribed(AlreadySubscribedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("ALREADY_SUBSCRIBED", ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

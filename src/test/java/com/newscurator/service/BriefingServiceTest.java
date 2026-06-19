@@ -47,6 +47,7 @@ class BriefingServiceTest {
     @Mock private FeedService feedService;
     @Mock private TtsService ttsService;
     @Mock private ReadingPreferenceRepository readingPreferenceRepository;
+    @Mock private NotificationSendService notificationSendService;
 
     private BriefingService briefingService;
 
@@ -57,7 +58,7 @@ class BriefingServiceTest {
     void setUp() {
         briefingService = new BriefingService(
                 dailyBriefRepository, feedService, ttsService,
-                readingPreferenceRepository, DEFAULT_VOICE, 3);
+                readingPreferenceRepository, notificationSendService, DEFAULT_VOICE, 3);
     }
 
     private Account buildAccount() {

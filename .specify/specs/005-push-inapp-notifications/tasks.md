@@ -25,9 +25,9 @@ description: "005 알림 (푸시·인앱) Task List"
 
 **Purpose**: build.gradle 의존성 추가, 환경변수 설정, Flyway V12 마이그레이션 파일 생성
 
-- [ ] T001 Add `com.google.firebase:firebase-admin:9.4.2` dependency to `build.gradle` (신규 추가, AWS sesv2 미추가 — Resend 재사용)
-- [ ] T002 [P] Add firebase/notification-scheduler/weekly-email config to `src/main/resources/application.yaml` and `src/main/resources/application-example.yaml` (`firebase.service-account-json`, `app.scheduler.notification.*`, `app.weekly-email.*`)
-- [ ] T003 [P] Create Flyway migration `src/main/resources/db/migration/V12__add_notification_tables.sql` — 6개 테이블(device_tokens, topic_subscriptions, notification_preferences, email_subscriptions, notifications, notification_outbox) + 4개 인덱스 (data-model.md DDL 기준). **주의**: V11은 terms_content에 할당됨 — V12 사용 필수
+- [X] T001 Add `com.google.firebase:firebase-admin:9.4.2` dependency to `build.gradle` (신규 추가, AWS sesv2 미추가 — Resend 재사용)
+- [X] T002 [P] Add firebase/notification-scheduler/weekly-email config to `src/main/resources/application.yaml` and `src/main/resources/application-example.yaml` (`firebase.service-account-json`, `app.scheduler.notification.*`, `app.weekly-email.*`)
+- [X] T003 [P] Create Flyway migration `src/main/resources/db/migration/V12__add_notification_tables.sql` — 6개 테이블(device_tokens, topic_subscriptions, notification_preferences, email_subscriptions, notifications, notification_outbox) + 4개 인덱스 (data-model.md DDL 기준). **주의**: V11은 terms_content에 할당됨 — V12 사용 필수
 
 ---
 
@@ -37,14 +37,14 @@ description: "005 알림 (푸시·인앱) Task List"
 
 **⚠️ CRITICAL**: 이 Phase 완료 전 User Story 구현 불가
 
-- [ ] T004 [P] Create `src/main/java/com/newscurator/domain/enums/NotificationType.java` enum (BREAKING, BRIEFING, TTS_READY, SYSTEM)
-- [ ] T005 [P] Create `src/main/java/com/newscurator/domain/enums/DevicePlatform.java` enum (IOS, ANDROID, WEB)
-- [ ] T006 [P] Create `src/main/java/com/newscurator/domain/enums/NotificationChannel.java` enum (PUSH, EMAIL)
-- [ ] T007 [P] Create `src/main/java/com/newscurator/domain/enums/NotificationOutboxStatus.java` enum (PENDING, PROCESSING, SENT, FAILED)
-- [ ] T008 [P] Create `src/main/java/com/newscurator/domain/enums/NotificationTopic.java` enum (BREAKING, BRIEFING, TTS_READY)
-- [ ] T009 [P] Create `src/main/java/com/newscurator/domain/enums/EmailSubscriptionType.java` enum (WEEKLY_EMAIL)
-- [ ] T010 [P] Create `src/main/java/com/newscurator/client/notification/PushNotificationPort.java` interface — `void send(String token, String title, String body) throws FcmUnregisteredException`
-- [ ] T011 [P] Create `src/main/java/com/newscurator/client/notification/EmailPort.java` interface — `void send(String to, String subject, String htmlBody)`
+- [X] T004 [P] Create `src/main/java/com/newscurator/domain/enums/NotificationType.java` enum (BREAKING, BRIEFING, TTS_READY, SYSTEM)
+- [X] T005 [P] Create `src/main/java/com/newscurator/domain/enums/DevicePlatform.java` enum (IOS, ANDROID, WEB)
+- [X] T006 [P] Create `src/main/java/com/newscurator/domain/enums/NotificationChannel.java` enum (PUSH, EMAIL)
+- [X] T007 [P] Create `src/main/java/com/newscurator/domain/enums/NotificationOutboxStatus.java` enum (PENDING, PROCESSING, SENT, FAILED)
+- [X] T008 [P] Create `src/main/java/com/newscurator/domain/enums/NotificationTopic.java` enum (BREAKING, BRIEFING, TTS_READY)
+- [X] T009 [P] Create `src/main/java/com/newscurator/domain/enums/EmailSubscriptionType.java` enum (WEEKLY_EMAIL)
+- [X] T010 [P] Create `src/main/java/com/newscurator/client/notification/PushNotificationPort.java` interface — `void send(String token, String title, String body) throws FcmUnregisteredException`
+- [X] T011 [P] Create `src/main/java/com/newscurator/client/notification/EmailPort.java` interface — `void send(String to, String subject, String htmlBody)`
 
 **Checkpoint**: Phase 2 완료 — US1 구현 시작 가능
 
@@ -58,21 +58,21 @@ description: "005 알림 (푸시·인앱) Task List"
 
 ### Tests for US1
 
-- [ ] T012 [P] [US1] Create `src/test/java/com/newscurator/repository/DeviceTokenRepositoryTest.java` — (1) 동일 token upsert 2회 → row 1개만 존재(idempotency), (2) account당 6번째 등록 시 가장 오래된 토큰 삭제(max-5 eviction), (3) account 삭제 시 cascade delete. Testcontainers BigmPostgresImage.
-- [ ] T013 [P] [US1] Create `src/test/java/com/newscurator/repository/TopicSubscriptionRepositoryTest.java` — (1) replaceAll: 기존 구독 전부 삭제 후 신규 저장, (2) account 삭제 시 cascade delete. BigmPostgresImage.
-- [ ] T014 [P] [US1] Create `src/test/java/com/newscurator/controller/DeviceTokenControllerTest.java` — @WebMvcTest: POST /me/device-tokens → 201, 동일 token 재등록 → 201 (upsert), DELETE /me/device-tokens/{id} → 204, 존재하지 않는 id → 404, 인증 없음 → 401
+- [X] T012 [P] [US1] Create `src/test/java/com/newscurator/repository/DeviceTokenRepositoryTest.java` — (1) 동일 token upsert 2회 → row 1개만 존재(idempotency), (2) account당 6번째 등록 시 가장 오래된 토큰 삭제(max-5 eviction), (3) account 삭제 시 cascade delete. Testcontainers BigmPostgresImage.
+- [X] T013 [P] [US1] Create `src/test/java/com/newscurator/repository/TopicSubscriptionRepositoryTest.java` — (1) replaceAll: 기존 구독 전부 삭제 후 신규 저장, (2) account 삭제 시 cascade delete. BigmPostgresImage.
+- [X] T014 [P] [US1] Create `src/test/java/com/newscurator/controller/DeviceTokenControllerTest.java` — @WebMvcTest: POST /me/device-tokens → 201, 동일 token 재등록 → 201 (upsert), DELETE /me/device-tokens/{id} → 204, 존재하지 않는 id → 404, 인증 없음 → 401
 
 ### Implementation for US1
 
-- [ ] T015 [P] [US1] Create `src/main/java/com/newscurator/domain/DeviceToken.java` entity — @Entity, @Builder, @Getter, id(BIGINT IDENTITY), accountId, token(VARCHAR 512), platform(DevicePlatform), createdAt, updatedAt
-- [ ] T016 [P] [US1] Create `src/main/java/com/newscurator/domain/TopicSubscription.java` entity and `src/main/java/com/newscurator/domain/TopicSubscriptionId.java` @EmbeddedId — accountId + topic(NotificationTopic), subscribedAt
-- [ ] T017 [P] [US1] Create `src/main/java/com/newscurator/repository/DeviceTokenRepository.java` — upsert native query (`INSERT … ON CONFLICT (token) DO UPDATE SET updated_at=now()`), `findTop5ByAccountIdOrderByUpdatedAtAsc` (max-5 eviction용), `deleteByIdAndAccountId`
-- [ ] T018 [P] [US1] Create `src/main/java/com/newscurator/repository/TopicSubscriptionRepository.java` — `deleteAllByAccountId`, `findByAccountId`
-- [ ] T019 [US1] Create `src/main/java/com/newscurator/service/DeviceTokenService.java` — register(upsert + max-5 eviction: count>5이면 oldest 삭제), delete(소유권 검증), deleteByToken(FCM 토큰 무효화 시 사용)
-- [ ] T020 [US1] Create `src/main/java/com/newscurator/service/TopicSubscriptionService.java` — getTopics(accountId), replaceAll(accountId, topics) @Transactional(deleteAll + saveAll)
-- [ ] T021 [P] [US1] Create DTOs: `src/main/java/com/newscurator/dto/request/DeviceTokenRequest.java` (@NotBlank token, @NotNull platform), `src/main/java/com/newscurator/dto/response/DeviceTokenResponse.java`, `src/main/java/com/newscurator/dto/request/TopicSubscriptionsRequest.java`, `src/main/java/com/newscurator/dto/response/TopicSubscriptionsResponse.java`
-- [ ] T022 [US1] Create `src/main/java/com/newscurator/controller/DeviceTokenController.java` — POST /api/v1/me/device-tokens → 201(ApiResponse.created), DELETE /api/v1/me/device-tokens/{tokenId} → 204 (no body)
-- [ ] T023 [US1] Create `src/main/java/com/newscurator/controller/TopicSubscriptionController.java` — GET /api/v1/me/topic-subscriptions → 200, PUT /api/v1/me/topic-subscriptions → 200
+- [X] T015 [P] [US1] Create `src/main/java/com/newscurator/domain/DeviceToken.java` entity — @Entity, @Builder, @Getter, id(BIGINT IDENTITY), accountId, token(VARCHAR 512), platform(DevicePlatform), createdAt, updatedAt
+- [X] T016 [P] [US1] Create `src/main/java/com/newscurator/domain/TopicSubscription.java` entity and `src/main/java/com/newscurator/domain/TopicSubscriptionId.java` @EmbeddedId — accountId + topic(NotificationTopic), subscribedAt
+- [X] T017 [P] [US1] Create `src/main/java/com/newscurator/repository/DeviceTokenRepository.java` — upsert native query (`INSERT … ON CONFLICT (token) DO UPDATE SET updated_at=now()`), `findTop5ByAccountIdOrderByUpdatedAtAsc` (max-5 eviction용), `deleteByIdAndAccountId`
+- [X] T018 [P] [US1] Create `src/main/java/com/newscurator/repository/TopicSubscriptionRepository.java` — `deleteAllByAccountId`, `findByAccountId`
+- [X] T019 [US1] Create `src/main/java/com/newscurator/service/DeviceTokenService.java` — register(upsert + max-5 eviction: count>5이면 oldest 삭제), delete(소유권 검증), deleteByToken(FCM 토큰 무효화 시 사용)
+- [X] T020 [US1] Create `src/main/java/com/newscurator/service/TopicSubscriptionService.java` — getTopics(accountId), replaceAll(accountId, topics) @Transactional(deleteAll + saveAll)
+- [X] T021 [P] [US1] Create DTOs: `src/main/java/com/newscurator/dto/request/DeviceTokenRequest.java` (@NotBlank token, @NotNull platform), `src/main/java/com/newscurator/dto/response/DeviceTokenResponse.java`, `src/main/java/com/newscurator/dto/request/TopicSubscriptionsRequest.java`, `src/main/java/com/newscurator/dto/response/TopicSubscriptionsResponse.java`
+- [X] T022 [US1] Create `src/main/java/com/newscurator/controller/DeviceTokenController.java` — POST /api/v1/me/device-tokens → 201(ApiResponse.created), DELETE /api/v1/me/device-tokens/{tokenId} → 204 (no body)
+- [X] T023 [US1] Create `src/main/java/com/newscurator/controller/TopicSubscriptionController.java` — GET /api/v1/me/topic-subscriptions → 200, PUT /api/v1/me/topic-subscriptions → 200
 
 **Checkpoint**: US1 완료 — 디바이스 토큰 등록·삭제, 토픽 구독 replace-all 독립 검증 가능
 
@@ -86,17 +86,17 @@ description: "005 알림 (푸시·인앱) Task List"
 
 ### Tests for US2
 
-- [ ] T024 [P] [US2] Create `src/test/java/com/newscurator/repository/NotificationRepositoryTest.java` — (1) pageable 조회, (2) unread=true 필터, (3) markAllReadByAccountId @Modifying 벌크 업데이트 DB 단언, (4) deleteExpired WHERE expires_at < now(). BigmPostgresImage.
-- [ ] T025 [P] [US2] Create `src/test/java/com/newscurator/controller/NotificationControllerTest.java` — @WebMvcTest: GET /me/notifications → 200, 알림 없을 때 빈 배열 200(404 금지), PATCH /{id}/read → 200, 다른 account ID → 404, PATCH /read-all → 200
+- [X] T024 [P] [US2] Create `src/test/java/com/newscurator/repository/NotificationRepositoryTest.java` — (1) pageable 조회, (2) unread=true 필터, (3) markAllReadByAccountId @Modifying 벌크 업데이트 DB 단언, (4) deleteExpired WHERE expires_at < now(). BigmPostgresImage.
+- [X] T025 [P] [US2] Create `src/test/java/com/newscurator/controller/NotificationControllerTest.java` — @WebMvcTest: GET /me/notifications → 200, 알림 없을 때 빈 배열 200(404 금지), PATCH /{id}/read → 200, 다른 account ID → 404, PATCH /read-all → 200
 
 ### Implementation for US2
 
-- [ ] T026 [P] [US2] Create `src/main/java/com/newscurator/domain/Notification.java` entity — id(IDENTITY), accountId, type(NotificationType), title, body, referenceId(nullable VARCHAR 100), isRead(default false), createdAt, expiresAt(= createdAt + 90일, @PrePersist 계산)
-- [ ] T027 [P] [US2] Create `src/main/java/com/newscurator/repository/NotificationRepository.java` — `findByAccountId(accountId, pageable)`, `findByAccountIdAndIsReadFalse(accountId, pageable)`, `@Modifying @Query markAllReadByAccountId(accountId)`, `@Modifying @Query deleteByExpiresAtBefore(now)`, `findByIdAndAccountId` (소유권 검증)
-- [ ] T028 [US2] Create `src/main/java/com/newscurator/service/NotificationService.java` — createNotification(accountId, type, title, body, referenceId), listNotifications(accountId, unread, pageable), markRead(accountId, notificationId), markAllRead(accountId)
-- [ ] T029 [P] [US2] Create `src/main/java/com/newscurator/dto/response/NotificationResponse.java` record — id, type, title, body, referenceId, isRead, createdAt, expiresAt
-- [ ] T030 [US2] Create `src/main/java/com/newscurator/controller/NotificationController.java` — GET /api/v1/me/notifications(?unread, ?page, ?size) → 200 Page, PATCH /{id}/read → 200, PATCH /read-all → 200
-- [ ] T031 [US2] Create `src/main/java/com/newscurator/scheduler/NotificationExpiryScheduler.java` — @Scheduled(cron = `${app.scheduler.notification.expiry-cron}`, zone="UTC"), `notificationRepository.deleteByExpiresAtBefore(Instant.now())`
+- [X] T026 [P] [US2] Create `src/main/java/com/newscurator/domain/Notification.java` entity — id(IDENTITY), accountId, type(NotificationType), title, body, referenceId(nullable VARCHAR 100), isRead(default false), createdAt, expiresAt(= createdAt + 90일, @PrePersist 계산)
+- [X] T027 [P] [US2] Create `src/main/java/com/newscurator/repository/NotificationRepository.java` — `findByAccountId(accountId, pageable)`, `findByAccountIdAndIsReadFalse(accountId, pageable)`, `@Modifying @Query markAllReadByAccountId(accountId)`, `@Modifying @Query deleteByExpiresAtBefore(now)`, `findByIdAndAccountId` (소유권 검증)
+- [X] T028 [US2] Create `src/main/java/com/newscurator/service/NotificationService.java` — createNotification(accountId, type, title, body, referenceId), listNotifications(accountId, unread, pageable), markRead(accountId, notificationId), markAllRead(accountId)
+- [X] T029 [P] [US2] Create `src/main/java/com/newscurator/dto/response/NotificationResponse.java` record — id, type, title, body, referenceId, isRead, createdAt, expiresAt
+- [X] T030 [US2] Create `src/main/java/com/newscurator/controller/NotificationController.java` — GET /api/v1/me/notifications(?unread, ?page, ?size) → 200 Page, PATCH /{id}/read → 200, PATCH /read-all → 200
+- [X] T031 [US2] Create `src/main/java/com/newscurator/scheduler/NotificationExpiryScheduler.java` — @Scheduled(cron = `${app.scheduler.notification.expiry-cron}`, zone="UTC"), `notificationRepository.deleteByExpiresAtBefore(Instant.now())`
 
 **Checkpoint**: US1+US2 완료 — MVP 기능(토큰·구독·인앱 알림 목록·읽음) 독립 검증 가능. 이 시점이 배포 가능한 최소 범위.
 
@@ -110,10 +110,10 @@ description: "005 알림 (푸시·인앱) Task List"
 
 ### Tests for US3 ⚠️ 고위험 영역
 
-- [ ] T032 [P] [US3] Create `src/test/java/com/newscurator/repository/NotificationOutboxRepositoryTest.java` — BigmPostgresImage, **FOR UPDATE SKIP LOCKED 클레임 동시성 검증**: (1) 2개 스레드(ExecutorService)가 동시에 `claimPendingBatch(1)` 호출 → 둘 중 하나만 1개 row 반환, 나머지 빈 결과. (2) 같은 트랜잭션 내 row는 PROCESSING으로 마킹됨(커밋 전 재클레임 시 빈 결과). (3) UNIQUE(idempotency_key) 위반 시 DataIntegrityViolationException — 004 `TtsAudioClaimer` 테스트와 동일 수준.
-- [ ] T033 [P] [US3] Create `src/test/java/com/newscurator/service/NotificationSendServiceTest.java` — **멱등성 단위 테스트** (mock repository): (1) PUSH:{accountId}:{notificationId} 동일 key 두 번 호출 시 두 번째는 DataIntegrityViolationException catch → 무시(positive 중복 차단). (2) 다른 notificationId로 호출 시 정상 통과(negative). (3) EMAIL:WEEKLY:{accountId}:{yearWeek} 동일 week 두 번 호출 시 중복 차단, 다른 weekKey 통과.
-- [ ] T034 [P] [US3] Create `src/test/java/com/newscurator/scheduler/NotificationOutboxProcessorTest.java` — BigmPostgresImage, mock PushNotificationPort + mock EmailPort: **(1)** PENDING→PROCESSING(tx 내)→SENT flow: DB row status 확인. **(2)** FCM UNREGISTERED 응답 시뮬레이션 → PushNotificationPort.send() throws FcmUnregisteredException → device_tokens row 삭제 확인 + outbox status=FAILED. **(3)** attempt_count 3회 후 FAILED 유지(next_retry_at 갱신 안 됨). **(4)** 동시 2 인스턴스 시뮬레이션(ExecutorService): 같은 PENDING row를 두 인스턴스가 동시 처리 시 PushNotificationPort.send() 1회만 호출됨. **(5)** FirebaseApp 미초기화(`Optional<FirebaseApp>` empty) 시 FcmPushNotificationAdapter.send() 예외 발생 → outbox status=FAILED, 단 해당 accountId의 `notifications` row는 정상 존재(인앱 생성 영향 없음 — FR-012 직접 단언).
-- [ ] T035 [P] [US3] Create trigger unit tests — `src/test/java/com/newscurator/service/BriefingServiceTriggerTest.java`: `getOrCreateTodayBrief()` 신규 생성 시 `NotificationSendService.enqueueBriefing(accountId)` 1회 호출, 캐시 반환 시 0회. `src/test/java/com/newscurator/service/AiProcessingTriggerTest.java`: `processArticle()` 관심사 매칭 account 존재 시 `enqueueBreaking(accountId, articleId)` 호출. `src/test/java/com/newscurator/scheduler/TtsProcessingSchedulerTriggerTest.java`: `tts.complete()` 후 `enqueueTtsReady(accountId, ttsAudioId)` 호출. 모두 mock NotificationSendService.
+- [X] T032 [P] [US3] Create `src/test/java/com/newscurator/scheduler/NotificationOutboxRepositoryTest.java` — BigmPostgresImage, **FOR UPDATE SKIP LOCKED 클레임 동시성 검증**: (1) 2개 스레드(ExecutorService)가 동시에 `claimPendingBatch(1)` 호출 → 둘 중 하나만 1개 row 반환, 나머지 빈 결과. (2) 같은 트랜잭션 내 row는 PROCESSING으로 마킹됨(커밋 전 재클레임 시 빈 결과). (3) UNIQUE(idempotency_key) 위반 시 DataIntegrityViolationException — 004 `TtsAudioClaimer` 테스트와 동일 수준.
+- [X] T033 [P] [US3] Create `src/test/java/com/newscurator/service/NotificationSendServiceTest.java` — **멱등성 단위 테스트** (mock repository): (1) PUSH:{accountId}:{notificationId} 동일 key 두 번 호출 시 두 번째는 DataIntegrityViolationException catch → 무시(positive 중복 차단). (2) 다른 notificationId로 호출 시 정상 통과(negative). (3) EMAIL:WEEKLY:{accountId}:{yearWeek} 동일 week 두 번 호출 시 중복 차단, 다른 weekKey 통과.
+- [X] T034 [P] [US3] Create `src/test/java/com/newscurator/scheduler/NotificationOutboxProcessorTest.java` — BigmPostgresImage, mock PushNotificationPort + mock EmailPort: **(1)** PENDING→PROCESSING(tx 내)→SENT flow: DB row status 확인. **(2)** FCM UNREGISTERED 응답 시뮬레이션 → PushNotificationPort.send() throws FcmUnregisteredException → device_tokens row 삭제 확인 + outbox status=FAILED. **(3)** attempt_count 3회 후 FAILED 유지(next_retry_at 갱신 안 됨). **(4)** 동시 2 인스턴스 시뮬레이션(ExecutorService): 같은 PENDING row를 두 인스턴스가 동시 처리 시 PushNotificationPort.send() 1회만 호출됨. **(5)** FirebaseApp 미초기화(`Optional<FirebaseApp>` empty) 시 FcmPushNotificationAdapter.send() 예외 발생 → outbox status=FAILED, 단 해당 accountId의 `notifications` row는 정상 존재(인앱 생성 영향 없음 — FR-012 직접 단언).
+- [X] T035 [P] [US3] Create trigger unit tests — `src/test/java/com/newscurator/service/BriefingServiceTriggerTest.java`: `getOrCreateTodayBrief()` 신규 생성 시 `NotificationSendService.enqueueBriefing(accountId)` 1회 호출, 캐시 반환 시 0회. `src/test/java/com/newscurator/service/AiProcessingTriggerTest.java`: `processArticle()` 관심사 매칭 account 존재 시 `enqueueBreaking(accountId, articleId)` 호출. `src/test/java/com/newscurator/scheduler/TtsProcessingSchedulerTriggerTest.java`: `tts.complete()` 후 `enqueueTtsReady(accountId, ttsAudioId)` 호출. 모두 mock NotificationSendService.
 
 ### Implementation for US3
 
@@ -125,9 +125,9 @@ description: "005 알림 (푸시·인앱) Task List"
 - [ ] T041 [P] [US3] Create `src/main/java/com/newscurator/repository/NotificationOutboxRepository.java` — native query `claimPendingBatch(@Param("limit") int limit)`: `SELECT … FROM notification_outbox WHERE status='PENDING' AND next_retry_at<=now() ORDER BY created_at LIMIT :limit FOR UPDATE SKIP LOCKED`, `updateStatusById(id, status, nextRetryAt, attemptCount)`, `deleteByIdempotencyKey`
 - [ ] T042 [US3] Create `src/main/java/com/newscurator/service/NotificationSendService.java` — `enqueuePush(accountId, notificationId, token, title, body)`: idempotency_key=`PUSH:{accountId}:{notificationId}`, INSERT ON CONFLICT DO NOTHING. `enqueueBreaking`, `enqueueBriefing`, `enqueueTtsReady`, `enqueueWeeklyEmail(accountId, yearWeek)`: idempotency_key=`EMAIL:WEEKLY:{accountId}:{yearWeek}`. `enqueueSystem(accountId, title, body)`. 내부적으로 NotificationService.createNotification() 호출(inapp record) + NotificationOutbox INSERT.
 - [ ] T043 [US3] Create `src/main/java/com/newscurator/scheduler/NotificationOutboxProcessor.java` — `@Scheduled(fixedDelayString="${app.scheduler.notification.outbox-interval-ms}")`, @Transactional(propagation=REQUIRES_NEW)으로 claimPendingBatch → tx commit → 락 밖에서 PushNotificationPort/EmailPort 호출. 성공: status→SENT. FcmUnregisteredException: deviceTokenService.deleteByToken(token) + status→FAILED. 그 외 실패: attemptCount++ + backoff(1m/5m/15m) + status→FAILED 또는 PENDING reset. attempt>=3 시 FAILED 유지.
-- [ ] T044 [P] [US3] Integrate BriefingService trigger in `src/main/java/com/newscurator/service/BriefingService.java` — `getOrCreateTodayBrief()` 내 신규 brief 생성 경로(isNew 분기)에서 `notificationSendService.enqueueBriefing(account.getId())` 호출
-- [ ] T045 [P] [US3] Integrate AiProcessing trigger in `src/main/java/com/newscurator/service/AiProcessingService.java` — `processArticle()` 완료 후 관심사 매칭 accountId 목록 조회 → `notificationSendService.enqueueBreaking(accountId, article.getId())` 호출 (TopicSubscriptionRepository로 BREAKING 구독자 + 관심사 교차 필터)
-- [ ] T046 [P] [US3] Integrate TtsService trigger in `src/main/java/com/newscurator/scheduler/TtsProcessingScheduler.java` — `tts.complete(audioKey, null)` 직후 `notificationSendService.enqueueTtsReady(tts.getAccountId(), tts.getId())` 호출
+- [X] T044 [P] [US3] Integrate BriefingService trigger in `src/main/java/com/newscurator/service/BriefingService.java` — `getOrCreateTodayBrief()` 내 신규 brief 생성 경로(isNew 분기)에서 `notificationSendService.enqueueBriefing(account.getId())` 호출
+- [X] T045 [P] [US3] Integrate AiProcessing trigger in `src/main/java/com/newscurator/service/AiProcessingService.java` — `processArticle()` 완료 후 관심사 매칭 accountId 목록 조회 → `notificationSendService.enqueueBreaking(accountId, article.getId())` 호출 (TopicSubscriptionRepository로 BREAKING 구독자 + 관심사 교차 필터)
+- [X] T046 [P] [US3] Integrate TtsService trigger in `src/main/java/com/newscurator/scheduler/TtsProcessingScheduler.java` — `tts.complete(audioKey, null)` 직후 `notificationSendService.enqueueTtsReady(tts.getAccountId(), tts.getId())` 호출
 
 **Checkpoint**: US3 완료 — 푸시·이메일 비동기 발송, 클레임 클레임, 멱등 enqueue, 트리거 연동 독립 검증 가능
 
@@ -141,19 +141,19 @@ description: "005 알림 (푸시·인앱) Task List"
 
 ### Tests for US4
 
-- [ ] T047 [P] [US4] Create `src/test/java/com/newscurator/service/NotificationPreferencesServiceTest.java` — (1) 미존재 accountId → getOrDefault 전부 true 반환(lazy init, DB row 없음), (2) PUT persist 후 GET 일치, (3) pushEnabled=false 시 두 가지 모두 단언: **a)** NotificationSendService.enqueuePush 호출 경로에서 해당 account 제외 확인(mock NotificationSendService), **b)** 동일 트리거 이벤트 시 `notifications` row는 DB에 정상 생성됨(인앱 알림 생성 경로 독립 — FR-015 직접 단언).
-- [ ] T048 [P] [US4] Create `src/test/java/com/newscurator/scheduler/WeeklyEmailSchedulerTest.java` — BigmPostgresImage: **(1)** active 구독자 1명 존재 시 스케줄러 실행 → notification_outbox에 EMAIL:WEEKLY:{accountId}:{yearWeek} 1건. **(2)** 같은 yearWeek 재실행 → outbox 추가 없음(중복 차단). **(3)** 다음 주차로 Mock clock 변경 후 실행 → outbox 신규 1건 추가.
+- [X] T047 [P] [US4] Create `src/test/java/com/newscurator/service/NotificationPreferencesServiceTest.java` — (1) 미존재 accountId → getOrDefault 전부 true 반환(lazy init, DB row 없음), (2) PUT persist 후 GET 일치, (3) pushEnabled=false 시 두 가지 모두 단언: **a)** NotificationSendService.enqueuePush 호출 경로에서 해당 account 제외 확인(mock NotificationSendService), **b)** 동일 트리거 이벤트 시 `notifications` row는 DB에 정상 생성됨(인앱 알림 생성 경로 독립 — FR-015 직접 단언).
+- [X] T048 [P] [US4] Create `src/test/java/com/newscurator/scheduler/WeeklyEmailSchedulerTest.java` — BigmPostgresImage: **(1)** active 구독자 1명 존재 시 스케줄러 실행 → notification_outbox에 EMAIL:WEEKLY:{accountId}:{yearWeek} 1건. **(2)** 같은 yearWeek 재실행 → outbox 추가 없음(중복 차단). **(3)** 다음 주차로 Mock clock 변경 후 실행 → outbox 신규 1건 추가.
 
 ### Implementation for US4
 
-- [ ] T049 [P] [US4] Create `src/main/java/com/newscurator/domain/NotificationPreferences.java` entity — @Id=accountId(@MapsId 또는 직접 FK), pushEnabled(default true), emailEnabled(default true), risingEnabled(default true), biasEnabled(default true)
-- [ ] T050 [P] [US4] Create `src/main/java/com/newscurator/domain/EmailSubscription.java` entity and `src/main/java/com/newscurator/domain/EmailSubscriptionId.java` @EmbeddedId — accountId + type(EmailSubscriptionType), active, subscribedAt
-- [ ] T051 [P] [US4] Create `src/main/java/com/newscurator/repository/NotificationPreferencesRepository.java` and `src/main/java/com/newscurator/repository/EmailSubscriptionRepository.java` — EmailSubscriptionRepository: `findByIdAccountIdAndIdType`, `existsByIdAccountIdAndIdTypeAndActiveTrue`
-- [ ] T052 [US4] Create `src/main/java/com/newscurator/service/NotificationPreferencesService.java` — `getOrDefault(accountId)`: findById 없으면 new NotificationPreferences(all true), `update(accountId, request)`: upsert 저장
-- [ ] T053 [US4] Create `src/main/java/com/newscurator/service/EmailSubscriptionService.java` — `subscribe(accountId, WEEKLY_EMAIL)`: 이미 active → 409, `unsubscribe(accountId, WEEKLY_EMAIL)`: 없으면 404, `isActive(accountId, type)`
-- [ ] T054 [P] [US4] Create DTOs: `src/main/java/com/newscurator/dto/request/NotificationSettingsRequest.java`, `src/main/java/com/newscurator/dto/response/NotificationSettingsResponse.java`, `src/main/java/com/newscurator/dto/response/EmailSubscriptionResponse.java`
-- [ ] T055 [US4] Create `src/main/java/com/newscurator/controller/NotificationSettingsController.java` — GET/PUT /api/v1/me/notification-settings → 200, POST /api/v1/me/subscriptions/weekly-email → 201(ApiResponse.created), DELETE /api/v1/me/subscriptions/weekly-email → 204
-- [ ] T056 [US4] Create `src/main/java/com/newscurator/scheduler/WeeklyEmailScheduler.java` — @Scheduled(cron="${app.weekly-email.cron}", zone="UTC"), cron="0 0 0 * * MON". EmailSubscriptionRepository로 active WEEKLY_EMAIL 구독자 조회 → `notificationSendService.enqueueWeeklyEmail(accountId, yearWeek)` 호출. yearWeek = `YearWeek.now(ZoneId.of("Asia/Seoul"))` 포맷 "yyyy-Www".
+- [X] T049 [P] [US4] Create `src/main/java/com/newscurator/domain/NotificationPreferences.java` entity — @Id=accountId(@MapsId 또는 직접 FK), pushEnabled(default true), emailEnabled(default true), risingEnabled(default true), biasEnabled(default true)
+- [X] T050 [P] [US4] Create `src/main/java/com/newscurator/domain/EmailSubscription.java` entity and `src/main/java/com/newscurator/domain/EmailSubscriptionId.java` @EmbeddedId — accountId + type(EmailSubscriptionType), active, subscribedAt
+- [X] T051 [P] [US4] Create `src/main/java/com/newscurator/repository/NotificationPreferencesRepository.java` and `src/main/java/com/newscurator/repository/EmailSubscriptionRepository.java` — EmailSubscriptionRepository: `findByIdAccountIdAndIdType`, `existsByIdAccountIdAndIdTypeAndActiveTrue`
+- [X] T052 [US4] Create `src/main/java/com/newscurator/service/NotificationPreferencesService.java` — `getOrDefault(accountId)`: findById 없으면 new NotificationPreferences(all true), `update(accountId, request)`: upsert 저장
+- [X] T053 [US4] Create `src/main/java/com/newscurator/service/EmailSubscriptionService.java` — `subscribe(accountId, WEEKLY_EMAIL)`: 이미 active → 409, `unsubscribe(accountId, WEEKLY_EMAIL)`: 없으면 404, `isActive(accountId, type)`
+- [X] T054 [P] [US4] Create DTOs: `src/main/java/com/newscurator/dto/request/NotificationSettingsRequest.java`, `src/main/java/com/newscurator/dto/response/NotificationSettingsResponse.java`, `src/main/java/com/newscurator/dto/response/EmailSubscriptionResponse.java`
+- [X] T055 [US4] Create `src/main/java/com/newscurator/controller/NotificationSettingsController.java` — GET/PUT /api/v1/me/notification-settings → 200, POST /api/v1/me/subscriptions/weekly-email → 201(ApiResponse.created), DELETE /api/v1/me/subscriptions/weekly-email → 204
+- [X] T056 [US4] Create `src/main/java/com/newscurator/scheduler/WeeklyEmailScheduler.java` — @Scheduled(cron="${app.weekly-email.cron}", zone="UTC"), cron="0 0 0 * * MON". EmailSubscriptionRepository로 active WEEKLY_EMAIL 구독자 조회 → `notificationSendService.enqueueWeeklyEmail(accountId, yearWeek)` 호출. yearWeek = `YearWeek.now(ZoneId.of("Asia/Seoul"))` 포맷 "yyyy-Www".
 
 **Checkpoint**: US4 완료 — 알림 설정·이메일 채널 독립 검증 가능
 
@@ -167,15 +167,15 @@ description: "005 알림 (푸시·인앱) Task List"
 
 ### Tests for US5
 
-- [ ] T057 [P] [US5] Create `src/test/java/com/newscurator/controller/AdminNotificationControllerTest.java` — @WebMvcTest: USER role → 403, ADMIN role + targetType=ALL → 202(ApiResponse.accepted), targetType=ACCOUNT_IDS [1,2] → 202, targetType=TOPIC_SUBSCRIBERS + topic=BRIEFING → 202. mock AdminNotificationService.
-- [ ] T058 [P] [US5] Create `src/test/java/com/newscurator/service/AdminNotificationServiceTest.java` — mock TopicSubscriptionRepository + mock NotificationSendService: **(1)** targetType=ALL → 전체 active account 조회 후 enqueueSystem 호출 횟수 단언, **(2)** targetType=ACCOUNT_IDS [1,2] → enqueueSystem이 정확히 accountId 1·2에게만 호출됨, **(3)** targetType=TOPIC_SUBSCRIBERS + topic=BRIEFING → TopicSubscriptionRepository.findByTopic(BRIEFING) 결과 대상만 enqueueSystem 호출.
+- [X] T057 [P] [US5] Create `src/test/java/com/newscurator/controller/AdminNotificationControllerTest.java` — @WebMvcTest: USER role → 403, ADMIN role + targetType=ALL → 202(ApiResponse.accepted), targetType=ACCOUNT_IDS [1,2] → 202, targetType=TOPIC_SUBSCRIBERS + topic=BRIEFING → 202. mock AdminNotificationService.
+- [X] T058 [P] [US5] Create `src/test/java/com/newscurator/service/AdminNotificationServiceTest.java` — mock TopicSubscriptionRepository + mock NotificationSendService: **(1)** targetType=ALL → 전체 active account 조회 후 enqueueSystem 호출 횟수 단언, **(2)** targetType=ACCOUNT_IDS [1,2] → enqueueSystem이 정확히 accountId 1·2에게만 호출됨, **(3)** targetType=TOPIC_SUBSCRIBERS + topic=BRIEFING → TopicSubscriptionRepository.findByTopic(BRIEFING) 결과 대상만 enqueueSystem 호출.
 
 ### Implementation for US5
 
-- [ ] T059 [P] [US5] Create `src/main/java/com/newscurator/domain/enums/AdminTargetType.java` enum (ALL, ACCOUNT_IDS, TOPIC_SUBSCRIBERS)
-- [ ] T060 [P] [US5] Create `src/main/java/com/newscurator/dto/request/AdminNotificationRequest.java` record — @NotBlank title, @NotBlank body, @NotNull targetType(AdminTargetType), accountIds(nullable List), topic(nullable NotificationTopic)
-- [ ] T061 [US5] Create `src/main/java/com/newscurator/service/AdminNotificationService.java` — `sendNotification(request)`: targetType별 accountId 목록 조회(ALL: 전체 active accounts, ACCOUNT_IDS: 직접 지정, TOPIC_SUBSCRIBERS: TopicSubscriptionRepository.findByTopic) → `notificationSendService.enqueueSystem(accountId, title, body)` bulk 호출 (@Async 또는 순차)
-- [ ] T062 [US5] Create `src/main/java/com/newscurator/controller/AdminNotificationController.java` — POST /api/v1/admin/notifications/send (@PreAuthorize("hasRole('ADMIN')"), @Valid @RequestBody, → AdminNotificationService.sendNotification → ApiResponse.accepted(null) 202)
+- [X] T059 [P] [US5] Create `src/main/java/com/newscurator/domain/enums/AdminTargetType.java` enum (ALL, ACCOUNT_IDS, TOPIC_SUBSCRIBERS)
+- [X] T060 [P] [US5] Create `src/main/java/com/newscurator/dto/request/AdminNotificationRequest.java` record — @NotBlank title, @NotBlank body, @NotNull targetType(AdminTargetType), accountIds(nullable List), topic(nullable NotificationTopic)
+- [X] T061 [US5] Create `src/main/java/com/newscurator/service/AdminNotificationService.java` — `sendNotification(request)`: targetType별 accountId 목록 조회(ALL: 전체 active accounts, ACCOUNT_IDS: 직접 지정, TOPIC_SUBSCRIBERS: TopicSubscriptionRepository.findByTopic) → `notificationSendService.enqueueSystem(accountId, title, body)` bulk 호출 (@Async 또는 순차)
+- [X] T062 [US5] Create `src/main/java/com/newscurator/controller/AdminNotificationController.java` — POST /api/v1/admin/notifications/send (@PreAuthorize("hasRole('ADMIN')"), @Valid @RequestBody, → AdminNotificationService.sendNotification → ApiResponse.accepted(null) 202)
 
 **Checkpoint**: US5 완료 — 어드민 발송 독립 검증 가능
 
@@ -183,10 +183,10 @@ description: "005 알림 (푸시·인앱) Task List"
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T063 [P] Add Swagger `@Tag`, `@Operation`, `@io.swagger.v3.oas.annotations.responses.ApiResponses` to all 5 new controllers: `src/main/java/com/newscurator/controller/DeviceTokenController.java`, `TopicSubscriptionController.java`, `NotificationController.java`, `NotificationSettingsController.java`, `AdminNotificationController.java`
-- [ ] T064 [P] Update `src/test/java/com/newscurator/integration/OpenApiSpecExportTest.java` DynamicPropertySource — add `firebase.service-account-json=` (empty string) to suppress FirebaseConfig conditional bean during test app boot
-- [ ] T065 Update `CHANGELOG.html` — add `tag-feature` entry for 005 알림 기능 (device tokens, in-app notifications, outbox pipeline, notification settings, weekly email, admin send). 날짜 그룹·stats bar 갱신.
-- [ ] T066 Run `./gradlew build` from repo root — verify (1) Flyway V12 migration chain 통과, (2) 기존 테스트 회귀 없음, (3) 신규 테스트 통과 수 보고
+- [X] T063 [P] Add Swagger `@Tag`, `@Operation`, `@io.swagger.v3.oas.annotations.responses.ApiResponses` to all 5 new controllers: `src/main/java/com/newscurator/controller/DeviceTokenController.java`, `TopicSubscriptionController.java`, `NotificationController.java`, `NotificationSettingsController.java`, `AdminNotificationController.java`
+- [X] T064 [P] Update `src/test/java/com/newscurator/integration/OpenApiSpecExportTest.java` DynamicPropertySource — add `firebase.service-account-json=` (empty string) to suppress FirebaseConfig conditional bean during test app boot
+- [X] T065 Update `CHANGELOG.html` — add `tag-feature` entry for 005 알림 기능 (device tokens, in-app notifications, outbox pipeline, notification settings, weekly email, admin send). 날짜 그룹·stats bar 갱신.
+- [X] T066 Run `./gradlew build` from repo root — verify (1) Flyway V12 migration chain 통과, (2) 기존 테스트 회귀 없음, (3) 신규 테스트 통과 수 보고
 
 ---
 

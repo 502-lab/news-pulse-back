@@ -61,6 +61,11 @@ public class HttpEmailServiceClient implements EmailServiceClient {
                 + "<p>기존에 사용하신 소셜 계정(카카오/구글/애플)으로 로그인해 주세요.</p>");
     }
 
+    @Override
+    public void sendHtml(String toEmail, String subject, String html) {
+        send(toEmail, subject, html);
+    }
+
     private void send(String toEmail, String subject, String html) {
         Map<String, Object> body = Map.of(
                 "from", fromAddress,

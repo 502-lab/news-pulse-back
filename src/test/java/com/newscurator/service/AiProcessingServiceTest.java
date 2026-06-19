@@ -30,10 +30,11 @@ import org.mockito.quality.Strictness;
 class AiProcessingServiceTest {
 
     @Mock private AiProvider aiProvider;
-
     @Mock private ArticleRepository articleRepository;
-
     @Mock private SummaryRepository summaryRepository;
+    @Mock private com.newscurator.service.NotificationSendService notificationSendService;
+    @Mock private com.newscurator.repository.TopicSubscriptionRepository topicSubscriptionRepository;
+    @Mock private com.newscurator.repository.UserInterestsRepository userInterestsRepository;
 
     private SummaryService summaryService;
     private AiProcessingService aiProcessingService;
@@ -49,7 +50,10 @@ class AiProcessingServiceTest {
                         articleRepository,
                         summaryRepository,
                         summaryService,
-                        aiProperties);
+                        aiProperties,
+                        notificationSendService,
+                        topicSubscriptionRepository,
+                        userInterestsRepository);
         // summaryRepository.save returns the saved entity (default mock returns null)
         when(summaryRepository.save(any(Summary.class))).thenAnswer(inv -> inv.getArgument(0));
         when(summaryRepository.findByArticleIdAndDepth(anyLong(), any()))

@@ -32,17 +32,21 @@ public class BriefingService {
     private final String defaultVoiceId;
     private final int briefingArticleCount;
 
+    private final NotificationSendService notificationSendService;
+
     public BriefingService(
             DailyBriefRepository dailyBriefRepository,
             FeedService feedService,
             TtsService ttsService,
             ReadingPreferenceRepository readingPreferenceRepository,
+            NotificationSendService notificationSendService,
             @Value("${app.tts.default-voice-id}") String defaultVoiceId,
             @Value("${app.tts.briefing.article-count:5}") int briefingArticleCount) {
         this.dailyBriefRepository = dailyBriefRepository;
         this.feedService = feedService;
         this.ttsService = ttsService;
         this.readingPreferenceRepository = readingPreferenceRepository;
+        this.notificationSendService = notificationSendService;
         this.defaultVoiceId = defaultVoiceId;
         this.briefingArticleCount = briefingArticleCount;
     }
@@ -91,6 +95,13 @@ public class BriefingService {
         dailyBriefRepository.save(brief);
         log.debug("브리핑 신규 생성: accountId={}, articles={}, voice={}",
                 account.getId(), articleIds.size(), voiceId);
+
+        try {
+            notificationSendService.enqueueBriefing(account.getId());
+        } catch (Exception e) {
+            log.warn("[NOTIFICATION] enqueueBriefing 실패 (브리핑 생성은 성공): accountId={}, msg={}",
+                    account.getId(), e.getMessage());
+        }
 
         List<TtsStatusResponse> ttsItems = articleIds.stream()
                 .map(id -> ttsService.requestArticleTts(id, voiceId))
