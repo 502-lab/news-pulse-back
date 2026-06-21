@@ -56,9 +56,12 @@
 
 ## R-006 One-Shot FAILED 복구 스케줄
 
-**Decision**: BiasAnalysisScheduler 내 별도 `@Scheduled(fixedDelayString)` 메서드. 쿼리: `WHERE status = 'FAILED' AND attempt_count = 3 AND failed_at + INTERVAL '6 hours' <= NOW()`. 클레임 후 attempt_count = 4로 한 번만 시도, 성공→DONE, 실패→terminal FAILED(attempt_count=4).
+**Decision**: BiasAnalysisScheduler 내 별도 `@Scheduled(fixedDelayString)` 메서드. 쿼리: `WHERE status = 'FAILED' AND attempt_count = 3 AND failed_at + INTERVAL '6 hours' <= NOW()`. claim() 후 attempt_count=3 유지인 채 analyzeBias() 1회 시도:
+- 성공 → complete(): status=DONE, attempt_count=3 (정상)
+- 실패 → failTerminal(): `this.attemptCount++` (3→4) + status=FAILED(terminal)
+  → attempt_count=4이므로 recovery 인덱스 술어 `attempt_count=3`에서 영구 이탈 → **무한 복구 루프 없음**
 
-**Rationale**: attempt_count=4 상태가 terminal. 별도 `recoveredAt` 컬럼 없이 attempt_count로 구분 가능.
+**Rationale**: attempt_count=4 상태가 terminal 식별자. failTerminal()에서 증가시키는 이유: claim() 시점에 올리면 성공 케이스도 attempt_count=4로 남아 오해 소지. 실패 시점(failTerminal)에 올리는 것이 의미 명확. 별도 `recoveredAt` 컬럼 없이 attempt_count로 구분 가능.
 
 ---
 
@@ -112,5 +115,29 @@
 - `app.scheduler.bias.recovery-interval-ms` — one-shot recovery 폴 주기 (기본 3600000ms = 1h)
 - `app.scheduler.bias.backoff-attempt1-minutes` — 5 (1회 실패 후 딜레이)
 - `app.scheduler.bias.backoff-attempt2-minutes` — 30 (2회 실패 후 딜레이)
+- `app.scheduler.bias.lease-minutes` — 5 (claim 후 PROCESSING 점유 lease; 크래시 stuck 회수 기준, R-013)
 
 기존 `AiProperties.delayBetweenCallsMs` 재사용 (Gemini 호출 간 딜레이).
+
+---
+
+## R-013 Claimer 트랜잭션 모델 — two-tx + lease
+
+**Decision**: 006 편향 분析 파이프라인은 **two-tx 모델**을 채택한다.
+- Phase 1 `BiasAnalysisClaimer.claimBatch()` (별도 @Transactional 빈): `lockAndClaimPending` → 각 행 `claim(leaseMinutes)` (PROCESSING + `next_retry_at = NOW() + lease`) → 커밋 시 FOR UPDATE SKIP LOCKED 락 해제.
+- Phase 2: Gemini HTTP 호출은 DB 락 밖에서 실행.
+- Phase 3 `persistResult()` (별도 @Transactional 빈): 결과 저장.
+
+stuck 회수: 처리 중 인스턴스 크래시로 PROCESSING에 고아가 된 행은 lease(`next_retry_at`) 만료 후 일반 `claimBatch`가 재claim한다. claimer 인덱스/쿼리 술어는 `status IN ('PENDING','PROCESSING') AND next_retry_at <= NOW()`.
+
+**005 코드 확인 근거**:
+- `NotificationOutboxClaimer.claimBatch()` = 별도 @Transactional 빈, `markProcessing()` 후 커밋 → "TX가 커밋되면 FOR UPDATE SKIP LOCKED 락이 해제되고, 이후 FCM/Email HTTP 호출이 DB 락 없이 실행"(클래스 Javadoc). → **two-tx 확정**.
+- `NotificationOutboxProcessor.process()` = Phase 1 claim / Phase 2 HTTP / Phase 3 persistResult 3단계.
+
+**005와의 차이(개선점)**:
+- 005 `findPendingWithLock`은 `WHERE status = 'PENDING' AND next_retry_at <= now()` — **PENDING-only**이고 claim 시 `next_retry_at`을 미루지 **않는다**(lease 없음). 따라서 005는 markProcessing 후 크래시하면 PROCESSING 행이 영구 고아가 되며 회수 메커니즘이 없다(알림은 손실 허용 도메인).
+- 006은 편향 점수 누락이 SC-001(95% DONE)에 직접 영향을 주므로, lease + PENDING/PROCESSING 회수를 추가해 stuck 행을 자동 회수한다.
+
+**Rationale**: single-tx(claim+Gemini를 한 TX에서 락 잡은 채)면 Gemini 호출 동안 행 락이 유지되어 동시성·DB 커넥션 점유가 악화된다. 005가 two-tx로 외부 호출을 락 밖으로 뺀 설계를 그대로 따르되, 006은 lease를 더해 two-tx의 고아 위험을 보강한다.
+
+**Alternatives**: single-tx → 크래시가 PENDING으로 자동 롤백되어 인덱스를 PENDING-only로 둘 수 있으나, Gemini 호출 동안 락·커넥션 장기 점유. 채택 안 함.

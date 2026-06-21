@@ -104,10 +104,12 @@ CREATE TABLE bias_analysis (
 CREATE UNIQUE INDEX uq_bias_analysis_article_id
     ON bias_analysis (article_id);
 
--- Claimer 쿼리: PENDING 기사 next_retry_at 순 조회
+-- Claimer 쿼리: PENDING 기사 + lease 만료된 PROCESSING(stuck) 행 회수 (two-tx lease 모델)
+-- claim 시 next_retry_at=NOW()+lease로 미루므로 정상 처리 중 행은 next_retry_at>NOW()라 제외,
+-- 크래시 고아 PROCESSING 행만 lease 경과 후 next_retry_at<=NOW()로 회수됨
 CREATE INDEX idx_bias_analysis_pending_queue
     ON bias_analysis (next_retry_at)
-    WHERE status = 'PENDING';
+    WHERE status = 'PENDING' OR status = 'PROCESSING';
 
 -- One-shot 복구 쿼리: 3회 소진 FAILED + failed_at + 6h
 CREATE INDEX idx_bias_analysis_failed_recovery
@@ -119,8 +121,10 @@ CREATE INDEX idx_bias_analysis_done_analyzed
     ON bias_analysis (analyzed_at)
     WHERE status = 'DONE';
 
--- Outlet 집계 쿼리 보조 (article_id 이미 UNIQUE로 커버)
--- article_sources 측 source_id 인덱스 확인 필요 (기존 V1 스키마)
+-- Outlet 집계 JOIN 보조: article_sources(source_id) 단독 인덱스
+-- V1에 UNIQUE(article_id, source_id)만 존재 — source_id 선행 인덱스 없음 → 여기서 추가
+CREATE INDEX idx_article_sources_source_id
+    ON article_sources (source_id);
 
 CREATE OR REPLACE FUNCTION update_bias_analysis_updated_at()
     RETURNS TRIGGER AS $$
@@ -235,7 +239,7 @@ public record BiasAnalysisResult(int value, List<String> rationaleKeywords) {}
 | 인덱스 | 목적 |
 |--------|------|
 | `uq_bias_analysis_article_id` | FR-004 멱등성, ON CONFLICT DO NOTHING |
-| `idx_bias_analysis_pending_queue` | Claimer SKIP LOCKED 배치 조회 |
-| `idx_bias_analysis_failed_recovery` | One-shot 복구 폴러 |
+| `idx_bias_analysis_pending_queue` (PENDING OR PROCESSING) | Claimer SKIP LOCKED 배치 조회 + 크래시 후 stuck PROCESSING 회수 |
+| `idx_bias_analysis_failed_recovery` (FAILED, attempt_count=3) | One-shot 복구 폴러 (attempt_count=4 terminal은 이 술어 벗어남) |
 | `idx_bias_analysis_done_analyzed` | SC-001 SLA 측정 |
-| `article_sources(source_id)` | Outlet 집계 JOIN (기존 존재 확인 요) |
+| `idx_article_sources_source_id` (V13 신규 추가) | Outlet 집계 JOIN — V1에 source_id 단독 인덱스 없음 |

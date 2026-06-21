@@ -93,7 +93,8 @@ src/main/java/com/newscurator/
 ├── service/
 │   └── BiasAnalysisService.java
 ├── scheduler/
-│   └── BiasAnalysisScheduler.java
+│   ├── BiasAnalysisScheduler.java     (또는 BiasAnalysisProcessor — @Scheduled 진입점)
+│   └── BiasAnalysisClaimer.java       (별도 @Transactional 빈 — two-tx claim/persistResult, R-013)
 ├── controller/
 │   └── BiasController.java
 └── dto/
@@ -160,7 +161,12 @@ ProcessingStatus와 별도 생성. 4-state 필요 (PROCESSING: claimer 점유 �
 
 ```java
 // 005 NotificationOutbox.incrementAttemptWithBackoff() 패턴 재사용
-public void claim() { this.status = BiasStatus.PROCESSING; }
+// two-tx 모델: claim 시 next_retry_at을 NOW()+lease로 미뤄, 처리 중 크래시(PROCESSING 고아) 시
+// lease 만료 후 claimer가 회수하도록 한다. 정상 완료/실패는 complete()/incrementAttemptWithBackoff()가 덮어씀.
+public void claim(int leaseMinutes) {
+    this.status = BiasStatus.PROCESSING;
+    this.nextRetryAt = Instant.now().plus(leaseMinutes, ChronoUnit.MINUTES);
+}
 public void complete(int value, String[] keywords) {
     this.value = value; this.rationaleKeywords = keywords;
     this.status = BiasStatus.DONE; this.analyzedAt = Instant.now();
@@ -181,17 +187,21 @@ public void incrementAttemptWithBackoff(int attempt1Minutes, int attempt2Minutes
 }
 public void completeOneShot(int value, String[] keywords) { complete(value, keywords); }
 public void failTerminal() {
-    this.status = BiasStatus.FAILED; // attempt_count=4 유지 (terminal 식별자)
+    this.attemptCount++; // 3 → 4: recovery 인덱스 술어(attempt_count=3) 에서 영구 이탈, 루프 방지
+    this.status = BiasStatus.FAILED;
 }
 ```
 
 ### 4. BiasAnalysisRepository 핵심 쿼리
 
 ```java
-// Claimer: PENDING + next_retry_at 도달 기사 SKIP LOCKED
+// Claimer: PENDING + lease 만료된 PROCESSING(stuck) 행 회수, SKIP LOCKED
+// two-tx 모델(005와 동일하게 claim TX 커밋 후 락 해제 → Gemini 호출은 락 밖):
+//   - 정상 처리 중 행: claim()이 next_retry_at = NOW()+lease(미래)로 세팅했으므로 next_retry_at > NOW() → 재조회 안 됨
+//   - 크래시로 고아가 된 PROCESSING 행: lease 경과 후 next_retry_at <= NOW() → 재claim되어 회수
 @Query(value = """
     SELECT * FROM bias_analysis
-    WHERE status = 'PENDING' AND next_retry_at <= NOW()
+    WHERE status IN ('PENDING', 'PROCESSING') AND next_retry_at <= NOW()
     ORDER BY next_retry_at ASC
     LIMIT :limit
     FOR UPDATE SKIP LOCKED
@@ -266,25 +276,37 @@ JSON 파싱 실패 시 `AiProviderException` throw (재시도 대상 아님 — 
 
 ### 6. BiasAnalysisService 핵심 흐름
 
-```
-processBatch():
-  1. biasAnalysisRepository.lockAndClaimPending(batchSize) 트랜잭션 내
-  2. 각 BiasAnalysis 행에 대해:
-     a. claim() → PROCESSING
-     b. article title+content 조회 (ArticleRepository)
-     c. aiProvider.analyzeBias(title, content)
-     d. 성공: complete(value, keywords)
-     e. AiTransientException: incrementAttemptWithBackoff() → 배치 조기 중단
-     f. AiProviderException(결정적): incrementAttemptWithBackoff()
-     g. log.warn per failure (FR-011)
-  3. 시작/종료/처리건수/실패건수 log.info (FR-011)
+**two-tx 모델 (005 NotificationOutboxProcessor/Claimer 패턴 재사용)**: claim TX를 별도 빈
+`BiasAnalysisClaimer`로 분리해 PROCESSING+lease 커밋 후 락을 해제하고, Gemini HTTP 호출은
+DB 락 밖에서 실행한다. 결과는 `persistResult()`가 자체 TX로 저장한다.
 
-recoverOneShotFailed():
-  1. lockOneShotRecoveryCandidate() (attempt_count=3, failed_at+6h)
-  2. claim() → PROCESSING (attempt_count 그대로)
-  3. analyzeBias() 시도
-  4. 성공: complete()
-  5. 실패: failTerminal() (attempt_count=4, terminal FAILED)
+```
+processBatch():  // BiasAnalysisProcessor (스케줄러 빈)
+  Phase 1 — BiasAnalysisClaimer.claimBatch(batchSize) [@Transactional 별도 빈]:
+            lockAndClaimPending(batchSize) → 각 행 claim(leaseMinutes): PROCESSING + next_retry_at=NOW()+lease
+            → TX 커밋 시 FOR UPDATE SKIP LOCKED 락 해제
+  Phase 2 — 각 BiasAnalysis 행 (DB 락 밖):
+     a. article title+content 조회 (ArticleRepository)
+     b. aiProvider.analyzeBias(title, content)   ← Gemini HTTP, 락 미점유
+     c. 성공: complete(value, keywords) → DONE
+     d. AiTransientException: incrementAttemptWithBackoff() + 배치 조기 중단(break)
+     e. AiProviderException(결정적): incrementAttemptWithBackoff()
+     f. log.warn per failure (FR-011)
+  Phase 3 — BiasAnalysisClaimer.persistResult(row) [@Transactional 별도 빈]: 결과 저장
+  종료 — 시작/종료/처리건수/실패건수 log.info (FR-011)
+
+  ※ 처리 중 인스턴스 크래시: 행이 PROCESSING+lease 상태로 고아 → lease(next_retry_at) 만료 후
+    다음 claimBatch가 회수(재처리). incrementAttemptWithBackoff가 적용되지 않으므로 attempt_count 보존.
+
+recoverOneShotFailed():  // 동일 two-tx, claimer/persistResult 경유
+  1. lockOneShotRecoveryCandidate() (status=FAILED, attempt_count=3, failed_at+6h 경과, SKIP LOCKED)
+  2. claim(leaseMinutes) → PROCESSING + lease (attempt_count=3 유지 — 아직 임계치 내)
+  3. analyzeBias() 시도 (락 밖)
+  4. 성공: complete() → DONE (attempt_count=3, 문제없음)
+  5. 실패: failTerminal() → attemptCount++ (3→4) + status=FAILED(terminal)
+         attempt_count=4 이므로 recovery 인덱스 술어(attempt_count=3) 에서 영구 이탈 → 무한루프 없음
+  ※ one-shot 처리 중 크래시: PROCESSING+attempt_count=3+lease → 일반 claimBatch가 lease 만료 후 회수.
+    이후 실패 시 incrementAttemptWithBackoff로 attempt_count 3→4 → terminal FAILED로 수렴.
 
 emitDailySlaMetrics():  // @Scheduled(cron="0 0 0 * * *")
   1. computeDoneRatio7Day()
@@ -339,7 +361,11 @@ app:
       recovery-interval-ms: 3600000  # 1h
       backoff-attempt1-minutes: 5
       backoff-attempt2-minutes: 30
+      lease-minutes: 5               # claim 후 PROCESSING 점유 유예 (크래시 stuck 회수 기준)
 ```
+
+`lease-minutes`는 Gemini 호출 1건의 최대 소요 + 여유보다 크게 잡는다. 정상 처리는 lease 만료 전 끝나고,
+크래시로 PROCESSING에 고아가 된 행만 lease 경과 후 회수된다(two-tx 모델).
 
 ---
 
