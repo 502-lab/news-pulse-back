@@ -1,6 +1,7 @@
 package com.newscurator.controller;
 
 import com.newscurator.dto.response.ApiResponse;
+import com.newscurator.dto.response.BackfillResult;
 import com.newscurator.dto.response.BiasScoreResponse;
 import com.newscurator.dto.response.BiasSpectrumResponse;
 import com.newscurator.dto.response.OutletBiasResponse;
@@ -9,9 +10,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Bias", description = "편향 분석 점수·집계 조회 API")
@@ -70,5 +73,22 @@ public class BiasController {
     @GetMapping("/api/v1/bias/spectrum")
     public ResponseEntity<ApiResponse<BiasSpectrumResponse>> getSpectrum() {
         return ResponseEntity.ok(ApiResponse.success(biasAnalysisService.getSpectrum()));
+    }
+
+    @Operation(
+            summary = "편향 분석 Backfill 실행 (관리자)",
+            description = "최근 90일 이내 수집 기사 중 bias_analysis 행이 없는 기사에 PENDING 행을 일괄 생성합니다. "
+                    + "멱등(ON CONFLICT DO NOTHING). 별도 버스트가 아니라 PENDING만 생성하고 정상 claimer가 "
+                    + "rate-safe하게 드레인하므로 즉시 202를 반환합니다. ROLE_ADMIN 필수.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "202", description = "Backfill PENDING 행 생성 완료(드레인은 비동기)"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 토큰 없음/만료"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "관리자 권한 없음")
+    })
+    @PostMapping("/api/v1/admin/bias/backfill")
+    public ResponseEntity<ApiResponse<BackfillResult>> triggerBackfill() {
+        long created = biasAnalysisService.backfill();
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(ApiResponse.accepted(new BackfillResult(created)));
     }
 }

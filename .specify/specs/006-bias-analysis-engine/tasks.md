@@ -146,13 +146,13 @@
 
 **Purpose**: Backfill 운영 엔드포인트 + 마무리.
 
-- [ ] T037 [P] `BackfillResult` record 생성 in `src/main/java/com/newscurator/dto/response/BackfillResult.java` (`long created`) + @Schema
-- [ ] T038 `POST /api/v1/admin/bias/backfill` 추가 in `src/main/java/com/newscurator/controller/BiasController.java` 또는 기존 `AdminPipelineController` — ROLE_ADMIN 필수, `biasAnalysisService.backfill()` → `ApiResponse.accepted(BackfillResult)`, Swagger 문서화
-- [ ] T039 [P] backfill 멱등 컨트롤러 테스트 (@WebMvcTest) — 202/401/403, 2회 호출 시 두 번째 created=0
-- [ ] T040 [P] SecurityConfig 경로 인증 규칙 확인 in `src/main/java/com/newscurator/config/SecurityConfig.java` — `/api/v1/bias/**`·`/api/v1/articles/*/bias` JWT 필수, `/api/v1/admin/bias/**` ROLE_ADMIN (FR-005는 기존 피드/상세 설정 상속이므로 변경 없음 확인)
-- [ ] T041 CHANGELOG.html 항목 추가 (tag-feature, 영향 파일·결정 이유 — two-tx lease/one-shot 복구 설계 근거 포함)
-- [ ] T042 quickstart.md 9개 시나리오 수동 검증 — Docker 기동 후 실제 Gemini 연동 1건 확인 또는 "런타임/배포 시 검증" 명시 (CLAUDE.md 외부 연동 검증 규칙)
-- [ ] T043 OpenApiSpecExportTest 통과 확인 → sync-openapi 워크플로우로 news-pulse-spec 반영
+- [X] T037 [P] `BackfillResult` record 생성 in `src/main/java/com/newscurator/dto/response/BackfillResult.java` (`long created`) + @Schema
+- [X] T038 `POST /api/v1/admin/bias/backfill` 추가 in `src/main/java/com/newscurator/controller/BiasController.java` 또는 기존 `AdminPipelineController` — ROLE_ADMIN 필수, `biasAnalysisService.backfill()` → `ApiResponse.accepted(BackfillResult)`, Swagger 문서화
+- [X] T039 [P] backfill 멱등 컨트롤러 테스트 (@WebMvcTest) — 202/401/403, 2회 호출 시 두 번째 created=0
+- [X] T040 [P] SecurityConfig 경로 인증 규칙 확인 in `src/main/java/com/newscurator/config/SecurityConfig.java` — `/api/v1/bias/**`·`/api/v1/articles/*/bias` JWT 필수, `/api/v1/admin/bias/**` ROLE_ADMIN (FR-005는 기존 피드/상세 설정 상속이므로 변경 없음 확인)
+- [X] T041 CHANGELOG.html 항목 추가 (tag-feature, 영향 파일·결정 이유 — two-tx lease/one-shot 복구 설계 근거 포함)
+- [X] T042 quickstart.md 9개 시나리오 수동 검증 — Docker 기동 후 실제 Gemini 연동 1건 확인 또는 "런타임/배포 시 검증" 명시 (CLAUDE.md 외부 연동 검증 규칙)
+- [X] T043 OpenApiSpecExportTest 통과 확인 → sync-openapi 워크플로우로 news-pulse-spec 반영
 
 ---
 

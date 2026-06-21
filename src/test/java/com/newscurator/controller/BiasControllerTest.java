@@ -148,4 +148,32 @@ class BiasControllerTest {
                 .andExpect(jsonPath("$.data.weightedAverage").value(nullValue()))
                 .andExpect(jsonPath("$.data.totalCount").value(0));
     }
+
+    // ── Backfill (admin) ─────────────────────────────────────────────
+    // 인증/인가(401/403)는 SecurityConfig 로딩이 필요하므로 BiasAuthorizationIT(@SpringBootTest)에서 검증.
+    // 여기서는 202 + created 값 + 멱등(2회차 0) 의미만 검증.
+
+    @Test
+    @DisplayName("backfill 202: created 반환")
+    void backfill_returns202WithCreated() throws Exception {
+        when(biasAnalysisService.backfill()).thenReturn(5494L);
+
+        mockMvc.perform(post("/api/v1/admin/bias/backfill"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.code").value(202))
+                .andExpect(jsonPath("$.data.created").value(5494));
+    }
+
+    @Test
+    @DisplayName("backfill 멱등: 2회차 created=0")
+    void backfill_idempotent_secondZero() throws Exception {
+        when(biasAnalysisService.backfill()).thenReturn(5494L).thenReturn(0L);
+
+        mockMvc.perform(post("/api/v1/admin/bias/backfill"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.created").value(5494));
+        mockMvc.perform(post("/api/v1/admin/bias/backfill"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.created").value(0));
+    }
 }
