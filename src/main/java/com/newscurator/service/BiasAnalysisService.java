@@ -5,8 +5,11 @@ import com.newscurator.client.ai.BiasAnalysisResult;
 import com.newscurator.config.BiasProperties;
 import com.newscurator.domain.Article;
 import com.newscurator.domain.BiasAnalysis;
+import com.newscurator.domain.enums.BiasStatus;
+import com.newscurator.dto.response.BiasScoreResponse;
 import com.newscurator.exception.AiProviderException;
 import com.newscurator.exception.AiTransientException;
+import com.newscurator.exception.ResourceNotFoundException;
 import com.newscurator.repository.ArticleRepository;
 import com.newscurator.repository.BiasAnalysisRepository;
 import com.newscurator.scheduler.BiasAnalysisClaimer;
@@ -131,6 +134,36 @@ public class BiasAnalysisService {
         int created = biasAnalysisRepository.backfillPending();
         log.info("[BIAS] backfill 완료, created={}", created);
         return created;
+    }
+
+    /**
+     * 편향 칩 API (FR-009): 기사의 BiasAnalysis 행을 조회해 점수 응답으로 반환한다.
+     * 행이 없으면 404. 미완료/실패면 value·keywords는 null이고 status만 채워 200으로 반환한다.
+     */
+    @Transactional(readOnly = true)
+    public BiasScoreResponse getBiasForArticle(Long articleId) {
+        BiasAnalysis row = biasAnalysisRepository
+                .findByArticleId(articleId)
+                .orElseThrow(() -> new ResourceNotFoundException("BiasAnalysis", articleId));
+        return toResponse(row);
+    }
+
+    /**
+     * BiasAnalysis → BiasScoreResponse 매핑 (피드/상세/칩 공용).
+     * row가 null이면 null 반환(필드는 존재, 값만 null). DONE이면 value·keywords 포함,
+     * 그 외 상태는 value·keywords=null + status만.
+     */
+    public static BiasScoreResponse toResponse(BiasAnalysis row) {
+        if (row == null) {
+            return null;
+        }
+        if (row.getStatus() == BiasStatus.DONE) {
+            List<String> keywords = row.getRationaleKeywords() == null
+                    ? null
+                    : List.of(row.getRationaleKeywords());
+            return new BiasScoreResponse(row.getValue(), keywords, BiasStatus.DONE.name());
+        }
+        return new BiasScoreResponse(null, null, row.getStatus().name());
     }
 
     /** SC-001 일일 emit (FR-012): 24h DONE 비율 + 당일 FAILED 건수 구조적 로그. */

@@ -42,6 +42,9 @@ class ArticleDetailServiceTest {
     @Mock
     private AiProvider aiProvider;
 
+    @Mock
+    private com.newscurator.repository.BiasAnalysisRepository biasAnalysisRepository;
+
     private SummaryService summaryService;
     private ArticleDetailService articleDetailService;
 
@@ -51,7 +54,8 @@ class ArticleDetailServiceTest {
         AiProperties aiProperties = new AiProperties(10, 3, 0L, deepRetry);
         summaryService = new SummaryService(aiProperties);
         articleDetailService = new ArticleDetailService(
-                articleRepository, summaryRepository, aiProvider, summaryService);
+                articleRepository, summaryRepository, aiProvider, summaryService,
+                biasAnalysisRepository);
     }
 
     @Test

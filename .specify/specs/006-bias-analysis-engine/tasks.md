@@ -88,24 +88,24 @@
 
 ### DTO
 
-- [ ] T019 [P] [US1] `BiasScoreResponse` record 생성 in `src/main/java/com/newscurator/dto/response/BiasScoreResponse.java` (`Integer value`, `List<String> rationaleKeywords`, `String status`) + @Schema 문서화 (data-model.md)
-- [ ] T020 [US1] `ArticleFeedItem`에 `BiasScoreResponse biasScore` 필드 추가 in `src/main/java/com/newscurator/dto/response/ArticleFeedItem.java` (@Schema: 분석 미완료 시 null)
-- [ ] T021 [US1] `ArticleDetailResponse`에 `BiasScoreResponse biasScore` 필드 추가 in `src/main/java/com/newscurator/dto/response/ArticleDetailResponse.java` (@Schema)
+- [X] T019 [P] [US1] `BiasScoreResponse` record 생성 in `src/main/java/com/newscurator/dto/response/BiasScoreResponse.java` (`Integer value`, `List<String> rationaleKeywords`, `String status`) + @Schema 문서화 (data-model.md)
+- [X] T020 [US1] `ArticleFeedItem`에 `BiasScoreResponse biasScore` 필드 추가 in `src/main/java/com/newscurator/dto/response/ArticleFeedItem.java` (@Schema: 분석 미완료 시 null)
+- [X] T021 [US1] `ArticleDetailResponse`에 `BiasScoreResponse biasScore` 필드 추가 in `src/main/java/com/newscurator/dto/response/ArticleDetailResponse.java` (@Schema)
 
 ### 서비스 매핑 (N+1 방지)
 
-- [ ] T022 [US1] `ArticleFeedService`에 biasScore 매핑 추가 in `src/main/java/com/newscurator/service/ArticleFeedService.java` — 피드 기사 ID 목록으로 `findAllByArticleIdIn` 배치 조회 후 Map 매핑(N+1 방지, plan.md §8), 행 없으면 null
-- [ ] T023 [US1] `ArticleDetailService`에 biasScore 매핑 추가 in `src/main/java/com/newscurator/service/ArticleDetailService.java` — `findByArticleId` 단건 조회, status별 value/keywords null 처리
-- [ ] T024 [US1] `BiasAnalysisService.getBiasForArticle(Long)` 추가 in `src/main/java/com/newscurator/service/BiasAnalysisService.java` — 칩 API용, 행 없으면 404(ResourceNotFoundException), 미완료 시 status만 채운 BiasScoreResponse 반환
+- [X] T022 [US1] `ArticleFeedService`에 biasScore 매핑 추가 in `src/main/java/com/newscurator/service/ArticleFeedService.java` — 피드 기사 ID 목록으로 `findAllByArticleIdIn` 배치 조회 후 Map 매핑(N+1 방지, plan.md §8), 행 없으면 null
+- [X] T023 [US1] `ArticleDetailService`에 biasScore 매핑 추가 in `src/main/java/com/newscurator/service/ArticleDetailService.java` — `findByArticleId` 단건 조회, status별 value/keywords null 처리
+- [X] T024 [US1] `BiasAnalysisService.getBiasForArticle(Long)` 추가 in `src/main/java/com/newscurator/service/BiasAnalysisService.java` — 칩 API용, 행 없으면 404(ResourceNotFoundException), 미완료 시 status만 채운 BiasScoreResponse 반환
 
 ### 컨트롤러
 
-- [ ] T025 [US1] `BiasController` 생성 + `GET /api/v1/articles/{articleId}/bias` in `src/main/java/com/newscurator/controller/BiasController.java` — JWT 필수(FR-009), @Tag/@Operation/@ApiResponses/@Parameter Swagger 문서화, `ApiResponse.success(BiasScoreResponse)`
+- [X] T025 [US1] `BiasController` 생성 + `GET /api/v1/articles/{articleId}/bias` in `src/main/java/com/newscurator/controller/BiasController.java` — JWT 필수(FR-009), @Tag/@Operation/@ApiResponses/@Parameter Swagger 문서화, `ApiResponse.success(BiasScoreResponse)`
 
 ### 테스트
 
-- [ ] T026 [P] [US1] `BiasControllerTest` in `src/test/java/com/newscurator/controller/BiasControllerTest.java` (@WebMvcTest, service mock) — 칩 API 200/401/404, biasScore 직렬화(DONE 값/미완료 null) 검증
-- [ ] T027 [US1] 피드·상세 biasScore 노출 통합 검증 in `src/test/java/com/newscurator/service/ArticleBiasExposureTest.java` (또는 기존 Feed/Detail 테스트 확장) — SC-002(필드 항상 포함, status≠DONE은 null) 검증
+- [X] T026 [P] [US1] `BiasControllerTest` in `src/test/java/com/newscurator/controller/BiasControllerTest.java` (@WebMvcTest, service mock) — 칩 API 200/401/404, biasScore 직렬화(DONE 값/미완료 null) 검증
+- [X] T027 [US1] 피드·상세 biasScore 노출 통합 검증 in `src/test/java/com/newscurator/service/ArticleBiasExposureTest.java` (또는 기존 Feed/Detail 테스트 확장) — SC-002(필드 항상 포함, status≠DONE은 null) 검증
 
 **Checkpoint**: MVP 완성 — 사용자가 편향 점수·근거를 피드/상세/칩에서 확인 가능.
 

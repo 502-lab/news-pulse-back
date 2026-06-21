@@ -2,15 +2,18 @@ package com.newscurator.service;
 
 import com.newscurator.client.ai.AiProvider;
 import com.newscurator.domain.Article;
+import com.newscurator.domain.BiasAnalysis;
 import com.newscurator.domain.Summary;
 import com.newscurator.domain.enums.ProcessingStatus;
 import com.newscurator.domain.enums.SummaryDepth;
 import com.newscurator.domain.enums.SummarySlotStatus;
 import com.newscurator.dto.response.ArticleDetailResponse;
+import com.newscurator.dto.response.BiasScoreResponse;
 import com.newscurator.dto.response.SummarySlot;
 import com.newscurator.exception.AiProviderException;
 import com.newscurator.exception.ArticleNotFoundException;
 import com.newscurator.repository.ArticleRepository;
+import com.newscurator.repository.BiasAnalysisRepository;
 import com.newscurator.repository.SummaryRepository;
 import java.util.List;
 import java.util.Map;
@@ -29,16 +32,19 @@ public class ArticleDetailService {
     private final SummaryRepository summaryRepository;
     private final AiProvider aiProvider;
     private final SummaryService summaryService;
+    private final BiasAnalysisRepository biasAnalysisRepository;
 
     public ArticleDetailService(
             ArticleRepository articleRepository,
             SummaryRepository summaryRepository,
             AiProvider aiProvider,
-            SummaryService summaryService) {
+            SummaryService summaryService,
+            BiasAnalysisRepository biasAnalysisRepository) {
         this.articleRepository = articleRepository;
         this.summaryRepository = summaryRepository;
         this.aiProvider = aiProvider;
         this.summaryService = summaryService;
+        this.biasAnalysisRepository = biasAnalysisRepository;
     }
 
     @Transactional
@@ -58,7 +64,10 @@ public class ArticleDetailService {
         Summary briefSlot = slotMap.get(SummaryDepth.BRIEF);
         briefSlot = processBriefSlot(article, briefSlot, slotMap.get(SummaryDepth.BALANCED));
 
-        return buildResponse(article, briefSlot, slotMap.get(SummaryDepth.BALANCED), deepSlot);
+        // 단건 조회: BiasAnalysis 1행 (N+1 아님)
+        BiasAnalysis bias = biasAnalysisRepository.findByArticleId(articleId).orElse(null);
+
+        return buildResponse(article, briefSlot, slotMap.get(SummaryDepth.BALANCED), deepSlot, bias);
     }
 
     private Summary processDeepSlot(Article article, Summary deepSlot) {
@@ -114,12 +123,14 @@ public class ArticleDetailService {
     }
 
     private ArticleDetailResponse buildResponse(
-            Article article, Summary brief, Summary balanced, Summary deep) {
+            Article article, Summary brief, Summary balanced, Summary deep, BiasAnalysis bias) {
 
         // FAILED → OTHER 매핑
         String category = article.getCategoryStatus() == ProcessingStatus.FAILED
                 ? "OTHER"
                 : (article.getCategory() != null ? article.getCategory().name() : null);
+
+        BiasScoreResponse biasScore = BiasAnalysisService.toResponse(bias);
 
         return new ArticleDetailResponse(
                 article.getId(),
@@ -131,7 +142,8 @@ public class ArticleDetailService {
                 article.getFirstCollectedAt(),
                 toSlot(brief),
                 toSlot(balanced),
-                toSlot(deep));
+                toSlot(deep),
+                biasScore);
     }
 
     private SummarySlot toSlot(Summary summary) {
