@@ -96,6 +96,13 @@ app:
       batch-size: 50
     ai:
       interval-ms: 60000          # 1분
+    bias:
+      interval-ms: 60000          # 편향 분석 배치 주기 (1분)
+      batch-size: 10              # 배치당 claim 건수
+      recovery-interval-ms: 3600000   # one-shot 복구 폴 주기 (1시간)
+      backoff-attempt1-minutes: 5     # 1회 실패 후 재시도 딜레이
+      backoff-attempt2-minutes: 30    # 2회 실패 후 재시도 딜레이
+      lease-minutes: 5            # claim 후 PROCESSING 점유 lease (크래시 stuck 회수 기준)
     notification:
       outbox-batch-size: 50
       outbox-interval-ms: 10000

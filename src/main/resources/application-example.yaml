@@ -96,6 +96,13 @@ firebase:
 
 # 알림 스케줄러 / 주간 이메일 (application.yaml 기본값과 동일 구조 — 필요 시 오버라이드)
   scheduler:
+    bias:
+      interval-ms: 60000          # 편향 분석 배치 주기 (ms)
+      batch-size: 10              # 배치당 claim 건수
+      recovery-interval-ms: 3600000   # one-shot 복구 폴 주기 (ms)
+      backoff-attempt1-minutes: 5     # 1회 실패 후 재시도 딜레이
+      backoff-attempt2-minutes: 30    # 2회 실패 후 재시도 딜레이
+      lease-minutes: 5            # claim 후 PROCESSING 점유 lease (분)
     notification:
       outbox-batch-size: 50       # outbox 클레임 배치 크기
       outbox-interval-ms: 10000   # outbox 처리 주기 (ms)

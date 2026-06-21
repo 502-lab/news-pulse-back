@@ -38,6 +38,7 @@ class SourceCollectionExecutorTest {
     @Mock private SourceDailyUsageRepository sourceUsageRepository;
     @Mock private UrlNormalizer urlNormalizer;
     @Mock private RssSourceAdapter rssAdapter;
+    @Mock private BiasAnalysisService biasAnalysisService;
 
     private SourceCollectionExecutor executor;
 
@@ -52,7 +53,11 @@ class SourceCollectionExecutorTest {
                 sourceUsageRepository,
                 urlNormalizer,
                 adapters,
-                retentionProperties);
+                retentionProperties,
+                biasAnalysisService);
+        // 신규 기사 저장 시 인자를 그대로 반환 (createPendingForArticle의 saved.getId() NPE 방지)
+        when(articleRepository.save(any(Article.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test

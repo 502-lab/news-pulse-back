@@ -3,6 +3,7 @@ package com.newscurator.client;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.newscurator.client.ai.GeminiAiProvider;
 import com.newscurator.config.AiProperties;
@@ -69,7 +70,8 @@ class GeminiAiProviderTest {
         AiProperties.DeepRetryProperties deepRetry = new AiProperties.DeepRetryProperties(60, 5);
         AiProperties aiProperties = new AiProperties(10, 3, 0L, deepRetry);
         provider = new GeminiAiProvider(
-                restClient, "test-api-key", "gemini-2.0-flash", wireMock.baseUrl(), aiProperties);
+                restClient, "test-api-key", "gemini-2.0-flash", wireMock.baseUrl(), aiProperties,
+                new ObjectMapper());
     }
 
     @Test

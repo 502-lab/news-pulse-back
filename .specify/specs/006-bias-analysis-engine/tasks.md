@@ -26,8 +26,8 @@
 **Purpose**: 빌드 가능 상태 + OpenAPI 선반영
 
 - [ ] T001 contracts/openapi-patch.yaml의 신규 경로·스키마를 news-pulse-spec 레포 openapi.yaml에 선반영 제안 (CLAUDE.md: 엔드포인트 변경 시 openapi.yaml 선반영 필수). 4개 경로(`/articles/{id}/bias`, `/bias/outlets/{sourceId}`, `/bias/spectrum`, `/admin/bias/backfill`) + BiasScoreResponse/OutletBiasResponse/BiasSpectrumResponse 스키마
-- [ ] T002 [P] `app.scheduler.bias.*` 설정 키를 `src/main/resources/application.yaml`에 추가 (interval-ms, batch-size, recovery-interval-ms, backoff-attempt1/2-minutes, lease-minutes) + `application-example.yaml` 동기화
-- [ ] T003 [P] `BiasProperties` 설정 record를 `src/main/java/com/newscurator/config/BiasProperties.java`에 생성 (`@ConfigurationProperties(prefix = "app.scheduler.bias")`), `NewsCuratorApplication` 또는 config 클래스에 `@EnableConfigurationProperties` 등록 확인
+- [X] T002 [P] `app.scheduler.bias.*` 설정 키를 `src/main/resources/application.yaml`에 추가 (interval-ms, batch-size, recovery-interval-ms, backoff-attempt1/2-minutes, lease-minutes) + `application-example.yaml` 동기화
+- [X] T003 [P] `BiasProperties` 설정 record를 `src/main/java/com/newscurator/config/BiasProperties.java`에 생성 (`@ConfigurationProperties(prefix = "app.scheduler.bias")`), `NewsCuratorApplication` 또는 config 클래스에 `@EnableConfigurationProperties` 등록 확인
 
 ---
 
@@ -37,13 +37,13 @@
 
 ⚠️ **CRITICAL**: BiasAnalysis 테이블/엔티티가 US1(조회)·US2(생산)·US3·US4 모두의 기반.
 
-- [ ] T004 `BiasStatus` enum 생성 in `src/main/java/com/newscurator/domain/enums/BiasStatus.java` (PENDING, PROCESSING, DONE, FAILED)
-- [ ] T005 Flyway 마이그레이션 `V13__add_bias_analysis.sql` 작성 in `src/main/resources/db/migration/` — data-model.md DDL 전체: bias_analysis 테이블 + `uq_bias_analysis_article_id`(UNIQUE) + `idx_bias_analysis_pending_queue`(PENDING OR PROCESSING) + `idx_bias_analysis_failed_recovery`(FAILED, attempt_count=3) + `idx_bias_analysis_done_analyzed` + `idx_article_sources_source_id` + updated_at 트리거
-- [ ] T006 `BiasAnalysis` 엔티티 생성 in `src/main/java/com/newscurator/domain/BiasAnalysis.java` — 필드(articleId, status, value, rationaleKeywords[String[] @JdbcTypeCode(SqlTypes.ARRAY)], attemptCount, nextRetryAt, analyzedAt, failedAt, createdAt, updatedAt) + 비즈니스 메서드: `claim(int leaseMinutes)`, `complete(int, String[])`, `incrementAttemptWithBackoff(int, int)`, `completeOneShot(int, String[])`, `failTerminal()` (plan.md §3 verbatim 로직)
-- [ ] T007 `BiasAnalysisRepository` 생성 in `src/main/java/com/newscurator/repository/BiasAnalysisRepository.java` — `lockAndClaimPending`(SKIP LOCKED, PENDING+PROCESSING+next_retry_at<=NOW), `lockOneShotRecoveryCandidate`(FAILED+attempt_count=3+failed_at+6h), `findAllByArticleIdIn`, `findByArticleId`, `aggregateOutletBias`, spectrum 집계 쿼리, `computeDoneRatio7Day`, `countFailedToday`, `backfillPending`(INSERT ON CONFLICT DO NOTHING) — plan.md §4 verbatim 쿼리
-- [ ] T008 [P] `BiasAnalysisResult` record 생성 in `src/main/java/com/newscurator/client/ai/BiasAnalysisResult.java` (`int value`, `List<String> rationaleKeywords`)
-- [ ] T009 `AiProvider` 인터페이스에 `BiasAnalysisResult analyzeBias(String title, String content)` 추가 in `src/main/java/com/newscurator/client/ai/AiProvider.java` + 기존 mock/stub 구현체 시그니처 갱신 확인
-- [ ] T010 `BiasAnalysisRepositoryTest` 작성 in `src/test/java/com/newscurator/repository/BiasAnalysisRepositoryTest.java` (@DataJpaTest, `BigmPostgresImage.NAME`) — SKIP LOCKED claim·UNIQUE 멱등·집계 쿼리·backfill ON CONFLICT 검증
+- [X] T004 `BiasStatus` enum 생성 in `src/main/java/com/newscurator/domain/enums/BiasStatus.java` (PENDING, PROCESSING, DONE, FAILED)
+- [X] T005 Flyway 마이그레이션 `V13__add_bias_analysis.sql` 작성 in `src/main/resources/db/migration/` — data-model.md DDL 전체: bias_analysis 테이블 + `uq_bias_analysis_article_id`(UNIQUE) + `idx_bias_analysis_pending_queue`(PENDING OR PROCESSING) + `idx_bias_analysis_failed_recovery`(FAILED, attempt_count=3) + `idx_bias_analysis_done_analyzed` + `idx_article_sources_source_id` + updated_at 트리거
+- [X] T006 `BiasAnalysis` 엔티티 생성 in `src/main/java/com/newscurator/domain/BiasAnalysis.java` — 필드(articleId, status, value, rationaleKeywords[String[] @JdbcTypeCode(SqlTypes.ARRAY)], attemptCount, nextRetryAt, analyzedAt, failedAt, createdAt, updatedAt) + 비즈니스 메서드: `claim(int leaseMinutes)`, `complete(int, String[])`, `incrementAttemptWithBackoff(int, int)`, `completeOneShot(int, String[])`, `failTerminal()` (plan.md §3 verbatim 로직)
+- [X] T007 `BiasAnalysisRepository` 생성 in `src/main/java/com/newscurator/repository/BiasAnalysisRepository.java` — `lockAndClaimPending`(SKIP LOCKED, PENDING+PROCESSING+next_retry_at<=NOW), `lockOneShotRecoveryCandidate`(FAILED+attempt_count=3+failed_at+6h), `findAllByArticleIdIn`, `findByArticleId`, `aggregateOutletBias`, spectrum 집계 쿼리, `computeDoneRatio7Day`, `countFailedToday`, `backfillPending`(INSERT ON CONFLICT DO NOTHING) — plan.md §4 verbatim 쿼리
+- [X] T008 [P] `BiasAnalysisResult` record 생성 in `src/main/java/com/newscurator/client/ai/BiasAnalysisResult.java` (`int value`, `List<String> rationaleKeywords`)
+- [X] T009 `AiProvider` 인터페이스에 `BiasAnalysisResult analyzeBias(String title, String content)` 추가 in `src/main/java/com/newscurator/client/ai/AiProvider.java` + 기존 mock/stub 구현체 시그니처 갱신 확인
+- [X] T010 `BiasAnalysisRepositoryTest` 작성 in `src/test/java/com/newscurator/repository/BiasAnalysisRepositoryTest.java` (@DataJpaTest, `BigmPostgresImage.NAME`) — SKIP LOCKED claim·UNIQUE 멱등·집계 쿼리·backfill ON CONFLICT 검증
 
 **Checkpoint**: 엔티티·마이그레이션·repository 준비 완료 — US 구현 시작 가능
 
@@ -59,22 +59,22 @@
 
 ### Gemini 클라이언트
 
-- [ ] T011 [US2] `GeminiAiProvider.analyzeBias()` 구현 in `src/main/java/com/newscurator/client/ai/GeminiAiProvider.java` — BIAS_PROMPT(JSON 출력 지시, plan.md §5 verbatim) + JSON 파싱(score/keywords) + 범위 검증(−100~+100, 키워드 2~5개) + 파싱 실패 시 `AiProviderException`(결정적) + 429/5xx/타임아웃 시 기존 `AiTransientException` 재사용
-- [ ] T012 [US2] `GeminiAiProvider.analyzeBias` 단위 테스트 in `src/test/java/com/newscurator/client/ai/GeminiAiProviderBiasTest.java` (WireMock 스텁, 경로 `/v1beta/models/{model}:generateContent`) — 정상 JSON·범위 초과·파싱 실패·429/5xx 케이스 + Gemini 프롬프트 ADR 작성 `/specs/adr/` (CLAUDE.md: 프롬프트 변경 시 ADR 필수)
+- [X] T011 [US2] `GeminiAiProvider.analyzeBias()` 구현 in `src/main/java/com/newscurator/client/ai/GeminiAiProvider.java` — BIAS_PROMPT(JSON 출력 지시, plan.md §5 verbatim) + JSON 파싱(score/keywords) + 범위 검증(−100~+100, 키워드 2~5개) + 파싱 실패 시 `AiProviderException`(결정적) + 429/5xx/타임아웃 시 기존 `AiTransientException` 재사용
+- [X] T012 [US2] `GeminiAiProvider.analyzeBias` 단위 테스트 in `src/test/java/com/newscurator/client/ai/GeminiAiProviderBiasTest.java` (WireMock 스텁, 경로 `/v1beta/models/{model}:generateContent`) — 정상 JSON·범위 초과·파싱 실패·429/5xx 케이스 + Gemini 프롬프트 ADR 작성 `/specs/adr/` (CLAUDE.md: 프롬프트 변경 시 ADR 필수)
 
 ### 파이프라인 서비스 (two-tx)
 
-- [ ] T013 [US2] `BiasAnalysisClaimer` 생성 in `src/main/java/com/newscurator/scheduler/BiasAnalysisClaimer.java` — 별도 `@Transactional` 빈: `claimBatch(int)`(lockAndClaimPending → 각 행 claim(leaseMinutes) → 커밋), `persistResult(BiasAnalysis)` (R-013 two-tx 모델, 005 NotificationOutboxClaimer 패턴)
-- [ ] T014 [US2] `BiasAnalysisService` 생성 in `src/main/java/com/newscurator/service/BiasAnalysisService.java` — `processBatch()`(Phase1 claimer.claimBatch → Phase2 락 밖 Gemini 호출 → 성공 complete / AiTransientException break / AiProviderException incrementAttemptWithBackoff → Phase3 persistResult), `recoverOneShotFailed()`(lockOneShotRecoveryCandidate → claim → 성공 complete / 실패 failTerminal), `createPendingForArticle(Long)`(멱등, UNIQUE 위반 catch), `backfill()`, `emitDailySlaMetrics()` — plan.md §6 흐름 verbatim. FR-011 log.info/log.warn(민감정보 제외)
-- [ ] T015 [US2] `BiasAnalysisScheduler` 생성 in `src/main/java/com/newscurator/scheduler/BiasAnalysisScheduler.java` — `@ConditionalOnProperty(app.scheduler.enabled)` + MDC runId 패턴(AiProcessingScheduler 참조): `run()`(@Scheduled fixedDelay interval-ms → processBatch), `recover()`(@Scheduled fixedDelay recovery-interval-ms → recoverOneShotFailed), `emitSla()`(@Scheduled cron="0 0 0 * * *" → emitDailySlaMetrics)
-- [ ] T016 [US2] 신규 기사 수집 시 bias PENDING 생성 연결 in `src/main/java/com/newscurator/service/CollectionService.java` — 신규 Article 저장 후 `biasAnalysisService.createPendingForArticle(savedArticle.getId())` 호출 (FR-001)
+- [X] T013 [US2] `BiasAnalysisClaimer` 생성 in `src/main/java/com/newscurator/scheduler/BiasAnalysisClaimer.java` — 별도 `@Transactional` 빈: `claimBatch(int)`(lockAndClaimPending → 각 행 claim(leaseMinutes) → 커밋), `persistResult(BiasAnalysis)` (R-013 two-tx 모델, 005 NotificationOutboxClaimer 패턴)
+- [X] T014 [US2] `BiasAnalysisService` 생성 in `src/main/java/com/newscurator/service/BiasAnalysisService.java` — `processBatch()`(Phase1 claimer.claimBatch → Phase2 락 밖 Gemini 호출 → 성공 complete / AiTransientException break / AiProviderException incrementAttemptWithBackoff → Phase3 persistResult), `recoverOneShotFailed()`(lockOneShotRecoveryCandidate → claim → 성공 complete / 실패 failTerminal), `createPendingForArticle(Long)`(멱등, UNIQUE 위반 catch), `backfill()`, `emitDailySlaMetrics()` — plan.md §6 흐름 verbatim. FR-011 log.info/log.warn(민감정보 제외)
+- [X] T015 [US2] `BiasAnalysisScheduler` 생성 in `src/main/java/com/newscurator/scheduler/BiasAnalysisScheduler.java` — `@ConditionalOnProperty(app.scheduler.enabled)` + MDC runId 패턴(AiProcessingScheduler 참조): `run()`(@Scheduled fixedDelay interval-ms → processBatch), `recover()`(@Scheduled fixedDelay recovery-interval-ms → recoverOneShotFailed), `emitSla()`(@Scheduled cron="0 0 0 * * *" → emitDailySlaMetrics)
+- [X] T016 [US2] 신규 기사 수집 시 bias PENDING 생성 연결 in `src/main/java/com/newscurator/service/CollectionService.java` — 신규 Article 저장 후 `biasAnalysisService.createPendingForArticle(savedArticle.getId())` 호출 (FR-001)
 
 ### 테스트
 
-- [ ] T017 [US2] `BiasAnalysisServiceTest` 단위 테스트 in `src/test/java/com/newscurator/service/BiasAnalysisServiceTest.java` (AiProvider mock) — 정상 처리·재시도 백오프(+5m/+30m)·3회 소진 FAILED·one-shot 복구 성공/실패(attempt_count 3→4 terminal)·멱등 createPending·SLA emit 검증
-- [ ] T018 [US2] 파이프라인 통합 테스트 in `src/test/java/com/newscurator/service/BiasAnalysisPipelineIT.java` (`BigmPostgresImage.NAME` + Gemini WireMock) — 수집→PENDING→DONE end-to-end, backfill ON CONFLICT 멱등 + rate-safe 드레인(PENDING 일괄 생성 후 정상 claimer가 batch-size씩 소비, live 굶기지 않음) (quickstart Scenario 1·2·8)
-- [ ] T044 [US2] one-shot 복구 **전용** 통합 테스트 in `src/test/java/com/newscurator/service/BiasOneShotRecoveryIT.java` (`BigmPostgresImage.NAME` + Gemini WireMock) — lease 회수와 **별개** 경로 검증: (a) status=FAILED·attempt_count=3·failed_at+6h **미경과** → 복구 대상 아님, (b) failed_at+6h **경과** → recoverOneShotFailed 1회 시도, (c) 성공 → completeOneShot → DONE(attempt_count=3 유지), (d) 실패 → failTerminal → attempt_count=4·status=FAILED(terminal) → recovery 술어(attempt_count=3) 재매칭 안 됨(무한루프 없음) 검증 (quickstart Scenario 9)
-- [ ] T045 [US2] two-tx claimer 동시성·lease 회수 **전용** 테스트 in `src/test/java/com/newscurator/scheduler/BiasClaimerConcurrencyIT.java` (`BigmPostgresImage.NAME`) — (a) 2워커 동시 claimBatch → 동일 행 1회만 claim(FOR UPDATE SKIP LOCKED 배타성, SC-005·Constitution VII), (b) in-flight 보호: claim 직후 next_retry_at=NOW()+lease로 미래라 동시 재조회 제외, (c) lease 만료 stuck 회수: PROCESSING + next_retry_at<=NOW() 행이 다음 claimBatch에 재집계됨
+- [X] T017 [US2] `BiasAnalysisServiceTest` 단위 테스트 in `src/test/java/com/newscurator/service/BiasAnalysisServiceTest.java` (AiProvider mock) — 정상 처리·재시도 백오프(+5m/+30m)·3회 소진 FAILED·one-shot 복구 성공/실패(attempt_count 3→4 terminal)·멱등 createPending·SLA emit 검증
+- [X] T018 [US2] 파이프라인 통합 테스트 in `src/test/java/com/newscurator/service/BiasAnalysisPipelineIT.java` (`BigmPostgresImage.NAME` + Gemini WireMock) — 수집→PENDING→DONE end-to-end, backfill ON CONFLICT 멱등 + rate-safe 드레인(PENDING 일괄 생성 후 정상 claimer가 batch-size씩 소비, live 굶기지 않음) (quickstart Scenario 1·2·8)
+- [X] T044 [US2] one-shot 복구 **전용** 통합 테스트 in `src/test/java/com/newscurator/service/BiasOneShotRecoveryIT.java` (`BigmPostgresImage.NAME` + Gemini WireMock) — lease 회수와 **별개** 경로 검증: (a) status=FAILED·attempt_count=3·failed_at+6h **미경과** → 복구 대상 아님, (b) failed_at+6h **경과** → recoverOneShotFailed 1회 시도, (c) 성공 → completeOneShot → DONE(attempt_count=3 유지), (d) 실패 → failTerminal → attempt_count=4·status=FAILED(terminal) → recovery 술어(attempt_count=3) 재매칭 안 됨(무한루프 없음) 검증 (quickstart Scenario 9)
+- [X] T045 [US2] two-tx claimer 동시성·lease 회수 **전용** 테스트 in `src/test/java/com/newscurator/scheduler/BiasClaimerConcurrencyIT.java` (`BigmPostgresImage.NAME`) — (a) 2워커 동시 claimBatch → 동일 행 1회만 claim(FOR UPDATE SKIP LOCKED 배타성, SC-005·Constitution VII), (b) in-flight 보호: claim 직후 next_retry_at=NOW()+lease로 미래라 동시 재조회 제외, (c) lease 만료 stuck 회수: PROCESSING + next_retry_at<=NOW() 행이 다음 claimBatch에 재집계됨
 
 **Checkpoint**: 편향 데이터 생산 파이프라인 동작 (동시성·one-shot 복구 전용 검증 포함). US1이 노출할 실데이터 확보.
 
