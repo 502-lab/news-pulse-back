@@ -15,7 +15,9 @@ import com.newscurator.domain.enums.SummarySlotStatus;
 import com.newscurator.domain.enums.TtsOwnerType;
 import com.newscurator.domain.enums.TtsStatus;
 import com.newscurator.exception.AiProviderException;
+import com.newscurator.repository.DailyBriefRepository;
 import com.newscurator.repository.SummaryRepository;
+import com.newscurator.service.NotificationSendService;
 import com.newscurator.service.S3AudioUploader;
 import java.util.List;
 import java.util.Optional;
@@ -36,13 +38,16 @@ class TtsProcessingSchedulerTest {
     @Mock private TtsProvider ttsProvider;
     @Mock private S3AudioUploader s3AudioUploader;
     @Mock private SummaryRepository summaryRepository;
+    @Mock private NotificationSendService notificationSendService;
+    @Mock private DailyBriefRepository dailyBriefRepository;
     @Mock private Summary mockSummary;
 
     private TtsProcessingScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new TtsProcessingScheduler(claimer, ttsProvider, s3AudioUploader, summaryRepository, 10);
+        scheduler = new TtsProcessingScheduler(claimer, ttsProvider, s3AudioUploader, summaryRepository,
+                notificationSendService, dailyBriefRepository, 10);
         // 기본: 요약 조회 → 빈 결과 (resolveTtsText가 IllegalStateException → FAILED)
         when(summaryRepository.findByArticleIdAndDepth(any(), eq(SummaryDepth.BALANCED)))
                 .thenReturn(Optional.empty());

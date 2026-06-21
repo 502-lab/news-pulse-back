@@ -90,6 +90,20 @@ app:
     polly:
       engine: neural
 
+# Firebase Admin SDK — FCM 푸시 발송 (절대 코드/git에 하드코딩 금지)
+firebase:
+  service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON}  # Base64 인코딩된 서비스 계정 JSON
+
+# 알림 스케줄러 / 주간 이메일 (application.yaml 기본값과 동일 구조 — 필요 시 오버라이드)
+  scheduler:
+    notification:
+      outbox-batch-size: 50       # outbox 클레임 배치 크기
+      outbox-interval-ms: 10000   # outbox 처리 주기 (ms)
+      expiry-cron: "0 0 3 * * *"  # 인앱 알림 90일 만료 정리 (UTC 03:00)
+  weekly-email:
+    sender: ${WEEKLY_EMAIL_SENDER}  # 주간 이메일 발신자 (예: no-reply@newsift.app)
+    cron: "0 0 0 * * MON"           # 매주 월요일 00:00 UTC (KST 09:00)
+
 # AWS S3 + CloudFront (오디오 파일 저장·배포)
 cloud:
   aws:

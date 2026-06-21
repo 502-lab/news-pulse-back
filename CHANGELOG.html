@@ -301,18 +301,22 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">66</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">23</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">20</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">72</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">25</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">21</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
   <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-15</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-19</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-19</div>
+  <a class="toc-item" href="#d0619-01">NotificationOutboxProcessorTest 간헐 실패 — HikariCP auto-commit=false 오염, TransactionTemplate REQUIRES_NEW 수정</a>
+  <a class="toc-item" href="#d0619-02">spec 005 US4+US5+Polish — 알림 설정·주간 이메일·어드민 발송 파이프라인 완성 (Phase 6~8)</a>
+  <a class="toc-item" href="#d0619-03">NotificationSendServiceIntegrationTest — 외부 TX 안 동일 key enqueue 2회: REQUIRES_NEW 격리·W 커밋·outbox 1개 증명</a>
   <div class="toc-date">2026-06-15</div>
   <a class="toc-item" href="#d0615-15">공통 API 응답 형태 통일 — ApiResponse code·status·message·data 4-필드 + 전체 컨트롤러 적용</a>
   <a class="toc-item" href="#d0615-14">배포 중 JAR 덮어쓰기 → pm2 444회 재시작 (Truncated class file)</a>
@@ -384,6 +388,231 @@
 </nav>
 
 <div class="content">
+
+<!-- ═══════ 2026-06-18 ═══════ -->
+<div class="date-group" id="date-0619">
+  <div class="date-heading">
+    <h2>2026-06-19</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <div class="entry" id="d0619-01" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-bugfix">bugfix</span>
+        <span class="sev sev-high">high</span>
+        <strong>NotificationOutboxProcessorTest 간헐 실패 — HikariCP auto-commit=false 오염, TransactionTemplate REQUIRES_NEW 수정</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>maxParallelForks=2 병렬 테스트에서 NotificationOutboxProcessorTest가 3–5/10 비율로 간헐 실패. DeviceTokenRepositoryTest·NotificationRepositoryTest·TopicSubscriptionRepositoryTest와 같은 JVM 워커에서 실행될 때 재현되며, 단독 실행 시 항상 통과.</dd>
+        <dt>근본 원인</dt>
+        <dd>
+          <ul>
+            <li>@Transactional 클래스 레벨 테스트(DeviceToken/Notification/TopicSubscriptionRepositoryTest)는 각 메서드 종료 시 트랜잭션 롤백 후 HikariCP 커넥션을 풀에 반환한다. 이때 커넥션의 auto-commit 플래그가 false 상태로 남을 수 있다(Spring @Transactional이 auto-commit을 false로 설정하지만 풀 반환 시 정상 복구가 보장되지 않는 엣지 케이스).</li>
+            <li>resetNextRetryAt()이 jdbcTemplate.update()를 순수하게 호출하면 dirty 커넥션을 재사용할 수 있다. 해당 커넥션은 이미 열린 트랜잭션 컨텍스트에 묶여 있어 UPDATE가 커밋되지 않고, next_retry_at이 변경되지 않은 채로 남는다.</li>
+            <li>claimBatch()는 fresh 커넥션으로 실행되며 next_retry_at &lt;= now() 조건을 검사하는데, next_retry_at이 여전히 now()+N분이면 0건 반환 → 테스트 assertion 실패.</li>
+            <li>보조 원인: savePushOutbox()/saveEmailOutbox()의 초기 save 시 next_retry_at = Instant.now()(Java 시계)로 설정되어 PostgreSQL now()보다 미세하게 앞설 수 있는 경계 조건 존재.</li>
+          </ul>
+        </dd>
+        <dt>수정 내용</dt>
+        <dd>
+          <ul>
+            <li>resetNextRetryAt()을 TransactionTemplate(PROPAGATION_REQUIRES_NEW)으로 감쌈 → ambient TX 상태·HikariCP 커넥션 상태와 무관하게 항상 독립 커밋 보장.</li>
+            <li>UPDATE 인터벌을 '1 second'에서 '5 seconds'로 확장하여 경계 조건 마진 확보.</li>
+            <li>savePushOutbox()/saveEmailOutbox() 내 save 직후 resetNextRetryAt() 호출 추가(초기 save의 Java 시계 경계 조건 해소).</li>
+            <li>FR-012 테스트(process_firebaseUninitialized_inappNotificationUnaffected): 헬퍼를 우회해 직접 save 후 resetNextRetryAt() 누락 → 추가.</li>
+            <li>concurrent 테스트: pool.shutdown() 후 pool.awaitTermination(5, TimeUnit.SECONDS) 추가로 스레드 완전 종료 보장.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>PROPAGATION_REQUIRES_NEW는 항상 신규 독립 트랜잭션을 열고 완료 시 커밋을 보장하므로 ambient 커넥션 상태에 완전히 면역이다. jdbcTemplate.update()를 단순히 @Transactional 메서드로 감싸는 방법은 동일 스레드의 기존 TX에 참여할 수 있어 문제 재발 가능성이 있으므로 선택하지 않았다. 20/20 + 10/10 + 전체 345건 0 실패로 검증 완료.</dd>
+        <dt>영향 파일</dt>
+        <dd>src/test/java/com/newscurator/scheduler/NotificationOutboxProcessorTest.java</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="entry" id="d0619-02" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-feature">feature</span>
+        <strong>spec 005 US4+US5+Polish — 알림 설정·주간 이메일·어드민 발송 파이프라인 완성 (Phase 6~8, T047~T066)</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>작업 내용</dt>
+        <dd>
+          <ul>
+            <li>NotificationPreferences entity/repo/service: getOrDefault(lazy, 기본값 전부 true), update(upsert). pushEnabled=false 시 enqueueFirstDeviceToken 건너뜀(FR-015: 인앱 알림 생성 경로 독립 보장).</li>
+            <li>EmailSubscription entity/repo/service: WEEKLY_EMAIL 구독/해제/중복 409/미존재 404.</li>
+            <li>WeeklyEmailScheduler: @Scheduled(cron), sendWeeklyEmailForWeek(yearWeek) 메서드 분리로 테스트 가능. active 구독자 조회 → enqueueWeeklyEmail.</li>
+            <li>NotificationSettingsController: GET/PUT /me/notification-settings, POST/DELETE /me/subscriptions/weekly-email.</li>
+            <li>AdminTargetType enum (ALL/ACCOUNT_IDS/TOPIC_SUBSCRIBERS), AdminNotificationRequest record.</li>
+            <li>AdminNotificationService: targetType별 accountId 목록 조회 후 enqueueSystem bulk 발송.</li>
+            <li>AdminNotificationController: POST /admin/notifications/send (@PreAuthorize ADMIN, @Valid, 202).</li>
+            <li>NotificationSendService: NotificationPreferencesService 의존성 추가, insertOutbox를 TransactionTemplate(REQUIRES_NEW)으로 감싸 DataIntegrityViolationException이 호출자 TX를 오염시키지 않도록 수정.</li>
+            <li>AlreadySubscribedException → 409 GlobalExceptionHandler 등록.</li>
+            <li>AccountRepository.findByStatus(AccountStatus) 추가.</li>
+            <li>OpenApiSpecExportTest DynamicPropertySource에 firebase.service-account-json="" 추가.</li>
+            <li>T047 NotificationPreferencesServiceTest, T048 WeeklyEmailSchedulerTest, T057 AdminNotificationControllerTest, T058 AdminNotificationServiceTest 작성 및 통과.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>NotificationSendService.insertOutbox를 REQUIRES_NEW로 감싸는 설계는 enqueueWeeklyEmail의 멱등 처리(UNIQUE 위반 조용히 무시)가 호출자의 TX를 오염시키지 않도록 보장하기 위함. 이전에 동일 패턴(resetNextRetryAt)으로 테스트 격리 문제를 해결한 경험을 프로덕션 코드에도 일관 적용.</dd>
+        <dt>영향 파일</dt>
+        <dd>NotificationPreferences.java(신규), EmailSubscriptionId.java(신규), EmailSubscription.java(신규), NotificationPreferencesRepository.java(신규), EmailSubscriptionRepository.java(신규), NotificationPreferencesService.java(신규), EmailSubscriptionService.java(신규), NotificationSettingsRequest.java(신규), NotificationSettingsResponse.java(신규), EmailSubscriptionResponse.java(신규), NotificationSettingsController.java(신규), WeeklyEmailScheduler.java(신규), AdminTargetType.java(신규), AdminNotificationRequest.java(신규), AdminNotificationService.java(신규), AdminNotificationController.java(신규), AlreadySubscribedException.java(신규), NotificationSendService.java(수정), AccountRepository.java(수정), GlobalExceptionHandler.java(수정), OpenApiSpecExportTest.java(수정), NotificationSendServiceTest.java(수정), NotificationPreferencesServiceTest.java(신규), WeeklyEmailSchedulerTest.java(신규), AdminNotificationControllerTest.java(신규), AdminNotificationServiceTest.java(신규)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="entry" id="d0619-03" data-tags="test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-test">test</span>
+        <strong>NotificationSendServiceIntegrationTest — 외부 TX 안 동일 key enqueue 2회: REQUIRES_NEW 격리·W 커밋·outbox 1개 증명</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>작업 내용</dt>
+        <dd>
+          <ul>
+            <li>NotificationSendServiceIntegrationTest 신규 작성 (Testcontainers, BigmPostgresImage).</li>
+            <li>시나리오: 외부 TransactionTemplate(REQUIRED) 안에서 Work W(Account 저장) 수행 → 동일 idempotency_key(PUSH:{accountId}:{notificationId})로 enqueuePush 2회 호출.</li>
+            <li>단언 3가지: (1) 예외 전파 없음, (2) W 커밋(findByEmailIgnoreCase), (3) outbox row 정확히 1개 + key 일치.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>기존 단위 테스트(NotificationSendServiceTest)는 TransactionManager를 Mock으로 처리해 REQUIRES_NEW 격리를 실제로 검증하지 못한다. 실제 DB UNIQUE 제약과 PostgreSQL 트랜잭션 시맨틱 위에서 (1) DataIntegrityViolationException이 외부 TX를 오염시키지 않음, (2) W가 정상 커밋됨, (3) idempotency 보장을 통합 테스트로 증명할 필요가 있었다. 별도 클래스로 분리한 이유는 NotificationOutboxProcessorTest는 Processor 행동을 테스트하며 NotificationSendService를 Autowired하지 않기 때문.</dd>
+        <dt>영향 파일</dt>
+        <dd>src/test/java/com/newscurator/service/NotificationSendServiceIntegrationTest.java (신규)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="entry" id="d0619-04" data-tags="test">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-test">test</span>
+        <strong>NotificationOutboxRepositoryTest — concurrent SKIP LOCKED flaky 제거 (harness 3종)</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>maxParallelForks=2 full suite에서 "2 스레드 동시 claimBatch(1) → 합산 1건(SKIP LOCKED 보장)" 테스트가 간헐적으로 실패. 단일 실행 시 항상 통과하여 환경 부하 의존 flaky로 확인.</dd>
+        <dt>근본 원인</dt>
+        <dd>
+          <ul>
+            <li>(A) <code>pool.awaitTermination</code> 누락: <code>doneLatch.await()</code>로 스레드가 <code>countDown()</code>까지는 기다리지만, 그 직후 <code>addAndGet</code>과 <code>pool.shutdown()</code> 사이에 스레드가 아직 실행 중일 수 있어 <code>totalClaimed</code> 읽기 타이밍이 불안정했음.</li>
+            <li>(B) <code>next_retry_at</code> 미보정: Java <code>Instant.now()</code>로 세팅된 엔티티를 저장하면, PostgreSQL <code>NOW()</code>보다 Java 시계가 수십 ms 앞설 경우 <code>WHERE next_retry_at &lt;= NOW()</code> 조건 미충족 → 0건 클레임 → <code>totalClaimed=0 ≠ 1</code>.</li>
+            <li>(C) Hikari 풀 크기 미명시: 동시 2 스레드 + 메인 스레드 TX 경합 시 연결 취득 타임아웃 가능성.</li>
+          </ul>
+        </dd>
+        <dt>수정 내용</dt>
+        <dd>
+          <ul>
+            <li><code>pool.shutdown()</code> 뒤에 <code>pool.awaitTermination(10, TimeUnit.SECONDS)</code> 추가.</li>
+            <li><code>resetNextRetryAt(outboxId)</code> helper 추가 — REQUIRES_NEW TX로 <code>NOW() - INTERVAL '5 seconds'</code> 세팅 (NotificationOutboxProcessorTest 동일 패턴).</li>
+            <li><code>@TestPropertySource</code>에 <code>spring.datasource.hikari.maximum-pool-size=10</code> 명시.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>단언 <code>totalClaimed == 1</code>은 SKIP LOCKED의 핵심 의미이므로 그대로 유지. 약화 대신 harness 수준(스레드 완료 보장·시계 차 제거·연결 풀 보장)만 수정하여 SKIP LOCKED 자체가 올바르게 작동함을 증명하는 구조를 유지. 3회 연속 full suite (maxParallelForks=2) 모두 BUILD SUCCESSFUL 확인.</dd>
+        <dt>영향 파일</dt>
+        <dd>src/test/java/com/newscurator/scheduler/NotificationOutboxRepositoryTest.java</dd>
+      </dl>
+    </div>
+  </div>
+
+</div><!-- /date-group 0619 -->
+
+<div class="date-group" id="date-0618">
+  <div class="date-heading">
+    <h2>2026-06-18</h2>
+    <div class="date-bar"></div>
+    <div class="commit-count">미커밋 (작업 중)</div>
+  </div>
+
+  <div class="entry" id="d0618-01" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-feature">feature</span>
+        <strong>005 US3 발송 파이프라인 완성: 트리거 연동 + 테스트 T032~T046</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>작업 내용</dt>
+        <dd>
+          <ul>
+            <li>BriefingService: notificationSendService null 체크 제거(생성자 주입으로 non-null 보장)</li>
+            <li>NotificationSendService: 미사용 enqueueTtsReadyByArticle 데드코드 제거, TopicSubscriptionRepository/UserInterestsRepository 의존성 제거</li>
+            <li>AiProcessingService (T045): BREAKING 구독자 + 관심사 교차 필터 후 enqueueBreaking 트리거</li>
+            <li>TtsProcessingScheduler (T046): tts.complete() 후 DailyBriefRepository로 accountId 조회 → enqueueTtsReady 트리거</li>
+            <li>기존 TtsProcessingSchedulerTest, BriefingServiceTest, AiProcessingServiceTest 생성자 변경 반영</li>
+            <li>T032: NotificationOutboxRepositoryTest — PENDING→PROCESSING 클레임, SKIP LOCKED 2스레드 동시성, UNIQUE 위반 DataIntegrityViolationException</li>
+            <li>T033: NotificationSendServiceTest — PUSH/EMAIL:WEEKLY 멱등성 단위 테스트</li>
+            <li>T034: NotificationOutboxProcessorTest — EMAIL SENT flow, FcmUnregistered 토큰 삭제+FAILED, 3회 FAILED, 2인스턴스 send 1회, FR-012 인앱 row 영향 없음</li>
+            <li>T035: BriefingServiceTriggerTest, AiProcessingTriggerTest, TtsProcessingSchedulerTriggerTest</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>NotificationOutboxClaimer가 package-private이므로 T032 테스트를 scheduler 패키지에 배치(TtsAudioClaimerTest 패턴 일치). 데드코드 제거로 NotificationSendService 의존성을 최소화하여 SRP 개선.</dd>
+        <dt>영향 파일</dt>
+        <dd>BriefingService.java, NotificationSendService.java, AiProcessingService.java, TtsProcessingScheduler.java, BriefingServiceTest.java, AiProcessingServiceTest.java, TtsProcessingSchedulerTest.java(신규 mock 추가), NotificationOutboxRepositoryTest.java(신규), NotificationSendServiceTest.java(신규), NotificationOutboxProcessorTest.java(신규), BriefingServiceTriggerTest.java(신규), AiProcessingTriggerTest.java(신규), TtsProcessingSchedulerTriggerTest.java(신규)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="entry" id="d0618-02" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-bugfix">bugfix</span>
+        <span class="sev sev-high">high</span>
+        <strong>application.yaml app.scheduler 중복 키 + 테스트 3건 버그 수정</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>./gradlew test 결과 345건 중 145건 실패. TtsAudioClaimerTest, VoiceRepositoryTest 등 기존 통합 테스트가 DuplicateKeyException(SnakeYAML)으로 스프링 컨텍스트 로드 실패. NotificationSendServiceTest line 166 assertion 실패. AiProcessingTriggerTest UnfinishedStubbingException.</dd>
+        <dt>근본 원인</dt>
+        <dd>
+          <ul>
+            <li>application.yaml: app.scheduler 블록이 line 92와 line 126에 두 번 선언됨. Phase 5 T002 작업 시 notification 스케줄러 설정을 별도 scheduler 블록으로 추가하면서 YAML 중복 키 발생.</li>
+            <li>NotificationSendServiceTest: stubNotification()이 new Notification()으로 인스턴스를 생성하여 title/body가 null. enqueuePush → buildPayload에서 Map.of()에 null 값 전달 → NullPointerException.</li>
+            <li>AiProcessingTriggerTest: when(repo.method()).thenReturn(List.of(buildSubscription(id)))에서 thenReturn() 인자 평가 중 buildSubscription()이 내부에서 when()을 호출 → Mockito nested stubbing 금지 위반 → UnfinishedStubbingException.</li>
+          </ul>
+        </dd>
+        <dt>수정 내용</dt>
+        <dd>
+          <ul>
+            <li>application.yaml: 중복 scheduler 블록 제거, notification 설정을 첫 번째 scheduler 블록 하위로 병합.</li>
+            <li>NotificationSendServiceTest: stubNotification()을 mock(Notification.class)로 교체, getId/getTitle/getBody 스텁 추가. setId 리플렉션 헬퍼 제거.</li>
+            <li>AiProcessingTriggerTest: buildSubscription()/buildInterest() 호출을 when() 체인 밖으로 추출하여 중간 변수에 저장 후 사용.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>YAML 중복 키는 근본 수정(병합)이 유일한 해법. Notification mock화는 테스트 목적(행동 검증)에 부합하며 실제 엔티티 구조에 의존하지 않아 유지보수성이 높음. Mockito nested stubbing은 공식 제약사항으로 변수 추출이 표준 해결책.</dd>
+        <dt>영향 파일</dt>
+        <dd>application.yaml, NotificationSendServiceTest.java, AiProcessingTriggerTest.java</dd>
+      </dl>
+    </div>
+  </div>
+
+</div><!-- /date-group 0618 -->
 
 <!-- ═══════ 2026-06-13 ═══════ -->
 <!-- ═══════ 2026-06-16 ═══════ -->

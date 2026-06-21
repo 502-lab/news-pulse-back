@@ -55,6 +55,7 @@ class OpenApiSpecExportTest {
         registry.add("email-service.from-address", () -> "test@test.local");
         registry.add("spring.flyway.placeholders.admin-email", () -> "admin@export.local");
         registry.add("spring.flyway.placeholders.admin-password-hash", () -> ADMIN_HASH);
+        registry.add("firebase.service-account-json", () -> "");
     }
 
     @Test

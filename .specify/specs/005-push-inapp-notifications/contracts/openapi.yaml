@@ -1,0 +1,554 @@
+openapi: 3.1.0
+info:
+  title: News Pulse — 005 알림 API
+  version: "1.0"
+  description: >
+    디바이스 토큰 등록, 토픽 구독, 인앱 알림 목록·읽음, 알림 설정, 주간 이메일, 어드민 발송.
+    모든 /me/** 엔드포인트는 Bearer JWT 인증 필수.
+
+servers:
+  - url: https://api.newsift.app/api/v1
+    description: Production
+  - url: http://localhost:8080/api/v1
+    description: Local
+
+tags:
+  - name: device-tokens
+    description: 디바이스 토큰 관리
+  - name: topic-subscriptions
+    description: 알림 토픽 구독 관리
+  - name: notifications
+    description: 인앱 알림 목록·읽음
+  - name: notification-settings
+    description: 알림 설정 (채널·카테고리)
+  - name: email-subscriptions
+    description: 이메일 채널 구독
+  - name: admin-notifications
+    description: 어드민 수동 발송
+
+paths:
+
+  # ── 디바이스 토큰 ──────────────────────────────────────────────
+  /me/device-tokens:
+    post:
+      tags: [device-tokens]
+      operationId: registerDeviceToken
+      summary: 디바이스 토큰 등록 (upsert)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceTokenRequest'
+      responses:
+        '201':
+          description: 토큰 등록 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseDeviceTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /me/device-tokens/{tokenId}:
+    delete:
+      tags: [device-tokens]
+      operationId: deleteDeviceToken
+      summary: 디바이스 토큰 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: 삭제할 토큰 ID
+      responses:
+        '204':
+          description: 삭제 성공 (No Content)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── 토픽 구독 ──────────────────────────────────────────────────
+  /me/topic-subscriptions:
+    get:
+      tags: [topic-subscriptions]
+      operationId: getTopicSubscriptions
+      summary: 현재 토픽 구독 목록 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 구독 중인 토픽 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTopicSubscriptionsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [topic-subscriptions]
+      operationId: updateTopicSubscriptions
+      summary: 토픽 구독 목록 교체 (replace-all)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicSubscriptionsRequest'
+      responses:
+        '200':
+          description: 구독 목록 갱신 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTopicSubscriptionsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  # ── 인앱 알림 ──────────────────────────────────────────────────
+  /me/notifications:
+    get:
+      tags: [notifications]
+      operationId: getNotifications
+      summary: 인앱 알림 목록 조회 (페이지네이션)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unread
+          in: query
+          schema:
+            type: boolean
+          description: true이면 미읽은 알림만 반환
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: 페이지 번호 (0부터)
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: 페이지 크기
+      responses:
+        '200':
+          description: 알림 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePageNotificationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /me/notifications/{id}/read:
+    patch:
+      tags: [notifications]
+      operationId: markNotificationRead
+      summary: 알림 읽음 처리
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: 읽음 처리할 알림 ID
+      responses:
+        '200':
+          description: 읽음 처리 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseNotificationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /me/notifications/read-all:
+    patch:
+      tags: [notifications]
+      operationId: markAllNotificationsRead
+      summary: 전체 알림 읽음 처리
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 전체 읽음 처리 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── 알림 설정 ──────────────────────────────────────────────────
+  /me/notification-settings:
+    get:
+      tags: [notification-settings]
+      operationId: getNotificationSettings
+      summary: 알림 수신 설정 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 알림 설정
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseNotificationSettingsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [notification-settings]
+      operationId: updateNotificationSettings
+      summary: 알림 수신 설정 변경
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSettingsRequest'
+      responses:
+        '200':
+          description: 설정 변경 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseNotificationSettingsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  # ── 이메일 구독 ────────────────────────────────────────────────
+  /me/subscriptions/weekly-email:
+    post:
+      tags: [email-subscriptions]
+      operationId: subscribeWeeklyEmail
+      summary: 주간 이메일 구독
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: 구독 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseEmailSubscriptionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 이미 구독 중
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+    delete:
+      tags: [email-subscriptions]
+      operationId: unsubscribeWeeklyEmail
+      summary: 주간 이메일 구독 해지
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: 해지 성공 (No Content)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── 어드민 ──────────────────────────────────────────────────────
+  /admin/notifications/send:
+    post:
+      tags: [admin-notifications]
+      operationId: adminSendNotification
+      summary: 어드민 수동 발송
+      description: >
+        ADMIN 권한 필요. 대상(전체/계정목록/토픽구독자) 중 선택 후 SYSTEM 알림 발송.
+        비동기 처리 — 202 즉시 반환.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminNotificationRequest'
+      responses:
+        '202':
+          description: 발송 요청 수락 (비동기 처리)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    DeviceTokenRequest:
+      type: object
+      required: [token, platform]
+      properties:
+        token:
+          type: string
+          maxLength: 512
+          description: FCM 디바이스 토큰
+        platform:
+          type: string
+          enum: [IOS, ANDROID, WEB]
+          description: 디바이스 플랫폼
+
+    DeviceTokenResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        token:
+          type: string
+        platform:
+          type: string
+          enum: [IOS, ANDROID, WEB]
+        updatedAt:
+          type: string
+          format: date-time
+
+    TopicSubscriptionsRequest:
+      type: object
+      required: [topics]
+      properties:
+        topics:
+          type: array
+          items:
+            type: string
+            enum: [BREAKING, BRIEFING, TTS_READY]
+          description: 구독할 토픽 목록 (기존 목록 전체 교체)
+
+    TopicSubscriptionsResponse:
+      type: object
+      properties:
+        topics:
+          type: array
+          items:
+            type: string
+            enum: [BREAKING, BRIEFING, TTS_READY]
+
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [BREAKING, BRIEFING, TTS_READY, SYSTEM]
+        title:
+          type: string
+        body:
+          type: string
+          nullable: true
+        referenceId:
+          type: string
+          nullable: true
+          description: 연관 리소스 ID (기사 ID, TTS ID 등)
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    NotificationSettingsRequest:
+      type: object
+      properties:
+        pushEnabled:
+          type: boolean
+          description: 푸시 알림 전체 on/off
+        emailEnabled:
+          type: boolean
+          description: 이메일 알림 전체 on/off
+        risingEnabled:
+          type: boolean
+          description: 급상승 알림 on/off (007 이후 활성화)
+        biasEnabled:
+          type: boolean
+          description: 편향 알림 on/off (006 이후 활성화)
+
+    NotificationSettingsResponse:
+      type: object
+      properties:
+        pushEnabled:
+          type: boolean
+        emailEnabled:
+          type: boolean
+        risingEnabled:
+          type: boolean
+        biasEnabled:
+          type: boolean
+
+    EmailSubscriptionResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [WEEKLY_EMAIL]
+        active:
+          type: boolean
+        subscribedAt:
+          type: string
+          format: date-time
+
+    AdminNotificationRequest:
+      type: object
+      required: [title, body, targetType]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        body:
+          type: string
+        targetType:
+          type: string
+          enum: [ALL, ACCOUNT_IDS, TOPIC_SUBSCRIBERS]
+          description: "ALL: 전체, ACCOUNT_IDS: 특정 계정, TOPIC_SUBSCRIBERS: 토픽 구독자"
+        accountIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: targetType=ACCOUNT_IDS일 때 필수
+          nullable: true
+        topic:
+          type: string
+          enum: [BREAKING, BRIEFING, TTS_READY]
+          description: targetType=TOPIC_SUBSCRIBERS일 때 필수
+          nullable: true
+
+    # ── 공통 래퍼 ──────────────────────────────────────────────
+    ApiResponseDeviceTokenResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 201 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "Created" }
+        data: { $ref: '#/components/schemas/DeviceTokenResponse' }
+
+    ApiResponseTopicSubscriptionsResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "OK" }
+        data: { $ref: '#/components/schemas/TopicSubscriptionsResponse' }
+
+    ApiResponsePageNotificationResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "OK" }
+        data:
+          type: object
+          description: Spring Page<NotificationResponse>
+
+    ApiResponseNotificationResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "OK" }
+        data: { $ref: '#/components/schemas/NotificationResponse' }
+
+    ApiResponseNotificationSettingsResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "OK" }
+        data: { $ref: '#/components/schemas/NotificationSettingsResponse' }
+
+    ApiResponseEmailSubscriptionResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 201 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "Created" }
+        data: { $ref: '#/components/schemas/EmailSubscriptionResponse' }
+
+    ApiResponseVoid:
+      type: object
+      properties:
+        code: { type: integer, example: 202 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "Accepted" }
+        data: { nullable: true, example: null }
+
+    ProblemDetail:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+        timestamp: { type: string, format: date-time }
+
+  responses:
+    Unauthorized:
+      description: 인증 실패 (401)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Forbidden:
+      description: 권한 없음 (403)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFound:
+      description: 리소스 없음 (404)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    UnprocessableEntity:
+      description: 입력 검증 실패 (422)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'

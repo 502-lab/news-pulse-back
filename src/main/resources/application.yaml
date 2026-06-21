@@ -96,6 +96,10 @@ app:
       batch-size: 50
     ai:
       interval-ms: 60000          # 1분
+    notification:
+      outbox-batch-size: 50
+      outbox-interval-ms: 10000
+      expiry-cron: "0 0 3 * * *"
   ai:
     batch-size: 5
     retry-limit: 3
@@ -123,6 +127,12 @@ app:
     default-voice-id: "Seoyeon"
     polly:
       engine: neural
+  weekly-email:
+    sender: ${WEEKLY_EMAIL_SENDER:no-reply@newsift.app}
+    cron: "0 0 0 * * MON"
+
+firebase:
+  service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
 
 cloud:
   aws:

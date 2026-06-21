@@ -4,14 +4,19 @@ import com.newscurator.client.ai.AiProvider;
 import com.newscurator.config.AiProperties;
 import com.newscurator.domain.Article;
 import com.newscurator.domain.Summary;
+import com.newscurator.domain.TopicSubscription;
 import com.newscurator.domain.enums.Category;
+import com.newscurator.domain.enums.NotificationTopic;
 import com.newscurator.domain.enums.ProcessingStatus;
 import com.newscurator.domain.enums.SummaryDepth;
 import com.newscurator.exception.AiProviderException;
 import com.newscurator.exception.AiTransientException;
 import com.newscurator.repository.ArticleRepository;
 import com.newscurator.repository.SummaryRepository;
+import com.newscurator.repository.TopicSubscriptionRepository;
+import com.newscurator.repository.UserInterestsRepository;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,18 +32,27 @@ public class AiProcessingService {
     private final SummaryRepository summaryRepository;
     private final SummaryService summaryService;
     private final AiProperties aiProperties;
+    private final NotificationSendService notificationSendService;
+    private final TopicSubscriptionRepository topicSubscriptionRepository;
+    private final UserInterestsRepository userInterestsRepository;
 
     public AiProcessingService(
             AiProvider aiProvider,
             ArticleRepository articleRepository,
             SummaryRepository summaryRepository,
             SummaryService summaryService,
-            AiProperties aiProperties) {
+            AiProperties aiProperties,
+            NotificationSendService notificationSendService,
+            TopicSubscriptionRepository topicSubscriptionRepository,
+            UserInterestsRepository userInterestsRepository) {
         this.aiProvider = aiProvider;
         this.articleRepository = articleRepository;
         this.summaryRepository = summaryRepository;
         this.summaryService = summaryService;
         this.aiProperties = aiProperties;
+        this.notificationSendService = notificationSendService;
+        this.topicSubscriptionRepository = topicSubscriptionRepository;
+        this.userInterestsRepository = userInterestsRepository;
     }
 
     /**
@@ -66,6 +80,28 @@ public class AiProcessingService {
         processCategory(article);
         processSummary(article);
         articleRepository.save(article);
+        if (article.getCategoryStatus() == ProcessingStatus.COMPLETED && article.getCategory() != null) {
+            triggerBreakingNotifications(article);
+        }
+    }
+
+    private void triggerBreakingNotifications(Article article) {
+        String categoryName = article.getCategory().name();
+        List<TopicSubscription> breakingSubscribers =
+                topicSubscriptionRepository.findByIdTopic(NotificationTopic.BREAKING);
+        for (TopicSubscription sub : breakingSubscribers) {
+            UUID accountId = sub.getAccountId();
+            boolean hasInterest = userInterestsRepository.findByAccountId(accountId).stream()
+                    .anyMatch(ui -> categoryName.equals(ui.getCategory()));
+            if (hasInterest) {
+                try {
+                    notificationSendService.enqueueBreaking(accountId, article.getId());
+                } catch (Exception e) {
+                    log.warn("[NOTIFICATION] enqueueBreaking 실패: accountId={}, articleId={}, msg={}",
+                            accountId, article.getId(), e.getMessage());
+                }
+            }
+        }
     }
 
     private void processCategory(Article article) {
