@@ -96,7 +96,7 @@
 
 - **FR-001**: 시스템은 새 기사 수집 후 해당 기사에 대한 편향 분석 작업을 자동으로 PENDING 상태로 생성해야 한다.
 - **FR-002**: 시스템은 편향 분석 작업을 비동기로 처리하고, AI로부터 −100~+100 범위의 정수 편향 점수와 2~5개의 근거 키워드를 수신하여 기사에 저장해야 한다.
-- **FR-003**: 편향 분析 실패 시 총 3회 시도(attempt_count 1→2→3; 재시도 딜레이 +5m/+30m, 005 outbox threshold `attemptCount >= 3` 동일 적용)하고, 3회 소진 시 FAILED 전환. FAILED 후 6시간(failed_at + 6h)에 one-shot 자동 복구 1회 수행; 그것도 실패하면 terminal FAILED 확정. 기사는 편향 점수 없이 정상 노출. 수동 재큐잉은 008.
+- **FR-003**: 편향 분석 실패 시 총 3회 시도(attempt_count 1→2→3; 재시도 딜레이 +5m/+30m, 005 outbox threshold `attemptCount >= 3` 동일 적용)하고, 3회 소진 시 FAILED 전환. FAILED 후 6시간(failed_at + 6h)에 one-shot 자동 복구 1회 수행; 그것도 실패하면 terminal FAILED 확정. 기사는 편향 점수 없이 정상 노출. 수동 재큐잉은 008.
 - **FR-004**: 동일 기사의 편향 분석 작업은 중복 생성되지 않아야 한다(멱등성).
 - **FR-005**: 피드 및 기사 상세 API는 `biasScore.value`와 `biasScore.rationaleKeywords`를 포함해야 하며, 분석 미완료 시 `biasScore: null`을 반환해야 한다. (인증: 001 기존 피드/상세 API 설정 상속)
 - **FR-006**: 시스템은 출처(Source/Outlet)별 편향 점수 가중평균(`biasValue`)과 분석 완료 기사 수(`articleCount`)를 제공하는 API를 제공해야 한다. (인증 필수 — JWT)
@@ -104,7 +104,7 @@
 - **FR-008**: 편향 점수는 진보(−100~−34) / 중립(−33~+33) / 보수(+34~+100) 세 버킷으로 분류된다.
 - **FR-009**: 기사 상세 화면에서 편향 칩(bias chip) 인터랙션 시, 점수와 근거 키워드 상세 정보를 반환하는 API를 제공해야 한다. (인증 필수 — JWT; 001 기사 상세 API와 동일 컨텍스트)
 - **FR-010**: 편향 분석 결과(점수, 키워드, 상태)는 기사 데이터와 분리하여 저장하고, 기존 기사 테이블을 오염시키지 않아야 한다.
-- **FR-011**: 편향 분析 스케줄러는 배치 실행마다 시작·종료·처리 건수·실패 건수를 log.info(구조적 로그)로 기록해야 한다. 개별 분析 실패 시 article_id·attempt_count·에러 종류를 log.warn으로 기록한다. API 키·토큰 등 민감 정보는 로그에 포함하지 않는다.
+- **FR-011**: 편향 분석 스케줄러는 배치 실행마다 시작·종료·처리 건수·실패 건수를 log.info(구조적 로그)로 기록해야 한다. 개별 분석 실패 시 article_id·attempt_count·에러 종류를 log.warn으로 기록한다. API 키·토큰 등 민감 정보는 로그에 포함하지 않는다.
 - **FR-012**: SLA 지표('수집 후 24h 경과 기사 중 status=DONE 비율'과 '당일 FAILED 전환 건수')는 일 1회(자정 또는 별도 일일 스케줄) 구조적 로그로 emit한다(SC-001 측정치 산출 근거). 배치 실행별 처리·실패 건수 로그는 FR-011이 담당한다.
 
 ### Key Entities
@@ -122,7 +122,7 @@
   - 측정: 최근 7일 롤링, '수집 후 24h 경과' 기사 모집단 중 status=DONE 비율, 일 1회 산출 — 스케줄러 구조적 로그로 emit(FR-012). (TODO: 7일/주기 Jace 확정)
 - **SC-002**: 기사 조회 응답에 `biasScore` 필드가 항상 포함된다(필드 누락 0%). status≠DONE 기사는 값 null로 반환한다.
 - **SC-003**: 편향 분석 실패 시에도 해당 기사가 피드에 정상 노출되어 사용자 경험이 단절되지 않는다.
-- **SC-004**: 출처 편향 집계 조회가 분析 완료 기사 10건 이상 존재하는 출처에 대해 p95 ≤ 3s, p99 ≤ 5s로 응답한다. 1순위: 인덱스 기반 집계 쿼리(Redis 미사용). 규모 증가 시 materialized view + 기존 스케줄러 REFRESH로 전환. 측정조건: 분析완료 10건+ 출처, 동시요청 수 명시. (TODO: 수치 Jace 확정)
+- **SC-004**: 출처 편향 집계 조회가 분석 완료 기사 10건 이상 존재하는 출처에 대해 p95 ≤ 3s, p99 ≤ 5s로 응답한다. 1순위: 인덱스 기반 집계 쿼리(Redis 미사용). 규모 증가 시 materialized view + 기존 스케줄러 REFRESH로 전환. 측정조건: 분석완료 10건+ 출처, 동시요청 수 명시. (TODO: 수치 Jace 확정)
 - **SC-005**: 동일 기사에 대한 편향 분석 작업 중복 실행이 0건이다.
 
 ## Assumptions
@@ -143,7 +143,7 @@
 ### Session 2026-06-21
 
 - Q: FR-006/007/009 신규 API 인증 요구사항 → A: FR-005는 001 기존 설정 상속, FR-006/007/009는 인증 필수(JWT)
-- Q: FAILED 재분析 정책 → A: 3회 fast 재시도(+5m/+30m) → FAILED 후 6h one-shot 자동복구, 그것도 실패 시 terminal FAILED. 수동 재큐잉은 008.
+- Q: FAILED 재분석 정책 → A: 3회 fast 재시도(+5m/+30m) → FAILED 후 6h one-shot 자동복구, 그것도 실패 시 terminal FAILED. 수동 재큐잉은 008.
 - Q: Redis 캐싱 대상/TTL → A: Redis 미도입. 인덱스 기반 집계 쿼리 1순위, 규모 증가 시 materialized view + 스케줄러 REFRESH로 대응.
 - Q: 재시도 기산점·백오프 구체값 → A: 총 3회 시도(attempt_count 1→2→3), 재시도 딜레이 +5m/+30m, 005 threshold(`attemptCount >= 3`) 재사용. 코드 검증: NotificationOutbox.java:103 `if (attemptCount >= 3)`.
 - Q: 관측가능성 요구사항 → A: Micrometer 스크래핑 백엔드 미연결(actuator만). B 채택 — 배치 시작·종료·처리/실패 건수 log.info + 개별 실패 log.warn(FR-011). SC-001 측정치(DONE 비율·FAILED 건수) 일 1회 구조적 로그 emit 필수(FR-012). Micrometer Counter는 008 Deferred.

@@ -1,4 +1,4 @@
-# Research: 006 편향 분析 엔진
+# Research: 006 편향 분석 엔진
 
 **Date**: 2026-06-21
 
@@ -10,7 +10,7 @@
 
 **Rationale**: Spec이 PENDING/PROCESSING/DONE/FAILED 4-state를 요구하지만 기존 `ProcessingStatus`는 PENDING/COMPLETED/FAILED 3-state만 존재한다. PROCESSING 상태(claimer가 점유했지만 Gemini 호출 전)와 DONE 상태를 명확히 분리해야 SKIP LOCKED claimer 패턴에서 재처리 방지가 가능하다.
 
-**Alternatives**: ProcessingStatus에 PROCESSING/DONE 추가 → 기존 summary/category 처리 코드 영향 범위가 넓고 편향 분析 전용 의미가 섞임.
+**Alternatives**: ProcessingStatus에 PROCESSING/DONE 추가 → 기존 summary/category 처리 코드 영향 범위가 넓고 편향 분석 전용 의미가 섞임.
 
 ---
 
@@ -91,7 +91,7 @@
 
 ## R-010 Article 응답 DTO 수정
 
-**Decision**: `ArticleDetailResponse`와 `ArticleFeedItem`에 `BiasScoreResponse biasScore` 필드 추가. 분析 미완료/없음 시 `biasScore: null`.
+**Decision**: `ArticleDetailResponse`와 `ArticleFeedItem`에 `BiasScoreResponse biasScore` 필드 추가. 분석 미완료/없음 시 `biasScore: null`.
 
 `BiasScoreResponse`: `Integer value` (DONE 시), `List<String> rationaleKeywords` (DONE 시), `String status` (PENDING/PROCESSING/DONE/FAILED).
 
@@ -110,7 +110,7 @@
 ## R-012 Configuration 추가 사항
 
 기존 `app.ai.*` 프로퍼티와 별도로 bias 전용 배치 설정 필요:
-- `app.scheduler.bias.interval-ms` — 편향 분析 배치 주기 (기본 60000ms)
+- `app.scheduler.bias.interval-ms` — 편향 분석 배치 주기 (기본 60000ms)
 - `app.scheduler.bias.batch-size` — 배치 크기 (기본 10)
 - `app.scheduler.bias.recovery-interval-ms` — one-shot recovery 폴 주기 (기본 3600000ms = 1h)
 - `app.scheduler.bias.backoff-attempt1-minutes` — 5 (1회 실패 후 딜레이)
@@ -123,7 +123,7 @@
 
 ## R-013 Claimer 트랜잭션 모델 — two-tx + lease
 
-**Decision**: 006 편향 분析 파이프라인은 **two-tx 모델**을 채택한다.
+**Decision**: 006 편향 분석 파이프라인은 **two-tx 모델**을 채택한다.
 - Phase 1 `BiasAnalysisClaimer.claimBatch()` (별도 @Transactional 빈): `lockAndClaimPending` → 각 행 `claim(leaseMinutes)` (PROCESSING + `next_retry_at = NOW() + lease`) → 커밋 시 FOR UPDATE SKIP LOCKED 락 해제.
 - Phase 2: Gemini HTTP 호출은 DB 락 밖에서 실행.
 - Phase 3 `persistResult()` (별도 @Transactional 빈): 결과 저장.

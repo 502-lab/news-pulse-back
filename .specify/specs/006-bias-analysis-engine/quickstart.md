@@ -1,4 +1,4 @@
-# Quickstart Validation Guide: 006 편향 분析 엔진
+# Quickstart Validation Guide: 006 편향 분석 엔진
 
 **Date**: 2026-06-21
 
@@ -52,7 +52,7 @@ LIMIT 5;
 
 ---
 
-## Scenario 2 — 편향 분析 파이프라인 완료 (FR-002, SC-002)
+## Scenario 2 — 편향 분석 파이프라인 완료 (FR-002, SC-002)
 
 **방법**: 스케줄러가 자동 실행 또는 interval-ms=5000 대기 (5~15초)
 
@@ -146,7 +146,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/articles/{ar
 ## Scenario 6 — 출처 편향 집계 (FR-006, SC-004)
 
 ```bash
-# sourceId=1 기준 (분析완료 기사 10건+ 전제)
+# sourceId=1 기준 (분석완료 기사 10건+ 전제)
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/bias/outlets/1
 ```
 

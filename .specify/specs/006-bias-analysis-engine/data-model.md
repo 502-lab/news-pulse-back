@@ -1,4 +1,4 @@
-# Data Model: 006 편향 분析 엔진
+# Data Model: 006 편향 분석 엔진
 
 **Date**: 2026-06-21
 
@@ -8,7 +8,7 @@
 
 ### BiasAnalysis
 
-기사별 편향 분析 작업 단위 (1기사 1행).
+기사별 편향 분석 작업 단위 (1기사 1행).
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -148,7 +148,7 @@ CREATE TRIGGER trg_bias_analysis_updated_at
 `BiasScoreResponse biasScore` 필드 추가 (기존 10 필드 + 1):
 
 ```java
-@Schema(description = "편향 분析 점수. 분析 미완료 또는 미존재 시 null")
+@Schema(description = "편향 분석 점수. 분석 미완료 또는 미존재 시 null")
 BiasScoreResponse biasScore
 ```
 
@@ -157,7 +157,7 @@ BiasScoreResponse biasScore
 `BiasScoreResponse biasScore` 필드 추가:
 
 ```java
-@Schema(description = "편향 분析 점수. 분析 미완료 시 null")
+@Schema(description = "편향 분석 점수. 분석 미완료 시 null")
 BiasScoreResponse biasScore
 ```
 
@@ -176,7 +176,7 @@ public record BiasScoreResponse(
     @Schema(description = "근거 키워드 2~5개. DONE 상태에서만 non-null")
     List<String> rationaleKeywords,
 
-    @Schema(description = "분析 상태: PENDING/PROCESSING/DONE/FAILED")
+    @Schema(description = "분석 상태: PENDING/PROCESSING/DONE/FAILED")
     String status
 ) {}
 ```
@@ -189,10 +189,10 @@ public record OutletBiasResponse(
     @Schema(description = "출처 ID")
     Long sourceId,
 
-    @Schema(description = "편향 점수 단순평균 (롤링 90일, 분析완료 10건 이상 시). 미달 시 null")
+    @Schema(description = "편향 점수 단순평균 (롤링 90일, 분석완료 10건 이상 시). 미달 시 null")
     Double biasValue,
 
-    @Schema(description = "분析 완료 기사 수 (롤링 90일)")
+    @Schema(description = "분석 완료 기사 수 (롤링 90일)")
     long articleCount
 ) {}
 ```
@@ -202,7 +202,7 @@ public record OutletBiasResponse(
 ```java
 // com.newscurator.dto.response.BiasSpectrumResponse
 public record BiasSpectrumResponse(
-    @Schema(description = "전체 분析완료 기사 가중평균. 기사 없으면 null")
+    @Schema(description = "전체 분석완료 기사 가중평균. 기사 없으면 null")
     Double weightedAverage,
 
     @Schema(description = "진보[−100,−34] 비율 %. 기사 없으면 null")
@@ -214,7 +214,7 @@ public record BiasSpectrumResponse(
     @Schema(description = "보수[+34,+100] 비율 %. 기사 없으면 null")
     Double conservativePercent,
 
-    @Schema(description = "집계 대상 분析완료 기사 수")
+    @Schema(description = "집계 대상 분석완료 기사 수")
     long totalCount
 ) {}
 ```

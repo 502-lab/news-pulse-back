@@ -1,4 +1,4 @@
-# OpenAPI Patch: 006 편향 분析 엔진
+# OpenAPI Patch: 006 편향 분석 엔진
 # 기존 openapi.yaml에 추가/수정될 경로와 스키마.
 # 구현 전 news-pulse-spec 레포 openapi.yaml에 선반영 필요 (CLAUDE.md 규칙).
 
@@ -18,7 +18,7 @@ paths:
       summary: "기사 편향 점수 조회"
       description: |
         기사 상세 화면에서 편향 칩 인터랙션 시 편향 점수와 근거 키워드를 반환한다.
-        분析 미완료(PENDING/PROCESSING) 또는 FAILED 기사는 value·rationaleKeywords가 null이고
+        분석 미완료(PENDING/PROCESSING) 또는 FAILED 기사는 value·rationaleKeywords가 null이고
         status 필드로 상태를 전달한다.
         BiasAnalysis 행이 없으면 404.
       operationId: getArticleBias
@@ -42,7 +42,7 @@ paths:
         "401":
           description: "인증 토큰 없음/만료"
         "404":
-          description: "기사 또는 편향 분析 데이터 없음"
+          description: "기사 또는 편향 분석 데이터 없음"
 
   # ─────────────────────────────────────────────────────────────
   # FR-006: 출처 편향 집계 조회
@@ -52,7 +52,7 @@ paths:
       tags: [Bias]
       summary: "출처 편향 집계 조회"
       description: |
-        특정 출처(Source)의 편향 점수 단순평균과 분析 완료 기사 수를 반환한다.
+        특정 출처(Source)의 편향 점수 단순평균과 분석 완료 기사 수를 반환한다.
         집계 기준: 롤링 90일, status=DONE 기사만. 최소 10건 미만이면 biasValue: null.
         SLA: p95 ≤ 3s (SC-004).
       operationId: getOutletBias
@@ -86,8 +86,8 @@ paths:
       tags: [Bias]
       summary: "전체 편향 스펙트럼 조회"
       description: |
-        서비스 전체 분析완료 기사의 편향 분포(가중평균, 진보/중립/보수 %)를 반환한다.
-        분析완료 기사가 없으면 모든 집계 값이 null.
+        서비스 전체 분석완료 기사의 편향 분포(가중평균, 진보/중립/보수 %)를 반환한다.
+        분석완료 기사가 없으면 모든 집계 값이 null.
         버킷: 진보[−100,−34] / 중립[−33,+33] / 보수[+34,+100].
       operationId: getBiasSpectrum
       security:
@@ -108,7 +108,7 @@ paths:
   /api/v1/admin/bias/backfill:
     post:
       tags: [Admin]
-      summary: "편향 분析 Backfill 실행"
+      summary: "편향 분석 Backfill 실행"
       description: |
         최근 90일 이내 수집 기사 중 bias_analysis 행이 없는 기사에
         PENDING 행을 일괄 생성한다. 멱등 (ON CONFLICT DO NOTHING).
@@ -137,13 +137,13 @@ paths:
 #   biasScore:
 #     $ref: "#/components/schemas/BiasScoreResponse"
 #     nullable: true
-#     description: "편향 분析 점수. 분析 미완료 시 null"
+#     description: "편향 분석 점수. 분석 미완료 시 null"
 #
 # ArticleDetailResponse 에 추가:
 #   biasScore:
 #     $ref: "#/components/schemas/BiasScoreResponse"
 #     nullable: true
-#     description: "편향 분析 점수. 분析 미완료 시 null"
+#     description: "편향 분석 점수. 분석 미완료 시 null"
 # ─────────────────────────────────────────────────────────────
 
 components:
@@ -151,7 +151,7 @@ components:
 
     BiasScoreResponse:
       type: object
-      description: "편향 분析 점수 응답"
+      description: "편향 분석 점수 응답"
       properties:
         value:
           type: integer
@@ -172,7 +172,7 @@ components:
         status:
           type: string
           enum: [PENDING, PROCESSING, DONE, FAILED]
-          description: "분析 상태"
+          description: "분석 상태"
           example: "DONE"
 
     OutletBiasResponse:
@@ -193,7 +193,7 @@ components:
         articleCount:
           type: integer
           format: int64
-          description: "분析 완료 기사 수 (롤링 90일)"
+          description: "분석 완료 기사 수 (롤링 90일)"
           example: 142
 
     BiasSpectrumResponse:
@@ -204,7 +204,7 @@ components:
           type: number
           format: double
           nullable: true
-          description: "전체 분析완료 기사 가중평균. 기사 없으면 null"
+          description: "전체 분석완료 기사 가중평균. 기사 없으면 null"
           example: -12.3
         liberalPercent:
           type: number
@@ -227,7 +227,7 @@ components:
         totalCount:
           type: integer
           format: int64
-          description: "집계 대상 분析완료 기사 수"
+          description: "집계 대상 분석완료 기사 수"
           example: 5123
 
     BackfillResult:

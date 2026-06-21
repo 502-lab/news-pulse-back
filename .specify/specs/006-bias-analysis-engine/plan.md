@@ -1,4 +1,4 @@
-# Implementation Plan: 006 편향 분析 엔진
+# Implementation Plan: 006 편향 분석 엔진
 
 **Branch**: `006-bias-analysis-engine` | **Date**: 2026-06-21 | **Spec**: [spec.md](./spec.md)
 
@@ -19,7 +19,7 @@
 **Framework**: Spring Boot 4.x + Spring Data JPA (Hibernate 6)
 
 **Primary Dependencies**:
-- Gemini Flash (`app.client.gemini.*`) — 편향 분析 AI 호출 (기존 `GeminiAiProvider` 확장)
+- Gemini Flash (`app.client.gemini.*`) — 편향 분석 AI 호출 (기존 `GeminiAiProvider` 확장)
 - PostgreSQL 17 — `bias_analysis` 테이블, `TEXT[]` 배열, `FOR UPDATE SKIP LOCKED`
 - Flyway — V13 마이그레이션
 - SpringDoc OpenAPI — Swagger 문서화
@@ -262,7 +262,7 @@ int backfillPending();
 
 ```java
 private static final String BIAS_PROMPT =
-    "다음 뉴스 기사의 정치적 편향성을 분析하세요. "
+    "다음 뉴스 기사의 정치적 편향성을 분석하세요. "
     + "반드시 아래 JSON 형식으로만 답하세요 (다른 텍스트 없이):\n"
     + "{\"score\": <-100에서 +100 사이 정수>, "
     + "\"keywords\": [\"키워드1\", \"키워드2\", ...]}\n"
