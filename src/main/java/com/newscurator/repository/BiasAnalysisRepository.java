@@ -55,6 +55,36 @@ public interface BiasAnalysisRepository extends JpaRepository<BiasAnalysis, Long
             """, nativeQuery = true)
     long countFailedToday();
 
+    // 출처 편향 집계 (FR-006): 단일 GROUP-less 집계 1행 반환 [0]=avg(BigDecimal|null), [1]=count(Long).
+    // article_sources(source_id) JOIN — idx_article_sources_source_id(V13) 사용. 단일 쿼리(N+1 아님).
+    @Query(value = """
+            SELECT AVG(ba.value)::NUMERIC(5,2) AS bias_value,
+                   COUNT(*)                     AS article_count
+            FROM bias_analysis ba
+                     JOIN article_sources aso ON ba.article_id = aso.article_id
+            WHERE aso.source_id = :sourceId
+              AND ba.status = 'DONE'
+              AND ba.analyzed_at >= NOW() - INTERVAL '90 days'
+            """, nativeQuery = true)
+    List<Object[]> aggregateOutletBias(@Param("sourceId") Long sourceId);
+
+    // 전체 편향 스펙트럼 (FR-007/FR-008): 단일 집계 1행.
+    // 버킷 진보[-100,-34]/중립[-33,+33]/보수[+34,+100], inclusive 정수범위.
+    // NULLIF(COUNT,0): 0건일 때 division-by-zero 방지 → 비율 NULL.
+    @Query(value = """
+            SELECT AVG(value)::NUMERIC(5,2) AS weighted_average,
+                   100.0 * COUNT(*) FILTER (WHERE value BETWEEN -100 AND -34)
+                       / NULLIF(COUNT(*), 0) AS liberal_percent,
+                   100.0 * COUNT(*) FILTER (WHERE value BETWEEN -33 AND 33)
+                       / NULLIF(COUNT(*), 0) AS neutral_percent,
+                   100.0 * COUNT(*) FILTER (WHERE value BETWEEN 34 AND 100)
+                       / NULLIF(COUNT(*), 0) AS conservative_percent,
+                   COUNT(*)                  AS total_count
+            FROM bias_analysis
+            WHERE status = 'DONE'
+            """, nativeQuery = true)
+    List<Object[]> aggregateSpectrum();
+
     // Backfill: 최근 90일 기사 중 bias_analysis 미존재 기사에 PENDING 일괄 생성 (멱등)
     @Modifying
     @Query(value = """

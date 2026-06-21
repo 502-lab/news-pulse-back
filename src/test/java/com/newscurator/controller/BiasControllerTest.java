@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.newscurator.dto.response.BiasScoreResponse;
+import com.newscurator.dto.response.BiasSpectrumResponse;
+import com.newscurator.dto.response.OutletBiasResponse;
 import com.newscurator.exception.GlobalExceptionHandler;
 import com.newscurator.exception.ResourceNotFoundException;
 import com.newscurator.service.BiasAnalysisService;
@@ -79,5 +81,71 @@ class BiasControllerTest {
 
         mockMvc.perform(get("/api/v1/articles/99/bias"))
                 .andExpect(status().isNotFound());
+    }
+
+    // ── 출처 편향 집계 (FR-006) ──────────────────────────────────────
+
+    @Test
+    @DisplayName("출처 집계 200: biasValue·articleCount 반환")
+    void getOutletBias_returnsAggregate() throws Exception {
+        when(biasAnalysisService.getOutletBias(1L))
+                .thenReturn(new OutletBiasResponse(1L, -23.5, 142));
+
+        mockMvc.perform(get("/api/v1/bias/outlets/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sourceId").value(1))
+                .andExpect(jsonPath("$.data.biasValue").value(-23.5))
+                .andExpect(jsonPath("$.data.articleCount").value(142));
+    }
+
+    @Test
+    @DisplayName("출처 집계 200: 10건 미만 → biasValue null, articleCount 그대로")
+    void getOutletBias_belowMin_biasValueNull() throws Exception {
+        when(biasAnalysisService.getOutletBias(2L))
+                .thenReturn(new OutletBiasResponse(2L, null, 4));
+
+        mockMvc.perform(get("/api/v1/bias/outlets/2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.biasValue").value(nullValue()))
+                .andExpect(jsonPath("$.data.articleCount").value(4));
+    }
+
+    @Test
+    @DisplayName("출처 집계 404: 출처 없음")
+    void getOutletBias_sourceNotFound_returns404() throws Exception {
+        when(biasAnalysisService.getOutletBias(99L))
+                .thenThrow(new ResourceNotFoundException("Source", 99L));
+
+        mockMvc.perform(get("/api/v1/bias/outlets/99"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ── 전체 스펙트럼 (FR-007) ───────────────────────────────────────
+
+    @Test
+    @DisplayName("스펙트럼 200: 가중평균 + 진보/중립/보수 % 반환")
+    void getSpectrum_returnsDistribution() throws Exception {
+        when(biasAnalysisService.getSpectrum())
+                .thenReturn(new BiasSpectrumResponse(-12.3, 42.5, 38.2, 19.3, 5123));
+
+        mockMvc.perform(get("/api/v1/bias/spectrum"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.weightedAverage").value(-12.3))
+                .andExpect(jsonPath("$.data.liberalPercent").value(42.5))
+                .andExpect(jsonPath("$.data.neutralPercent").value(38.2))
+                .andExpect(jsonPath("$.data.conservativePercent").value(19.3))
+                .andExpect(jsonPath("$.data.totalCount").value(5123));
+    }
+
+    @Test
+    @DisplayName("스펙트럼 200: 기사 0건 → 집계 값 모두 null, totalCount=0")
+    void getSpectrum_empty_allNull() throws Exception {
+        when(biasAnalysisService.getSpectrum())
+                .thenReturn(new BiasSpectrumResponse(null, null, null, null, 0));
+
+        mockMvc.perform(get("/api/v1/bias/spectrum"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.weightedAverage").value(nullValue()))
+                .andExpect(jsonPath("$.data.totalCount").value(0));
     }
 }

@@ -37,6 +37,7 @@ class BiasAnalysisServiceTest {
     @Mock private BiasAnalysisRepository biasAnalysisRepository;
     @Mock private ArticleRepository articleRepository;
     @Mock private AiProvider aiProvider;
+    @Mock private com.newscurator.repository.SourceRepository sourceRepository;
 
     private BiasAnalysisService service;
 
@@ -46,7 +47,8 @@ class BiasAnalysisServiceTest {
     @BeforeEach
     void setUp() {
         service = new BiasAnalysisService(
-                claimer, biasAnalysisRepository, articleRepository, aiProvider, PROPS);
+                claimer, biasAnalysisRepository, articleRepository, aiProvider, PROPS,
+                sourceRepository);
     }
 
     private Article article(long id) {

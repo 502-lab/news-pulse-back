@@ -117,11 +117,11 @@
 
 **Independent Test**: 분석완료 10건+ 출처의 집계 API가 biasValue·articleCount 반환, 10건 미만 시 biasValue null (quickstart Scenario 6).
 
-- [ ] T028 [P] [US3] `OutletBiasResponse` record 생성 in `src/main/java/com/newscurator/dto/response/OutletBiasResponse.java` (sourceId, biasValue[Double, 최소10건 미달 null], articleCount) + @Schema
-- [ ] T029 [US3] `BiasAnalysisService.getOutletBias(Long sourceId)` 추가 in `src/main/java/com/newscurator/service/BiasAnalysisService.java` — aggregateOutletBias 호출, 최소 10건 미만 biasValue null, 출처 없으면 404
-- [ ] T030 [US3] `GET /api/v1/bias/outlets/{sourceId}` 추가 in `src/main/java/com/newscurator/controller/BiasController.java` — JWT 필수(FR-006), Swagger 문서화
-- [ ] T031 [P] [US3] 컨트롤러 테스트 추가 in `BiasControllerTest` — outlet 200/401/404, 10건 미만 null 케이스
-- [ ] T032 [US3] 집계 정확성 통합 테스트 in `src/test/java/com/newscurator/service/OutletBiasAggregationIT.java` (`BigmPostgresImage.NAME`) — 단순평균·롤링 90일·최소 10건 경계·DONE만 포함 검증, EXPLAIN으로 idx_article_sources_source_id 사용 확인(SC-004)
+- [X] T028 [P] [US3] `OutletBiasResponse` record 생성 in `src/main/java/com/newscurator/dto/response/OutletBiasResponse.java` (sourceId, biasValue[Double, 최소10건 미달 null], articleCount) + @Schema
+- [X] T029 [US3] `BiasAnalysisService.getOutletBias(Long sourceId)` 추가 in `src/main/java/com/newscurator/service/BiasAnalysisService.java` — aggregateOutletBias 호출, 최소 10건 미만 biasValue null, 출처 없으면 404
+- [X] T030 [US3] `GET /api/v1/bias/outlets/{sourceId}` 추가 in `src/main/java/com/newscurator/controller/BiasController.java` — JWT 필수(FR-006), Swagger 문서화
+- [X] T031 [P] [US3] 컨트롤러 테스트 추가 in `BiasControllerTest` — outlet 200/401/404, 10건 미만 null 케이스
+- [X] T032 [US3] 집계 정확성 통합 테스트 in `src/test/java/com/newscurator/service/OutletBiasAggregationIT.java` (`BigmPostgresImage.NAME`) — 단순평균·롤링 90일·최소 10건 경계·DONE만 포함 검증, EXPLAIN으로 idx_article_sources_source_id 사용 확인(SC-004)
 
 **Checkpoint**: 출처 편향 집계 동작.
 
@@ -133,10 +133,10 @@
 
 **Independent Test**: 다양한 점수 분포에서 스펙트럼 API가 가중평균·3버킷 % 합산 100% 반환, 기사 없으면 빈 응답 (quickstart Scenario 7).
 
-- [ ] T033 [P] [US4] `BiasSpectrumResponse` record 생성 in `src/main/java/com/newscurator/dto/response/BiasSpectrumResponse.java` (weightedAverage, liberalPercent, neutralPercent, conservativePercent, totalCount) + @Schema
-- [ ] T034 [US4] `BiasAnalysisService.getSpectrum()` 추가 in `src/main/java/com/newscurator/service/BiasAnalysisService.java` — spectrum 집계 쿼리(버킷 진보[−100,−34]/중립[−33,+33]/보수[+34,+100]), 기사 0건 시 모든 값 null/0
-- [ ] T035 [US4] `GET /api/v1/bias/spectrum` 추가 in `src/main/java/com/newscurator/controller/BiasController.java` — JWT 필수(FR-007), Swagger 문서화
-- [ ] T036 [US4] 스펙트럼 집계 테스트 in `src/test/java/com/newscurator/service/BiasSpectrumTest.java` — 버킷 경계값(−34→진보, +34→보수) 정확 분류, % 합산 100%, 빈 응답 검증
+- [X] T033 [P] [US4] `BiasSpectrumResponse` record 생성 in `src/main/java/com/newscurator/dto/response/BiasSpectrumResponse.java` (weightedAverage, liberalPercent, neutralPercent, conservativePercent, totalCount) + @Schema
+- [X] T034 [US4] `BiasAnalysisService.getSpectrum()` 추가 in `src/main/java/com/newscurator/service/BiasAnalysisService.java` — spectrum 집계 쿼리(버킷 진보[−100,−34]/중립[−33,+33]/보수[+34,+100]), 기사 0건 시 모든 값 null/0
+- [X] T035 [US4] `GET /api/v1/bias/spectrum` 추가 in `src/main/java/com/newscurator/controller/BiasController.java` — JWT 필수(FR-007), Swagger 문서화
+- [X] T036 [US4] 스펙트럼 집계 테스트 in `src/test/java/com/newscurator/service/BiasSpectrumTest.java` — 버킷 경계값(−34→진보, +34→보수) 정확 분류, % 합산 100%, 빈 응답 검증
 
 **Checkpoint**: 전체 스펙트럼 조회 동작.
 

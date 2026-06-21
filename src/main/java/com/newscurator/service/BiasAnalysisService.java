@@ -7,11 +7,14 @@ import com.newscurator.domain.Article;
 import com.newscurator.domain.BiasAnalysis;
 import com.newscurator.domain.enums.BiasStatus;
 import com.newscurator.dto.response.BiasScoreResponse;
+import com.newscurator.dto.response.BiasSpectrumResponse;
+import com.newscurator.dto.response.OutletBiasResponse;
 import com.newscurator.exception.AiProviderException;
 import com.newscurator.exception.AiTransientException;
 import com.newscurator.exception.ResourceNotFoundException;
 import com.newscurator.repository.ArticleRepository;
 import com.newscurator.repository.BiasAnalysisRepository;
+import com.newscurator.repository.SourceRepository;
 import com.newscurator.scheduler.BiasAnalysisClaimer;
 import java.util.List;
 import java.util.Optional;
@@ -32,23 +35,29 @@ public class BiasAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(BiasAnalysisService.class);
 
+    /** 출처 편향 집계 최소 표본 수 — 미만이면 biasValue null (Assumptions: 최소 10건). */
+    private static final long OUTLET_MIN_ARTICLES = 10;
+
     private final BiasAnalysisClaimer claimer;
     private final BiasAnalysisRepository biasAnalysisRepository;
     private final ArticleRepository articleRepository;
     private final AiProvider aiProvider;
     private final BiasProperties biasProperties;
+    private final SourceRepository sourceRepository;
 
     public BiasAnalysisService(
             BiasAnalysisClaimer claimer,
             BiasAnalysisRepository biasAnalysisRepository,
             ArticleRepository articleRepository,
             AiProvider aiProvider,
-            BiasProperties biasProperties) {
+            BiasProperties biasProperties,
+            SourceRepository sourceRepository) {
         this.claimer = claimer;
         this.biasAnalysisRepository = biasAnalysisRepository;
         this.articleRepository = articleRepository;
         this.aiProvider = aiProvider;
         this.biasProperties = biasProperties;
+        this.sourceRepository = sourceRepository;
     }
 
     /**
@@ -164,6 +173,45 @@ public class BiasAnalysisService {
             return new BiasScoreResponse(row.getValue(), keywords, BiasStatus.DONE.name());
         }
         return new BiasScoreResponse(null, null, row.getStatus().name());
+    }
+
+    /**
+     * 출처 편향 집계 (FR-006): 롤링 90일 DONE 기사 단순평균 + 기사 수.
+     * 출처 미존재 시 404. 분석완료 {@value #OUTLET_MIN_ARTICLES}건 미만이면 biasValue=null.
+     */
+    @Transactional(readOnly = true)
+    public OutletBiasResponse getOutletBias(Long sourceId) {
+        if (!sourceRepository.existsById(sourceId)) {
+            throw new ResourceNotFoundException("Source", sourceId);
+        }
+        Object[] row = biasAnalysisRepository.aggregateOutletBias(sourceId).get(0);
+        Double avg = toDouble(row[0]);
+        long count = toLong(row[1]);
+        Double biasValue = count >= OUTLET_MIN_ARTICLES ? avg : null;
+        return new OutletBiasResponse(sourceId, biasValue, count);
+    }
+
+    /**
+     * 전체 편향 스펙트럼 (FR-007): 가중평균 + 진보/중립/보수 %.
+     * 분석완료 기사 0건이면 모든 집계 값 null, totalCount=0.
+     */
+    @Transactional(readOnly = true)
+    public BiasSpectrumResponse getSpectrum() {
+        Object[] row = biasAnalysisRepository.aggregateSpectrum().get(0);
+        long total = toLong(row[4]);
+        if (total == 0) {
+            return new BiasSpectrumResponse(null, null, null, null, 0);
+        }
+        return new BiasSpectrumResponse(
+                toDouble(row[0]), toDouble(row[1]), toDouble(row[2]), toDouble(row[3]), total);
+    }
+
+    private static Double toDouble(Object o) {
+        return o == null ? null : ((Number) o).doubleValue();
+    }
+
+    private static long toLong(Object o) {
+        return o == null ? 0L : ((Number) o).longValue();
     }
 
     /** SC-001 일일 emit (FR-012): 24h DONE 비율 + 당일 FAILED 건수 구조적 로그. */
