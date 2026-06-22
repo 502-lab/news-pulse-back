@@ -64,4 +64,20 @@ public interface TrendKeywordSlotRepository
     @Modifying
     @Query(value = "DELETE FROM trend_keyword_slot WHERE slot_start < :cutoff", nativeQuery = true)
     int deleteOlderThan(@Param("cutoff") Instant cutoff);
+
+    /**
+     * 워드클라우드: 윈도우 내 term별 weight = SUM(article_count). term-scoped라 과대계상 없음.
+     * min-freq 컷(weight >= :minCount). weight 내림차순.
+     * Object[]: [0]=term(String), [1]=weight(Long)
+     */
+    @Query(value = """
+            SELECT term, SUM(article_count) AS weight
+            FROM trend_keyword_slot
+            WHERE slot_start >= :windowStart
+            GROUP BY term
+            HAVING SUM(article_count) >= :minCount
+            ORDER BY weight DESC, term ASC
+            """, nativeQuery = true)
+    List<Object[]> wordcloud(
+            @Param("windowStart") Instant windowStart, @Param("minCount") int minCount);
 }

@@ -1,9 +1,14 @@
 package com.newscurator.service;
 
 import com.newscurator.config.TrendProperties;
+import com.newscurator.dto.response.HeatmapCellResponse;
 import com.newscurator.dto.response.TrendKeywordResponse;
+import com.newscurator.dto.response.WordcloudItemResponse;
+import com.newscurator.repository.ArticleKeywordRepository;
 import com.newscurator.repository.TrendKeywordSlotRepository;
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -20,11 +25,15 @@ public class TrendQueryService {
     private static final int WEEK_DAYS = 7;
 
     private final TrendKeywordSlotRepository slotRepository;
+    private final ArticleKeywordRepository articleKeywordRepository;
     private final TrendProperties trendProperties;
 
     public TrendQueryService(
-            TrendKeywordSlotRepository slotRepository, TrendProperties trendProperties) {
+            TrendKeywordSlotRepository slotRepository,
+            ArticleKeywordRepository articleKeywordRepository,
+            TrendProperties trendProperties) {
         this.slotRepository = slotRepository;
+        this.articleKeywordRepository = articleKeywordRepository;
         this.trendProperties = trendProperties;
     }
 
@@ -69,6 +78,40 @@ public class TrendQueryService {
                 WOW_LIMIT);
 
         return rows.stream().map(TrendQueryService::toKeyword).toList();
+    }
+
+    /**
+     * 히트맵 (FR-006): (시간버킷 × 카테고리) 격자의 기사 볼륨 = DISTINCT 기사 수.
+     * per-term SUM이 아니라 article_keyword JOIN articles의 DISTINCT 기사(과대계상 방지).
+     */
+    @Transactional(readOnly = true)
+    public List<HeatmapCellResponse> getHeatmap(int windowHours) {
+        Instant windowStart = Instant.now().minus(windowHours, ChronoUnit.HOURS);
+        return articleKeywordRepository.heatmap(windowStart).stream()
+                .map(row -> new HeatmapCellResponse(
+                        toInstant(row[0]).atOffset(ZoneOffset.UTC),
+                        (String) row[1],
+                        ((Number) row[2]).longValue()))
+                .toList();
+    }
+
+    /**
+     * 워드클라우드 (FR-006): term별 weight = 윈도우 내 article_count 합. min-freq(<2) 제외.
+     */
+    @Transactional(readOnly = true)
+    public List<WordcloudItemResponse> getWordcloud(int windowHours) {
+        Instant windowStart = Instant.now().minus(windowHours, ChronoUnit.HOURS);
+        return slotRepository.wordcloud(windowStart, trendProperties.minArticleCount()).stream()
+                .map(row -> new WordcloudItemResponse((String) row[0], ((Number) row[1]).longValue()))
+                .toList();
+    }
+
+    /** date_trunc 결과는 드라이버/Hibernate에 따라 Instant 또는 Timestamp로 옴 — 둘 다 처리. */
+    private static Instant toInstant(Object ts) {
+        if (ts instanceof Instant i) {
+            return i;
+        }
+        return ((Timestamp) ts).toInstant();
     }
 
     private static TrendKeywordResponse toKeyword(Object[] row) {

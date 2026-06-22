@@ -87,11 +87,11 @@
 
 **Independent Test**: 다수 슬롯·카테고리 집계 존재 시 격자/가중치 목록 반환, 빈 윈도우 빈 응답 (quickstart Scenario 5).
 
-- [ ] T026 [P] [US3] `WordcloudItemResponse`(term, weight) + `HeatmapCellResponse`(slotStart, category, intensity) records in `src/main/java/com/newscurator/dto/response/` + @Schema
-- [ ] T027 [US3] `TrendQueryService.getWordcloud(windowHours)` + `getHeatmap(windowHours)` in `TrendQueryService.java` — 워드클라우드 term/weight, 히트맵 slot×category SUM 격자
-- [ ] T028 [US3] `GET /api/v1/trends/wordcloud` + `GET /api/v1/trends/heatmap` in `TrendController.java` — public, Swagger
-- [ ] T029 [US3] 컨트롤러 테스트 추가 in `TrendControllerTest` — wordcloud/heatmap 200, 빈 윈도우
-- [ ] T030 [US3] 히트맵/워드클라우드 IT in `src/test/java/com/newscurator/service/TrendHeatmapWordcloudIT.java` (`BigmPostgresImage.NAME`) — 격자·가중치 정확성
+- [X] T026 [P] [US3] `WordcloudItemResponse`(term, weight) + `HeatmapCellResponse`(slotStart, category, intensity) records in `src/main/java/com/newscurator/dto/response/` + @Schema
+- [X] T027 [US3] `TrendQueryService.getWordcloud(windowHours)` + `getHeatmap(windowHours)` in `TrendQueryService.java` — 워드클라우드 term/weight, 히트맵 slot×category SUM 격자
+- [X] T028 [US3] `GET /api/v1/trends/wordcloud` + `GET /api/v1/trends/heatmap` in `TrendController.java` — public, Swagger
+- [X] T029 [US3] 컨트롤러 테스트 추가 in `TrendControllerTest` — wordcloud/heatmap 200, 빈 윈도우
+- [X] T030 [US3] 히트맵/워드클라우드 IT in `src/test/java/com/newscurator/service/TrendHeatmapWordcloudIT.java` (`BigmPostgresImage.NAME`) — 격자·가중치 정확성
 
 **Checkpoint**: 시각 탐색 데이터 제공.
 

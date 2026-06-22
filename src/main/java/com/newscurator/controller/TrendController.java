@@ -1,7 +1,9 @@
 package com.newscurator.controller;
 
 import com.newscurator.dto.response.ApiResponse;
+import com.newscurator.dto.response.HeatmapCellResponse;
 import com.newscurator.dto.response.TrendKeywordResponse;
+import com.newscurator.dto.response.WordcloudItemResponse;
 import com.newscurator.service.TrendQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,5 +50,32 @@ public class TrendController {
     @GetMapping("/api/v1/trends/wow")
     public ResponseEntity<ApiResponse<List<TrendKeywordResponse>>> getWow() {
         return ResponseEntity.ok(ApiResponse.success(trendQueryService.getWow()));
+    }
+
+    @Operation(
+            summary = "히트맵 (시간버킷 × 카테고리)",
+            description = "시간 슬롯 × 카테고리 격자의 기사 볼륨(intensity = DISTINCT 기사 수). 공개. "
+                    + "per-term SUM이 아닌 DISTINCT 기사 수(과대계상 방지).")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공(빈 윈도우면 빈 배열)")
+    })
+    @GetMapping("/api/v1/trends/heatmap")
+    public ResponseEntity<ApiResponse<List<HeatmapCellResponse>>> getHeatmap(
+            @Parameter(description = "윈도우 시간(기본 24h)")
+            @RequestParam(defaultValue = "24") int windowHours) {
+        return ResponseEntity.ok(ApiResponse.success(trendQueryService.getHeatmap(windowHours)));
+    }
+
+    @Operation(
+            summary = "워드클라우드",
+            description = "윈도우 내 키워드별 가중치(weight = 등장 기사 수 합). 공개. min-freq(2건 미만) 제외.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공(빈 윈도우면 빈 배열)")
+    })
+    @GetMapping("/api/v1/trends/wordcloud")
+    public ResponseEntity<ApiResponse<List<WordcloudItemResponse>>> getWordcloud(
+            @Parameter(description = "윈도우 시간(기본 24h)")
+            @RequestParam(defaultValue = "24") int windowHours) {
+        return ResponseEntity.ok(ApiResponse.success(trendQueryService.getWordcloud(windowHours)));
     }
 }

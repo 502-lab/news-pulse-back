@@ -5,8 +5,11 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.newscurator.dto.response.HeatmapCellResponse;
 import com.newscurator.dto.response.TrendKeywordResponse;
+import com.newscurator.dto.response.WordcloudItemResponse;
 import com.newscurator.service.TrendQueryService;
+import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -86,5 +89,31 @@ class TrendControllerTest {
                 .andExpect(jsonPath("$.data[0].deltaPct").value(nullValue()))
                 .andExpect(jsonPath("$.data[1].term").value("기존주간"))
                 .andExpect(jsonPath("$.data[1].deltaPct").value(20.0));
+    }
+
+    @Test
+    @DisplayName("히트맵 200: slotStart/category/intensity")
+    void getHeatmap_returnsCells() throws Exception {
+        when(trendQueryService.getHeatmap(24)).thenReturn(List.of(
+                new HeatmapCellResponse(OffsetDateTime.now(), "POLITICS", 3)));
+
+        mockMvc.perform(get("/api/v1/trends/heatmap"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].category").value("POLITICS"))
+                .andExpect(jsonPath("$.data[0].intensity").value(3));
+        verify(trendQueryService).getHeatmap(24);
+    }
+
+    @Test
+    @DisplayName("워드클라우드 200: term/weight, windowHours 전달")
+    void getWordcloud_returnsItems() throws Exception {
+        when(trendQueryService.getWordcloud(48)).thenReturn(List.of(
+                new WordcloudItemResponse("금리", 12)));
+
+        mockMvc.perform(get("/api/v1/trends/wordcloud").param("windowHours", "48"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].term").value("금리"))
+                .andExpect(jsonPath("$.data[0].weight").value(12));
+        verify(trendQueryService).getWordcloud(48);
     }
 }
