@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
     FeedRankingProperties.class,
     AiProperties.class,
     BiasProperties.class,
+    TrendProperties.class,
     JwtConfig.class,
     OAuthConfig.class
 })

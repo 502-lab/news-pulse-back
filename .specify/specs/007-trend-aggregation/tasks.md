@@ -19,10 +19,10 @@
 ## Phase 1: Setup (Shared Infrastructure)
 
 - [ ] T001 contracts/openapi-patch.yaml의 5개 `/api/v1/trends/**` 경로·스키마를 news-pulse-spec openapi.yaml에 선반영 제안 (CLAUDE.md)
-- [ ] T002 [P] Lucene Nori 의존성 추가 in `build.gradle` — `implementation 'org.apache.lucene:lucene-analysis-nori:9.12.0'`. 빌드 resolve 확인(JDK25)
-- [ ] T003 [P] `app.scheduler.trend.*` / `app.trend.*` 설정 추가 in `src/main/resources/application.yaml` + `application-example.yaml` (interval-ms, cleanup-cron, slot-hours, top5-window-hours, retention-days, min-article-count, smoothing-k, extract-window-hours, summary-wait-hours, cooccurrence.min-edge-weight, cooccurrence.min-cluster-size — research R-007)
-- [ ] T004 [P] `TrendProperties` record 생성 in `src/main/java/com/newscurator/config/TrendProperties.java` (`@ConfigurationProperties(prefix="app.trend")` + 스케줄 분리 키) + AppConfig `@EnableConfigurationProperties` 등록
-- [ ] T005 [P] 커스텀 한국어 불용어 리소스 in `src/main/resources/trend/stopwords-ko.txt` (조사·일반어 시드)
+- [X] T002 [P] Lucene Nori 의존성 추가 in `build.gradle` — `implementation 'org.apache.lucene:lucene-analysis-nori:9.12.0'`. 빌드 resolve 확인(JDK25)
+- [X] T003 [P] `app.scheduler.trend.*` / `app.trend.*` 설정 추가 in `src/main/resources/application.yaml` + `application-example.yaml` (interval-ms, cleanup-cron, slot-hours, top5-window-hours, retention-days, min-article-count, smoothing-k, extract-window-hours, summary-wait-hours, cooccurrence.min-edge-weight, cooccurrence.min-cluster-size — research R-007)
+- [X] T004 [P] `TrendProperties` record 생성 in `src/main/java/com/newscurator/config/TrendProperties.java` (`@ConfigurationProperties(prefix="app.trend")` + 스케줄 분리 키) + AppConfig `@EnableConfigurationProperties` 등록
+- [X] T005 [P] 커스텀 한국어 불용어 리소스 in `src/main/resources/trend/stopwords-ko.txt` (조사·일반어 시드)
 
 ---
 
@@ -30,16 +30,16 @@
 
 ⚠️ 모든 US가 의존. 완료 전 US 시작 불가.
 
-- [ ] T006 Flyway 마이그레이션 `V14__add_trend_aggregation.sql` in `src/main/resources/db/migration/` — data-model.md DDL 전체: article_keyword(PK article_id,term) + idx_article_keyword_term, trend_keyword_slot(PK slot_start,category,term) + idx_trend_slot_window + idx_trend_slot_category, issue_snapshot(clustering_method default CO_OCCURRENCE, keywords TEXT[], article_ids BIGINT[])
-- [ ] T007 [P] `ArticleKeyword` 엔티티 + `ArticleKeywordId` 복합키 in `src/main/java/com/newscurator/domain/` (article_id, term)
-- [ ] T008 [P] `TrendKeywordSlot` 엔티티 + `TrendKeywordSlotId` 복합키 in `src/main/java/com/newscurator/domain/` (slot_start, category, term, article_count)
+- [X] T006 Flyway 마이그레이션 `V14__add_trend_aggregation.sql` in `src/main/resources/db/migration/` — data-model.md DDL 전체: article_keyword(PK article_id,term) + idx_article_keyword_term, trend_keyword_slot(PK slot_start,category,term) + idx_trend_slot_window + idx_trend_slot_category, issue_snapshot(clustering_method default CO_OCCURRENCE, keywords TEXT[], article_ids BIGINT[])
+- [X] T007 [P] `ArticleKeyword` 엔티티 + `ArticleKeywordId` 복합키 in `src/main/java/com/newscurator/domain/` (article_id, term)
+- [X] T008 [P] `TrendKeywordSlot` 엔티티 + `TrendKeywordSlotId` 복합키 in `src/main/java/com/newscurator/domain/` (slot_start, category, term, article_count)
 - [ ] T009 [P] `IssueSnapshot` 엔티티 in `src/main/java/com/newscurator/domain/` (clustering_method, delta, keywords String[], article_ids Long[] @JdbcTypeCode ARRAY)
-- [ ] T010 [P] `KeywordExtractor` 포트 인터페이스 in `src/main/java/com/newscurator/client/keyword/KeywordExtractor.java` (`Set<String> extractNouns(String)`)
-- [ ] T011 `NoriKeywordExtractor` 구현 in `src/main/java/com/newscurator/client/keyword/NoriKeywordExtractor.java` — KoreanTokenizer + KoreanPartOfSpeechStopFilter(NNG/NNP) + stopwords-ko.txt 필터 + 2자 이상, thread-safe(per-call/ThreadLocal Analyzer)
-- [ ] T012 [P] `ArticleKeywordRepository` in `src/main/java/com/newscurator/repository/` — `insertIgnore`(ON CONFLICT DO NOTHING native), 추출 대상 게이팅 SELECT(summary_status 게이트 + NOT EXISTS + 25h)
-- [ ] T013 [P] `TrendKeywordSlotRepository` in `src/main/java/com/newscurator/repository/` — 슬롯 UPSERT(native, data-model 집계 SQL), 윈도우 합산 조회(Top5/wordcloud/heatmap/WoW), 보존 DELETE
+- [X] T010 [P] `KeywordExtractor` 포트 인터페이스 in `src/main/java/com/newscurator/client/keyword/KeywordExtractor.java` (`Set<String> extractNouns(String)`)
+- [X] T011 `NoriKeywordExtractor` 구현 in `src/main/java/com/newscurator/client/keyword/NoriKeywordExtractor.java` — KoreanTokenizer + KoreanPartOfSpeechStopFilter(NNG/NNP) + stopwords-ko.txt 필터 + 2자 이상, thread-safe(per-call/ThreadLocal Analyzer)
+- [X] T012 [P] `ArticleKeywordRepository` in `src/main/java/com/newscurator/repository/` — `insertIgnore`(ON CONFLICT DO NOTHING native), 추출 대상 게이팅 SELECT(summary_status 게이트 + NOT EXISTS + 25h)
+- [X] T013 [P] `TrendKeywordSlotRepository` in `src/main/java/com/newscurator/repository/` — 슬롯 UPSERT(native, data-model 집계 SQL), 윈도우 합산 조회(Top5/wordcloud/heatmap/WoW), 보존 DELETE
 - [ ] T014 [P] `IssueSnapshotRepository` in `src/main/java/com/newscurator/repository/` — `truncate`(native) + saveAll, findAll(delta DESC NULLS LAST)
-- [ ] T015 [US-shared] `NoriKeywordExtractorTest` 단위 in `src/test/java/com/newscurator/client/keyword/NoriKeywordExtractorTest.java` — 명사(NNG/NNP) 추출·불용어 제거·조사 제거·중복 제거 검증(컨테이너 불요)
+- [X] T015 [US-shared] `NoriKeywordExtractorTest` 단위 in `src/test/java/com/newscurator/client/keyword/NoriKeywordExtractorTest.java` — 명사(NNG/NNP) 추출·불용어 제거·조사 제거·중복 제거 검증(컨테이너 불요)
 
 **Checkpoint**: 마이그레이션·엔티티·repo·추출기 준비 — US 시작 가능
 
@@ -51,14 +51,14 @@
 
 **Independent Test**: 슬롯 내 기사 추출→trend_keyword_slot 저장, 재집계 시 article_count 불변(멱등) (quickstart Scenario 1·2).
 
-- [ ] T016 [US2] `TrendAggregationService` 생성 in `src/main/java/com/newscurator/service/TrendAggregationService.java` — `aggregate()`: ① 추출(게이팅 SELECT: COMPLETED / FAILED·1h경과PENDING / recent-PENDING skip → insertIgnore) ② 슬롯 UPSERT(date_trunc hour, COALESCE category 'OTHER', COUNT DISTINCT) ③ 로그(FR-014).
+- [X] T016 [US2] `TrendAggregationService` 생성 in `src/main/java/com/newscurator/service/TrendAggregationService.java` — `aggregate()`: ① 추출(게이팅 SELECT: COMPLETED / FAILED·1h경과PENDING / recent-PENDING skip → insertIgnore) ② 슬롯 UPSERT(date_trunc hour, COALESCE category 'OTHER', COUNT DISTINCT) ③ 로그(FR-014).
   - **BALANCED 본문 조회**: `summaryRepository.findByArticleIdAndDepth(articleId, SummaryDepth.BALANCED)`
   - **useSummary** = `summary_status='COMPLETED'` AND BALANCED 행 present AND `content` non-null·non-blank
   - `text = useSummary ? (title + " " + content) : title`  // 불만족 시 제목만 fallback (NPE/null 방어)
   - summaries.content는 NULL 가능(V1 schema) — Optional·blank 가드 필수
-- [ ] T017 [US2] `TrendAggregationScheduler` 생성 in `src/main/java/com/newscurator/scheduler/TrendAggregationScheduler.java` — `@ConditionalOnProperty(app.scheduler.enabled)` + MDC runId, `@Scheduled(fixedDelayString="${app.scheduler.trend.interval-ms:600000}")` → aggregate()
-- [ ] T018 [US2] `TrendAggregationServiceTest` 단위 in `src/test/java/com/newscurator/service/TrendAggregationServiceTest.java` (KeywordExtractor mock) — 게이팅 분기(COMPLETED/FAILED/PENDING 1h/recent skip), 제목+요약 vs 제목만 선택. **추가 분기**: summary_status='COMPLETED'이지만 (a) BALANCED 행 부재 (b) content=null (c) content=blank → 각각 **제목만 추출, NPE 없음** 단언
-- [ ] T019 [US2] 집계 멱등 통합 테스트 in `src/test/java/com/newscurator/service/TrendAggregationIT.java` (`BigmPostgresImage.NAME`) — 추출→슬롯 저장, 재집계 동일 article_count(멱등), summary-race 게이팅(recent-PENDING skip→COMPLETED 후 요약 포함) (quickstart Scenario 1·2)
+- [X] T017 [US2] `TrendAggregationScheduler` 생성 in `src/main/java/com/newscurator/scheduler/TrendAggregationScheduler.java` — `@ConditionalOnProperty(app.scheduler.enabled)` + MDC runId, `@Scheduled(fixedDelayString="${app.scheduler.trend.interval-ms:600000}")` → aggregate()
+- [X] T018 [US2] `TrendAggregationServiceTest` 단위 in `src/test/java/com/newscurator/service/TrendAggregationServiceTest.java` (KeywordExtractor mock) — 게이팅 분기(COMPLETED/FAILED/PENDING 1h/recent skip), 제목+요약 vs 제목만 선택. **추가 분기**: summary_status='COMPLETED'이지만 (a) BALANCED 행 부재 (b) content=null (c) content=blank → 각각 **제목만 추출, NPE 없음** 단언
+- [X] T019 [US2] 집계 멱등 통합 테스트 in `src/test/java/com/newscurator/service/TrendAggregationIT.java` (`BigmPostgresImage.NAME`) — 추출→슬롯 저장, 재집계 동일 article_count(멱등), summary-race 게이팅(recent-PENDING skip→COMPLETED 후 요약 포함) (quickstart Scenario 1·2)
 
 **Checkpoint**: 트렌드 슬롯 데이터 생산. read US 기반 확보.
 
