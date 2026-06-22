@@ -1,0 +1,173 @@
+# OpenAPI Patch: 007 트렌드 집계 엔진
+# 구현 전 news-pulse-spec openapi.yaml 선반영(CLAUDE.md). 전부 public(permitAll).
+
+openapi: "3.0.3"
+info:
+  title: "007 Trend Aggregation — API Contract Patch"
+  version: "007"
+
+paths:
+  /api/v1/trends/keywords/top5:
+    get:
+      tags: [Trends]
+      summary: "지금 뜨는 키워드 Top5"
+      description: |
+        최근 24시간 윈도우 기준 급상승 키워드 상위 5개. 공개(인증 불필요).
+        정렬은 평활비 (cur+1)/(prev+1) 기반, deltaPct는 raw %((cur-prev)/prev), prev=0이면 null+isNew.
+        노이즈 컷: 윈도우 내 등장 기사 2건 미만 제외.
+      operationId: getTrendTop5
+      parameters:
+        - name: category
+          in: query
+          required: false
+          description: "카테고리 필터(미지정 시 전체). 분류 실패 기사는 OTHER로 집계"
+          schema: { type: string }
+      responses:
+        "200":
+          description: 성공(데이터 없으면 빈 목록)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponseTrendKeywordList" }
+
+  /api/v1/trends/wordcloud:
+    get:
+      tags: [Trends]
+      summary: "워드클라우드 데이터"
+      description: "윈도우 내 키워드별 가중치 목록. 공개."
+      operationId: getTrendWordcloud
+      parameters:
+        - name: windowHours
+          in: query
+          required: false
+          schema: { type: integer, default: 24 }
+      responses:
+        "200":
+          description: 성공
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponseWordcloud" }
+
+  /api/v1/trends/heatmap:
+    get:
+      tags: [Trends]
+      summary: "히트맵 데이터(시간슬롯 × 카테고리)"
+      description: "시간 슬롯 × 카테고리 격자의 키워드 강도. 공개."
+      operationId: getTrendHeatmap
+      parameters:
+        - name: windowHours
+          in: query
+          required: false
+          schema: { type: integer, default: 24 }
+      responses:
+        "200":
+          description: 성공
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponseHeatmap" }
+
+  /api/v1/trends/wow:
+    get:
+      tags: [Trends]
+      summary: "WoW(주간 대비) 급상승"
+      description: |
+        이번 주 vs 지난주 급상승 키워드. 공개. prev=0 → deltaPct=null + isNew=true.
+        정렬 = 평활비 (cur+1)/(prev+1). cur<2 제외.
+      operationId: getTrendWow
+      responses:
+        "200":
+          description: 성공
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponseTrendKeywordList" }
+
+  /api/v1/trends/issues:
+    get:
+      tags: [Trends]
+      summary: "이슈(co-occurrence 클러스터)"
+      description: "최신 이슈 스냅샷(관련 기사 묶음 + 대표 키워드 3 + 증감). 공개. 매 집계 재산출(스냅샷 교체)."
+      operationId: getTrendIssues
+      responses:
+        "200":
+          description: 성공
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponseIssueList" }
+
+components:
+  schemas:
+    TrendKeywordResponse:
+      type: object
+      properties:
+        term: { type: string, example: "금리" }
+        count: { type: integer, example: 12, description: "윈도우 내 등장 기사 수 합" }
+        deltaPct:
+          type: number
+          format: double
+          nullable: true
+          description: "raw %((cur-prev)/prev). prev=0이면 null"
+          example: 50.0
+        isNew:
+          type: boolean
+          description: "직전 윈도우 0건 신규 키워드"
+          example: false
+
+    WordcloudItemResponse:
+      type: object
+      properties:
+        term: { type: string }
+        weight: { type: number, format: double }
+
+    HeatmapCellResponse:
+      type: object
+      properties:
+        slotStart: { type: string, format: date-time }
+        category: { type: string }
+        intensity: { type: integer, description: "슬롯·카테고리 키워드 강도(기사 수 합)" }
+
+    IssueResponse:
+      type: object
+      properties:
+        keywords: { type: array, items: { type: string }, description: "대표 키워드 3개" }
+        articleIds: { type: array, items: { type: integer, format: int64 } }
+        delta: { type: number, format: double, nullable: true }
+        clusteringMethod: { type: string, example: "CO_OCCURRENCE" }
+
+    ApiResponseTrendKeywordList:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: success }
+        message: { type: string, example: OK }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/TrendKeywordResponse" }
+
+    ApiResponseWordcloud:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: success }
+        message: { type: string, example: OK }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/WordcloudItemResponse" }
+
+    ApiResponseHeatmap:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: success }
+        message: { type: string, example: OK }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/HeatmapCellResponse" }
+
+    ApiResponseIssueList:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: success }
+        message: { type: string, example: OK }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/IssueResponse" }
