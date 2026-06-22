@@ -103,10 +103,10 @@
 
 **Independent Test**: 두 주간 분포에서 deltaPct 정확·평활비 정렬·prev=0 isNew·cur<2 제외 (quickstart Scenario 4).
 
-- [ ] T031 [US4] `TrendQueryService.getWow()` in `TrendQueryService.java` — 이번주 vs 지난주 term SUM 비교, prev=0→deltaPct null+isNew, 정렬 평활비 (cur+1)/(prev+1), cur<min-article-count 제외, smoothing-k env
-- [ ] T032 [US4] `GET /api/v1/trends/wow` in `TrendController.java` — public, Swagger (TrendKeywordResponse 재사용)
-- [ ] T033 [US4] WoW 가드 단위 테스트 in `src/test/java/com/newscurator/service/WowGuardTest.java` — prev=0 null+isNew, 평활비 정렬(1→2 vs 50→60 순서), cur<2 제외, 분모0 무에러
-- [ ] T034 [US4] 컨트롤러 테스트 추가 in `TrendControllerTest` — wow 200, isNew 직렬화
+- [X] T031 [US4] `TrendQueryService.getWow()` in `TrendQueryService.java` — 이번주 vs 지난주 term SUM 비교, prev=0→deltaPct null+isNew, 정렬 평활비 (cur+1)/(prev+1), cur<min-article-count 제외, smoothing-k env
+- [X] T032 [US4] `GET /api/v1/trends/wow` in `TrendController.java` — public, Swagger (TrendKeywordResponse 재사용)
+- [X] T033 [US4] WoW 가드 단위 테스트 in `src/test/java/com/newscurator/service/WowGuardTest.java` — prev=0 null+isNew, 평활비 정렬(1→2 vs 50→60 순서), cur<2 제외, 분모0 무에러
+- [X] T034 [US4] 컨트롤러 테스트 추가 in `TrendControllerTest` — wow 200, isNew 직렬화
 
 **Checkpoint**: 추세적 급상승 제공.
 

@@ -36,4 +36,17 @@ public class TrendController {
             @RequestParam(required = false) String category) {
         return ResponseEntity.ok(ApiResponse.success(trendQueryService.getTop5(category)));
     }
+
+    @Operation(
+            summary = "WoW(주간 대비) 급상승",
+            description = "이번 주(최근 7일) vs 지난주(7~14일 전) 급상승 키워드. 공개(인증 불필요). "
+                    + "정렬은 평활비 (cur+1)/(prev+1) 기반, deltaPct는 raw %. prev=0 → deltaPct null + isNew. "
+                    + "cur<2 제외. 24h Top5와의 구분점은 주간 윈도우 경계.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공(데이터 없으면 빈 목록)")
+    })
+    @GetMapping("/api/v1/trends/wow")
+    public ResponseEntity<ApiResponse<List<TrendKeywordResponse>>> getWow() {
+        return ResponseEntity.ok(ApiResponse.success(trendQueryService.getWow()));
+    }
 }

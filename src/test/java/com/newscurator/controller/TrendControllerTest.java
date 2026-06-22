@@ -71,4 +71,20 @@ class TrendControllerTest {
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data").isEmpty());
     }
+
+    @Test
+    @DisplayName("WoW 200: 급상승 목록 + isNew 직렬화")
+    void getWow_returnsRising() throws Exception {
+        when(trendQueryService.getWow()).thenReturn(List.of(
+                new TrendKeywordResponse("신규주간", 8, null, true),
+                new TrendKeywordResponse("기존주간", 30, 20.0, false)));
+
+        mockMvc.perform(get("/api/v1/trends/wow"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].term").value("신규주간"))
+                .andExpect(jsonPath("$.data[0].isNew").value(true))
+                .andExpect(jsonPath("$.data[0].deltaPct").value(nullValue()))
+                .andExpect(jsonPath("$.data[1].term").value("기존주간"))
+                .andExpect(jsonPath("$.data[1].deltaPct").value(20.0));
+    }
 }
