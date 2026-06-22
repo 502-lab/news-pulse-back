@@ -1,5 +1,6 @@
 package com.newscurator.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 
@@ -24,4 +25,10 @@ public record ArticleFeedItem(
         OffsetDateTime firstCollectedAt,
 
         @Schema(description = "간략 요약 (피드 목록에서는 항상 null, 상세 조회에서 로드)")
-        String briefSummary) {}
+        String briefSummary,
+
+        // SC-002: 글로벌 Jackson inclusion 설정과 무관하게 biasScore 필드를 항상 직렬화(omit 금지)
+        @JsonInclude(JsonInclude.Include.ALWAYS)
+        @Schema(description = "편향 분석 점수. 필드는 항상 포함되며, BiasAnalysis 행이 없으면 null, "
+                + "분석 미완료/실패면 value=null + status로 전달 (SC-002)")
+        BiasScoreResponse biasScore) {}

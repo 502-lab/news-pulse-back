@@ -301,18 +301,20 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">72</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">73</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">25</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">21</div><div class="stat-label">Feature</div></div>
-  <div class="stat"><div class="stat-num">5</div><div class="stat-label">DB Migration</div></div>
-  <div class="stat"><div class="stat-num">23</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-19</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">22</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">6</div><div class="stat-label">DB Migration</div></div>
+  <div class="stat"><div class="stat-num">27</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-22</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-22</div>
+  <a class="toc-item" href="#d0622-01">spec 006 편향 분석 엔진 US1~US4 + Polish — 파이프라인·조회·집계·인가·backfill (slice 1~4)</a>
   <div class="toc-date">2026-06-19</div>
   <a class="toc-item" href="#d0619-01">NotificationOutboxProcessorTest 간헐 실패 — HikariCP auto-commit=false 오염, TransactionTemplate REQUIRES_NEW 수정</a>
   <a class="toc-item" href="#d0619-02">spec 005 US4+US5+Polish — 알림 설정·주간 이메일·어드민 발송 파이프라인 완성 (Phase 6~8)</a>
@@ -388,6 +390,46 @@
 </nav>
 
 <div class="content">
+
+<!-- ═══════ 2026-06-22 ═══════ -->
+<div class="date-group" id="date-0622">
+  <div class="date-heading">
+    <h2>2026-06-22</h2>
+    <div class="date-bar"></div>
+  </div>
+
+  <div class="entry" id="d0622-01" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-feature">feature</span>
+        <strong>spec 006 편향 분석 엔진 US1~US4 + Polish — 파이프라인·조회·집계·인가·backfill (slice 1~4)</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>작업 내용</dt>
+        <dd>
+          <ul>
+            <li>US2 비동기 파이프라인: bias_analysis 테이블(V13), BiasAnalysis 상태머신(PENDING→PROCESSING→DONE/FAILED). 증분 백오프 +5m/+30m → 3회 소진 FAILED, failTerminal로 attempt_count 3→4 terminal 전환(복구 무한루프 방지).</li>
+            <li>two-tx BiasAnalysisClaimer(005 패턴 재사용): claim 시 next_retry_at=NOW()+lease로 미뤄 Gemini 호출을 DB 락 밖에서 실행, 크래시 stuck(PROCESSING) 행을 lease 만료 후 회수. SELECT … FOR UPDATE SKIP LOCKED.</li>
+            <li>one-shot 복구: FAILED·attempt_count=3·failed_at+6h 경과 1건 재시도(성공→DONE / 실패→terminal, 재발화 0).</li>
+            <li>Gemini analyzeBias: JSON 출력 프롬프트 + 파싱·범위·키워드 검증(결정적 오류 AiProviderException / 일시 오류 AiTransientException). 수집 hook(SourceCollectionExecutor.processCandidate → PENDING 생성, FR-001).</li>
+            <li>US1 노출: 피드/상세 응답에 biasScore(@JsonInclude ALWAYS로 SC-002 필드 누락 0% 보장), 피드는 findAllByArticleIdIn 단일 IN 배치(N+1 회피). 칩 API GET /api/v1/articles/{id}/bias(DONE/PENDING/404).</li>
+            <li>US3 출처 집계: GET /api/v1/bias/outlets/{sourceId} — 단순평균 + 롤링 90일 + 최소 10건(미만 biasValue null), 단일 AVG+COUNT 쿼리(N+1 없음), idx_article_sources_source_id 보조.</li>
+            <li>US4 스펙트럼: GET /api/v1/bias/spectrum — 정수 inclusive 버킷(−34→진보/+34→보수) + 진보/중립/보수 % + 가중평균. NULLIF(COUNT,0)로 0건 division-by-zero 방지.</li>
+            <li>Polish: admin backfill POST /api/v1/admin/bias/backfill(ROLE_ADMIN, 멱등 ON CONFLICT, 202 + rate-safe 드레인). FR-011/012 구조적 로그 + 일일 SLA emit. 편향 프롬프트 ADR-001 작성.</li>
+            <li>테스트: 실 PostgreSQL(Testcontainers) IT — pipeline/one-shot/claimer-concurrency/outlet/spectrum/authorization + 단위/컨트롤러. 전 슬라이스 GREEN.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>two-tx + lease 모델은 005 NotificationOutboxClaimer가 외부 HTTP 호출을 DB 락 밖으로 빼낸 설계를 그대로 따르되, 005의 PENDING-only(고아 위험)를 lease 기반 PROCESSING 회수로 보강하기 위함(편향 누락이 SC-001 95% DONE에 직접 영향). failTerminal에서 attempt_count를 3→4로 올려 recovery 술어(attempt_count=3)에서 영구 이탈시켜 6h 무한 복구 루프를 차단. biasScore에 @JsonInclude(ALWAYS)를 명시한 것은 글로벌 Jackson inclusion 설정이 향후 non_null로 바뀌어도 SC-002(필드 누락 0%)가 깨지지 않도록 하기 위함. 스펙트럼 NULLIF은 분석완료 0건일 때 0/0 division-by-zero 크래시를 방지.</dd>
+        <dt>영향 파일</dt>
+        <dd>V13__add_bias_analysis.sql(신규), BiasAnalysis.java(신규), BiasStatus.java(신규), BiasAnalysisRepository.java(신규), BiasAnalysisClaimer.java(신규), BiasAnalysisService.java(신규), BiasAnalysisScheduler.java(신규), BiasProperties.java(신규), BiasAnalysisResult.java(신규), BiasController.java(신규), BiasScoreResponse.java(신규), OutletBiasResponse.java(신규), BiasSpectrumResponse.java(신규), BackfillResult.java(신규), AiProvider.java(수정), GeminiAiProvider.java(수정), SourceCollectionExecutor.java(수정), ArticleFeedService.java(수정), ArticleDetailService.java(수정), ArticleFeedItem.java(수정), ArticleDetailResponse.java(수정), AppConfig.java(수정), application.yaml/application-example.yaml(수정), ADR-001-gemini-bias-prompt.md(신규), 다수 테스트(BiasAnalysisPipelineIT·BiasOneShotRecoveryIT·BiasClaimerConcurrencyIT·OutletBiasAggregationIT·BiasSpectrumTest·BiasAuthorizationIT·BiasControllerTest·ArticleBiasExposureTest 등)</dd>
+      </dl>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════ 2026-06-18 ═══════ -->
 <div class="date-group" id="date-0619">

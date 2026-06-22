@@ -38,6 +38,7 @@ public class SourceCollectionExecutor {
     private final UrlNormalizer urlNormalizer;
     private final List<SourceAdapter> adapters;
     private final RetentionProperties retentionProperties;
+    private final BiasAnalysisService biasAnalysisService;
 
     public SourceCollectionExecutor(
             ArticleRepository articleRepository,
@@ -46,7 +47,8 @@ public class SourceCollectionExecutor {
             SourceDailyUsageRepository sourceUsageRepository,
             UrlNormalizer urlNormalizer,
             List<SourceAdapter> adapters,
-            RetentionProperties retentionProperties) {
+            RetentionProperties retentionProperties,
+            BiasAnalysisService biasAnalysisService) {
         this.articleRepository = articleRepository;
         this.articleSourceRepository = articleSourceRepository;
         this.sourceRepository = sourceRepository;
@@ -54,6 +56,7 @@ public class SourceCollectionExecutor {
         this.urlNormalizer = urlNormalizer;
         this.adapters = adapters;
         this.retentionProperties = retentionProperties;
+        this.biasAnalysisService = biasAnalysisService;
     }
 
     @Transactional
@@ -129,6 +132,9 @@ public class SourceCollectionExecutor {
                     .merge(false)
                     .build();
             articleSourceRepository.save(provenance);
+
+            // FR-001: 신규 기사 수집 시 편향 분석 PENDING 행 생성 (멱등)
+            biasAnalysisService.createPendingForArticle(saved.getId());
         }
     }
 

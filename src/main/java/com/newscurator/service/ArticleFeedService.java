@@ -2,15 +2,21 @@ package com.newscurator.service;
 
 import com.newscurator.config.FeedProperties;
 import com.newscurator.domain.Article;
+import com.newscurator.domain.BiasAnalysis;
 import com.newscurator.domain.enums.ProcessingStatus;
 import com.newscurator.dto.request.FeedRequest;
 import com.newscurator.dto.response.ArticleFeedItem;
 import com.newscurator.dto.response.ArticleFeedResponse;
+import com.newscurator.dto.response.BiasScoreResponse;
 import com.newscurator.repository.ArticleRepository;
+import com.newscurator.repository.BiasAnalysisRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,10 +29,15 @@ public class ArticleFeedService {
 
     private final ArticleRepository articleRepository;
     private final FeedProperties feedProperties;
+    private final BiasAnalysisRepository biasAnalysisRepository;
 
-    public ArticleFeedService(ArticleRepository articleRepository, FeedProperties feedProperties) {
+    public ArticleFeedService(
+            ArticleRepository articleRepository,
+            FeedProperties feedProperties,
+            BiasAnalysisRepository biasAnalysisRepository) {
         this.articleRepository = articleRepository;
         this.feedProperties = feedProperties;
+        this.biasAnalysisRepository = biasAnalysisRepository;
     }
 
     @Transactional(readOnly = true)
@@ -55,7 +66,15 @@ public class ArticleFeedService {
         boolean hasMore = articles.size() > size;
         List<Article> page = hasMore ? articles.subList(0, size) : articles;
 
-        List<ArticleFeedItem> items = page.stream().map(this::toFeedItem).toList();
+        // N+1 방지: 페이지 기사 ID 전체를 단일 IN 쿼리로 일괄 조회 후 Map 매핑 (FR-005)
+        List<Long> ids = page.stream().map(Article::getId).toList();
+        Map<Long, BiasAnalysis> biasMap = ids.isEmpty()
+                ? Map.of()
+                : biasAnalysisRepository.findAllByArticleIdIn(ids).stream()
+                        .collect(Collectors.toMap(BiasAnalysis::getArticleId, Function.identity()));
+
+        List<ArticleFeedItem> items =
+                page.stream().map(a -> toFeedItem(a, biasMap.get(a.getId()))).toList();
         String nextCursor = hasMore ? encodeCursor(page.get(page.size() - 1)) : null;
 
         return new ArticleFeedResponse(items, nextCursor, hasMore, items.size());
@@ -68,11 +87,13 @@ public class ArticleFeedService {
         return Math.min(requested, feedProperties.maxPageSize());
     }
 
-    private ArticleFeedItem toFeedItem(Article article) {
+    private ArticleFeedItem toFeedItem(Article article, BiasAnalysis bias) {
         // FAILED → OTHER 매핑
         String category = article.getCategoryStatus() == ProcessingStatus.FAILED
                 ? "OTHER"
                 : (article.getCategory() != null ? article.getCategory().name() : "OTHER");
+
+        BiasScoreResponse biasScore = BiasAnalysisService.toResponse(bias);
 
         return new ArticleFeedItem(
                 article.getId(),
@@ -81,7 +102,8 @@ public class ArticleFeedService {
                 category,
                 article.getPublishedAt(),
                 article.getFirstCollectedAt(),
-                null); // briefSummary: 피드 목록에서는 null, 상세 조회에서 로드
+                null, // briefSummary: 피드 목록에서는 null, 상세 조회에서 로드
+                biasScore);
     }
 
     private String encodeCursor(Article article) {

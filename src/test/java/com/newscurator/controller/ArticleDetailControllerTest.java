@@ -51,7 +51,9 @@ class ArticleDetailControllerTest {
                 .andExpect(jsonPath("$.data.title").value("Test Article"))
                 .andExpect(jsonPath("$.data.brief.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.data.balanced.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.data.deep.status").value("COMPLETED"));
+                .andExpect(jsonPath("$.data.deep.status").value("COMPLETED"))
+                // SC-002: biasScore=null이어도 키가 응답에 존재해야 함(omit 금지) — raw 본문 단언
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"biasScore\":null")));
     }
 
     @Test
@@ -90,6 +92,7 @@ class ArticleDetailControllerTest {
                 new SummarySlot(
                         deepStatus,
                         deepContent,
-                        deepStatus.equals("COMPLETED") ? OffsetDateTime.now() : null));
+                        deepStatus.equals("COMPLETED") ? OffsetDateTime.now() : null),
+                null); // biasScore
     }
 }

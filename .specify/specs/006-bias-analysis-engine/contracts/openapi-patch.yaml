@@ -1,0 +1,283 @@
+# OpenAPI Patch: 006 편향 분석 엔진
+# 기존 openapi.yaml에 추가/수정될 경로와 스키마.
+# 구현 전 news-pulse-spec 레포 openapi.yaml에 선반영 필요 (CLAUDE.md 규칙).
+
+openapi: "3.0.3"
+info:
+  title: "006 Bias Analysis — API Contract Patch"
+  version: "006"
+
+paths:
+
+  # ─────────────────────────────────────────────────────────────
+  # FR-009: 편향 칩 전용 경량 조회
+  # ─────────────────────────────────────────────────────────────
+  /api/v1/articles/{articleId}/bias:
+    get:
+      tags: [Bias]
+      summary: "기사 편향 점수 조회"
+      description: |
+        기사 상세 화면에서 편향 칩 인터랙션 시 편향 점수와 근거 키워드를 반환한다.
+        분석 미완료(PENDING/PROCESSING) 또는 FAILED 기사는 value·rationaleKeywords가 null이고
+        status 필드로 상태를 전달한다.
+        BiasAnalysis 행이 없으면 404.
+      operationId: getArticleBias
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          description: "기사 ID"
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: "편향 점수 조회 성공"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseBiasScore"
+        "401":
+          description: "인증 토큰 없음/만료"
+        "404":
+          description: "기사 또는 편향 분석 데이터 없음"
+
+  # ─────────────────────────────────────────────────────────────
+  # FR-006: 출처 편향 집계 조회
+  # ─────────────────────────────────────────────────────────────
+  /api/v1/bias/outlets/{sourceId}:
+    get:
+      tags: [Bias]
+      summary: "출처 편향 집계 조회"
+      description: |
+        특정 출처(Source)의 편향 점수 단순평균과 분석 완료 기사 수를 반환한다.
+        집계 기준: 롤링 90일, status=DONE 기사만. 최소 10건 미만이면 biasValue: null.
+        SLA: p95 ≤ 3s (SC-004).
+      operationId: getOutletBias
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          description: "출처(Source) ID"
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: "출처 편향 집계 조회 성공"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseOutletBias"
+        "401":
+          description: "인증 토큰 없음/만료"
+        "404":
+          description: "출처 없음"
+
+  # ─────────────────────────────────────────────────────────────
+  # FR-007: 전체 편향 스펙트럼 조회
+  # ─────────────────────────────────────────────────────────────
+  /api/v1/bias/spectrum:
+    get:
+      tags: [Bias]
+      summary: "전체 편향 스펙트럼 조회"
+      description: |
+        서비스 전체 분석완료 기사의 편향 분포(가중평균, 진보/중립/보수 %)를 반환한다.
+        분석완료 기사가 없으면 모든 집계 값이 null.
+        버킷: 진보[−100,−34] / 중립[−33,+33] / 보수[+34,+100].
+      operationId: getBiasSpectrum
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "스펙트럼 조회 성공"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseBiasSpectrum"
+        "401":
+          description: "인증 토큰 없음/만료"
+
+  # ─────────────────────────────────────────────────────────────
+  # Admin: Backfill 트리거
+  # ─────────────────────────────────────────────────────────────
+  /api/v1/admin/bias/backfill:
+    post:
+      tags: [Admin]
+      summary: "편향 분석 Backfill 실행"
+      description: |
+        최근 90일 이내 수집 기사 중 bias_analysis 행이 없는 기사에
+        PENDING 행을 일괄 생성한다. 멱등 (ON CONFLICT DO NOTHING).
+        정상 claimer가 rate-safe하게 드레인하므로 backfill 기사는
+        SC-001 측정 대상이 아니다.
+      operationId: triggerBiasBackfill
+      security:
+        - bearerAuth: []
+      responses:
+        "202":
+          description: "Backfill 행 생성 완료"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseBackfillResult"
+        "401":
+          description: "인증 토큰 없음/만료"
+        "403":
+          description: "관리자 권한 없음"
+
+# ─────────────────────────────────────────────────────────────
+# 수정: 기존 피드/상세 응답에 biasScore 필드 추가
+# (기존 openapi.yaml의 ArticleFeedItem, ArticleDetailResponse 스키마에 병합)
+# ─────────────────────────────────────────────────────────────
+# ArticleFeedItem 에 추가:
+#   biasScore:
+#     $ref: "#/components/schemas/BiasScoreResponse"
+#     nullable: true
+#     description: "편향 분석 점수. 분석 미완료 시 null"
+#
+# ArticleDetailResponse 에 추가:
+#   biasScore:
+#     $ref: "#/components/schemas/BiasScoreResponse"
+#     nullable: true
+#     description: "편향 분석 점수. 분석 미완료 시 null"
+# ─────────────────────────────────────────────────────────────
+
+components:
+  schemas:
+
+    BiasScoreResponse:
+      type: object
+      description: "편향 분석 점수 응답"
+      properties:
+        value:
+          type: integer
+          minimum: -100
+          maximum: 100
+          nullable: true
+          description: "편향 점수. DONE 상태에서만 non-null. −100=극진보, +100=극보수"
+          example: -45
+        rationaleKeywords:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 5
+          nullable: true
+          description: "점수 근거 키워드 2~5개. DONE 상태에서만 non-null"
+          example: ["편향적 프레이밍", "단일 시각"]
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, DONE, FAILED]
+          description: "분석 상태"
+          example: "DONE"
+
+    OutletBiasResponse:
+      type: object
+      description: "출처 편향 집계 응답"
+      properties:
+        sourceId:
+          type: integer
+          format: int64
+          description: "출처 ID"
+          example: 1
+        biasValue:
+          type: number
+          format: double
+          nullable: true
+          description: "편향 점수 단순평균 (롤링 90일, 최소 10건). 미달 시 null"
+          example: -23.5
+        articleCount:
+          type: integer
+          format: int64
+          description: "분석 완료 기사 수 (롤링 90일)"
+          example: 142
+
+    BiasSpectrumResponse:
+      type: object
+      description: "전체 편향 스펙트럼 응답"
+      properties:
+        weightedAverage:
+          type: number
+          format: double
+          nullable: true
+          description: "전체 분석완료 기사 가중평균. 기사 없으면 null"
+          example: -12.3
+        liberalPercent:
+          type: number
+          format: double
+          nullable: true
+          description: "진보[−100,−34] 비율 %. 기사 없으면 null"
+          example: 42.5
+        neutralPercent:
+          type: number
+          format: double
+          nullable: true
+          description: "중립[−33,+33] 비율 %. 기사 없으면 null"
+          example: 38.2
+        conservativePercent:
+          type: number
+          format: double
+          nullable: true
+          description: "보수[+34,+100] 비율 %. 기사 없으면 null"
+          example: 19.3
+        totalCount:
+          type: integer
+          format: int64
+          description: "집계 대상 분석완료 기사 수"
+          example: 5123
+
+    BackfillResult:
+      type: object
+      description: "Backfill 실행 결과"
+      properties:
+        created:
+          type: integer
+          format: int64
+          description: "새로 생성된 PENDING 행 수"
+          example: 5494
+
+    ApiResponseBiasScore:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "OK" }
+        data:
+          $ref: "#/components/schemas/BiasScoreResponse"
+
+    ApiResponseOutletBias:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "OK" }
+        data:
+          $ref: "#/components/schemas/OutletBiasResponse"
+
+    ApiResponseBiasSpectrum:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "OK" }
+        data:
+          $ref: "#/components/schemas/BiasSpectrumResponse"
+
+    ApiResponseBackfillResult:
+      type: object
+      properties:
+        code: { type: integer, example: 202 }
+        status: { type: string, example: "success" }
+        message: { type: string, example: "Accepted" }
+        data:
+          $ref: "#/components/schemas/BackfillResult"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

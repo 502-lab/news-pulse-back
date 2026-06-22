@@ -27,13 +27,15 @@ import org.mockito.quality.Strictness;
 class ArticleFeedServiceTest {
 
     @Mock private ArticleRepository articleRepository;
+    @Mock private com.newscurator.repository.BiasAnalysisRepository biasAnalysisRepository;
 
     private ArticleFeedService articleFeedService;
 
     @BeforeEach
     void setUp() {
         FeedProperties feedProperties = new FeedProperties(20, 100);
-        articleFeedService = new ArticleFeedService(articleRepository, feedProperties);
+        articleFeedService =
+                new ArticleFeedService(articleRepository, feedProperties, biasAnalysisRepository);
     }
 
     @Test
