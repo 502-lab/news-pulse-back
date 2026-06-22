@@ -31,7 +31,7 @@
 
 ## Notes
 
-- [NEEDS CLARIFICATION] 전부 해소: FR-001 = Nori 명사추출(제목+요약, KeywordExtractor 격리), FR-013 = 공개(permitAll).
-- SC-002 측정조건 TODO는 plan/clarify에서 수치 확정.
-- v2 임베딩 클러스터링 업그레이드 경로는 범위 밖(미래 참조)으로 Assumptions에 명시됨.
-- 이슈 클러스터링은 IssueClusterer 인터페이스 격리(FR-011) + 재산출 가능(FR-012)으로 MVP(co-occurrence) ↔ 임베딩(v2) 교체 경로 확보.
+- Clarify 5/5 완료(Session 2026-06-22): Q1 슬롯1h/Top5 24h, Q2 노이즈컷 기사2건, Q3 WoW 평활비+isNew, Q4 보존90일/집계10분, Q5 Issue.clusteringMethod 컬럼.
+- 잔여 Jace TODO: SC-002 측정조건·동시요청 수(p95 ≤ 3s 수치 확정).
+- Open Items(plan 결정): OI-1 표시(raw%)/정렬(평활) 불일치 UX, OI-2 평활상수, OI-3 신규키워드 노출위치, OI-4 이슈 지속 vs 재산출.
+- v2 임베딩 클러스터링 경로는 범위 밖(미래 참조). IssueClusterer/KeywordExtractor 포트 격리로 교체 경로 확보.
