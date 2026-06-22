@@ -70,12 +70,12 @@
 
 **Independent Test**: 슬롯 데이터 존재 시 Top5(term/count/deltaPct/isNew) 내림차순, 노이즈컷 적용, 빈 데이터 빈 목록 (quickstart Scenario 3).
 
-- [ ] T020 [P] [US1] `TrendKeywordResponse` record in `src/main/java/com/newscurator/dto/response/TrendKeywordResponse.java` (term, count, deltaPct[Double nullable], isNew) + @Schema
-- [ ] T021 [US1] `TrendQueryService` 생성 + `getTop5(category)` in `src/main/java/com/newscurator/service/TrendQueryService.java` — 24h 윈도우 SUM(article_count) GROUP BY term, min-article-count 필터, deltaPct=raw((cur-prev)/prev) prev=0→null+isNew, 정렬=평활비 (cur+1)/(prev+1) LIMIT 5
-- [ ] T022 [US1] `TrendController` 생성 + `GET /api/v1/trends/keywords/top5` in `src/main/java/com/newscurator/controller/TrendController.java` — public, @Tag/@Operation/@Parameter, ApiResponse.success
-- [ ] T023 [US1] SecurityConfig `/api/v1/trends/**` GET permitAll + 정당화 코멘트(Constitution VI) in `src/main/java/com/newscurator/config/SecurityConfig.java` (`.anyRequest().authenticated()` 앞)
-- [ ] T024 [P] [US1] `TrendControllerTest` (@WebMvcTest standalone, service mock) in `src/test/java/com/newscurator/controller/TrendControllerTest.java` — Top5 200, 카테고리 필터, 빈 목록
-- [ ] T025 [US1] Top5 집계 정확성 IT in `src/test/java/com/newscurator/service/TrendTop5IT.java` (`BigmPostgresImage.NAME`) — 노이즈컷(2건 미만 제외), deltaPct/isNew, 정렬
+- [X] T020 [P] [US1] `TrendKeywordResponse` record in `src/main/java/com/newscurator/dto/response/TrendKeywordResponse.java` (term, count, deltaPct[Double nullable], isNew) + @Schema
+- [X] T021 [US1] `TrendQueryService` 생성 + `getTop5(category)` in `src/main/java/com/newscurator/service/TrendQueryService.java` — 24h 윈도우 SUM(article_count) GROUP BY term, min-article-count 필터, deltaPct=raw((cur-prev)/prev) prev=0→null+isNew, 정렬=평활비 (cur+1)/(prev+1) LIMIT 5
+- [X] T022 [US1] `TrendController` 생성 + `GET /api/v1/trends/keywords/top5` in `src/main/java/com/newscurator/controller/TrendController.java` — public, @Tag/@Operation/@Parameter, ApiResponse.success
+- [X] T023 [US1] SecurityConfig `/api/v1/trends/**` GET permitAll + 정당화 코멘트(Constitution VI) in `src/main/java/com/newscurator/config/SecurityConfig.java` (`.anyRequest().authenticated()` 앞)
+- [X] T024 [P] [US1] `TrendControllerTest` (@WebMvcTest standalone, service mock) in `src/test/java/com/newscurator/controller/TrendControllerTest.java` — Top5 200, 카테고리 필터, 빈 목록
+- [X] T025 [US1] Top5 집계 정확성 IT in `src/test/java/com/newscurator/service/TrendTop5IT.java` (`BigmPostgresImage.NAME`) — 노이즈컷(2건 미만 제외), deltaPct/isNew, 정렬
 
 **Checkpoint**: MVP — 사용자가 "지금 뜨는 키워드 Top5" 확인 가능.
 

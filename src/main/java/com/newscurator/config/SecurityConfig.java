@@ -65,6 +65,9 @@ public class SecurityConfig {
                     "/api/v1/auth/password-reset/**")
                     .permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/terms", "/api/v1/terms/*/content").permitAll()
+                // 007 트렌드 조회: 공개(permitAll). 비민감 전역 집계이며 비로그인 홈/탐색에 노출(FR-013).
+                // Constitution VI: 공개 엔드포인트는 명시적으로 선언한다. 5개 read 엔드포인트 모두 GET 공개.
+                .requestMatchers(HttpMethod.GET, "/api/v1/trends/**").permitAll()
                 .requestMatchers(
                     "/actuator/**",
                     "/api-docs/**",
