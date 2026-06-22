@@ -37,4 +37,16 @@ public interface ArticleKeywordRepository
             ORDER BY 1, 2
             """, nativeQuery = true)
     List<Object[]> heatmap(@Param("windowStart") Instant windowStart);
+
+    /**
+     * 이슈 클러스터링 입력: 윈도우 내 (article_id, term) 페어 전체. 서비스가 Map<articleId, List<term>>로 그룹화.
+     * Object[]: [0]=article_id(Long), [1]=term(String)
+     */
+    @Query(value = """
+            SELECT ak.article_id, ak.term
+            FROM article_keyword ak
+                     JOIN articles a ON a.id = ak.article_id
+            WHERE a.first_collected_at >= :windowStart
+            """, nativeQuery = true)
+    List<Object[]> windowArticleKeywords(@Param("windowStart") Instant windowStart);
 }

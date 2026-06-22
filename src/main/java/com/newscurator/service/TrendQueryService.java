@@ -1,15 +1,19 @@
 package com.newscurator.service;
 
 import com.newscurator.config.TrendProperties;
+import com.newscurator.domain.IssueSnapshot;
 import com.newscurator.dto.response.HeatmapCellResponse;
+import com.newscurator.dto.response.IssueResponse;
 import com.newscurator.dto.response.TrendKeywordResponse;
 import com.newscurator.dto.response.WordcloudItemResponse;
 import com.newscurator.repository.ArticleKeywordRepository;
+import com.newscurator.repository.IssueSnapshotRepository;
 import com.newscurator.repository.TrendKeywordSlotRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,14 +30,17 @@ public class TrendQueryService {
 
     private final TrendKeywordSlotRepository slotRepository;
     private final ArticleKeywordRepository articleKeywordRepository;
+    private final IssueSnapshotRepository issueSnapshotRepository;
     private final TrendProperties trendProperties;
 
     public TrendQueryService(
             TrendKeywordSlotRepository slotRepository,
             ArticleKeywordRepository articleKeywordRepository,
+            IssueSnapshotRepository issueSnapshotRepository,
             TrendProperties trendProperties) {
         this.slotRepository = slotRepository;
         this.articleKeywordRepository = articleKeywordRepository;
+        this.issueSnapshotRepository = issueSnapshotRepository;
         this.trendProperties = trendProperties;
     }
 
@@ -104,6 +111,25 @@ public class TrendQueryService {
         return slotRepository.wordcloud(windowStart, trendProperties.minArticleCount()).stream()
                 .map(row -> new WordcloudItemResponse((String) row[0], ((Number) row[1]).longValue()))
                 .toList();
+    }
+
+    /**
+     * 이슈 목록 (FR-010). 최신 issue_snapshot을 delta 내림차순으로 서빙(매 집계 재산출, 안정 ID 없음).
+     */
+    @Transactional(readOnly = true)
+    public List<IssueResponse> getIssues() {
+        return issueSnapshotRepository.findAllOrderByDelta().stream()
+                .map(TrendQueryService::toIssue)
+                .toList();
+    }
+
+    private static IssueResponse toIssue(IssueSnapshot s) {
+        Double delta = s.getDelta() == null ? null : s.getDelta().doubleValue();
+        return new IssueResponse(
+                s.getKeywords() == null ? List.of() : Arrays.asList(s.getKeywords()),
+                s.getArticleIds() == null ? List.of() : Arrays.asList(s.getArticleIds()),
+                delta,
+                s.getClusteringMethod());
     }
 
     /** date_trunc 결과는 드라이버/Hibernate에 따라 Instant 또는 Timestamp로 옴 — 둘 다 처리. */

@@ -2,6 +2,7 @@ package com.newscurator.controller;
 
 import com.newscurator.dto.response.ApiResponse;
 import com.newscurator.dto.response.HeatmapCellResponse;
+import com.newscurator.dto.response.IssueResponse;
 import com.newscurator.dto.response.TrendKeywordResponse;
 import com.newscurator.dto.response.WordcloudItemResponse;
 import com.newscurator.service.TrendQueryService;
@@ -77,5 +78,17 @@ public class TrendController {
             @Parameter(description = "윈도우 시간(기본 24h)")
             @RequestParam(defaultValue = "24") int windowHours) {
         return ResponseEntity.ok(ApiResponse.success(trendQueryService.getWordcloud(windowHours)));
+    }
+
+    @Operation(
+            summary = "이슈(co-occurrence 클러스터)",
+            description = "최신 이슈 스냅샷(관련 기사 묶음 + 대표 키워드 3 + 증감). 공개. "
+                    + "매 집계 재산출(스냅샷 전량 교체)되어 cross-run 안정 ID는 없다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공(이슈 없으면 빈 목록)")
+    })
+    @GetMapping("/api/v1/trends/issues")
+    public ResponseEntity<ApiResponse<List<IssueResponse>>> getIssues() {
+        return ResponseEntity.ok(ApiResponse.success(trendQueryService.getIssues()));
     }
 }

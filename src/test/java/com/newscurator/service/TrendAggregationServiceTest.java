@@ -36,7 +36,9 @@ class TrendAggregationServiceTest {
     @Mock private SummaryRepository summaryRepository;
     @Mock private ArticleKeywordRepository articleKeywordRepository;
     @Mock private TrendKeywordSlotRepository trendKeywordSlotRepository;
+    @Mock private com.newscurator.repository.IssueSnapshotRepository issueSnapshotRepository;
     @Mock private KeywordExtractor keywordExtractor;
+    @Mock private com.newscurator.service.trend.IssueClusterer issueClusterer;
 
     private TrendAggregationService service;
 
@@ -47,8 +49,10 @@ class TrendAggregationServiceTest {
     void setUp() {
         service = new TrendAggregationService(
                 articleRepository, summaryRepository, articleKeywordRepository,
-                trendKeywordSlotRepository, keywordExtractor, PROPS);
+                trendKeywordSlotRepository, issueSnapshotRepository, keywordExtractor,
+                issueClusterer, PROPS);
         when(keywordExtractor.extractNouns(any())).thenReturn(Set.of("x"));
+        when(issueClusterer.cluster(any())).thenReturn(java.util.List.of());
     }
 
     private Article article(long id, String title) {

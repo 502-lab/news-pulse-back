@@ -80,4 +80,19 @@ public interface TrendKeywordSlotRepository
             """, nativeQuery = true)
     List<Object[]> wordcloud(
             @Param("windowStart") Instant windowStart, @Param("minCount") int minCount);
+
+    /**
+     * 이슈 delta 산출용: term별 cur주/prev주 합. (노이즈컷·정렬 없음 — 전 term 대상)
+     * Object[]: [0]=term(String), [1]=cur(Long), [2]=prev(Long)
+     */
+    @Query(value = """
+            SELECT term,
+                   COALESCE(SUM(article_count) FILTER (WHERE slot_start >= :curStart), 0) AS cur,
+                   COALESCE(SUM(article_count) FILTER (WHERE slot_start >= :prevStart AND slot_start < :curStart), 0) AS prev
+            FROM trend_keyword_slot
+            WHERE slot_start >= :prevStart
+            GROUP BY term
+            """, nativeQuery = true)
+    List<Object[]> weeklyKeywordCounts(
+            @Param("curStart") Instant curStart, @Param("prevStart") Instant prevStart);
 }

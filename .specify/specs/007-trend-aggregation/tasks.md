@@ -33,12 +33,12 @@
 - [X] T006 Flyway 마이그레이션 `V14__add_trend_aggregation.sql` in `src/main/resources/db/migration/` — data-model.md DDL 전체: article_keyword(PK article_id,term) + idx_article_keyword_term, trend_keyword_slot(PK slot_start,category,term) + idx_trend_slot_window + idx_trend_slot_category, issue_snapshot(clustering_method default CO_OCCURRENCE, keywords TEXT[], article_ids BIGINT[])
 - [X] T007 [P] `ArticleKeyword` 엔티티 + `ArticleKeywordId` 복합키 in `src/main/java/com/newscurator/domain/` (article_id, term)
 - [X] T008 [P] `TrendKeywordSlot` 엔티티 + `TrendKeywordSlotId` 복합키 in `src/main/java/com/newscurator/domain/` (slot_start, category, term, article_count)
-- [ ] T009 [P] `IssueSnapshot` 엔티티 in `src/main/java/com/newscurator/domain/` (clustering_method, delta, keywords String[], article_ids Long[] @JdbcTypeCode ARRAY)
+- [x] T009 [P] `IssueSnapshot` 엔티티 in `src/main/java/com/newscurator/domain/` (clustering_method, delta, keywords String[], article_ids Long[] @JdbcTypeCode ARRAY)
 - [X] T010 [P] `KeywordExtractor` 포트 인터페이스 in `src/main/java/com/newscurator/client/keyword/KeywordExtractor.java` (`Set<String> extractNouns(String)`)
 - [X] T011 `NoriKeywordExtractor` 구현 in `src/main/java/com/newscurator/client/keyword/NoriKeywordExtractor.java` — KoreanTokenizer + KoreanPartOfSpeechStopFilter(NNG/NNP) + stopwords-ko.txt 필터 + 2자 이상, thread-safe(per-call/ThreadLocal Analyzer)
 - [X] T012 [P] `ArticleKeywordRepository` in `src/main/java/com/newscurator/repository/` — `insertIgnore`(ON CONFLICT DO NOTHING native), 추출 대상 게이팅 SELECT(summary_status 게이트 + NOT EXISTS + 25h)
 - [X] T013 [P] `TrendKeywordSlotRepository` in `src/main/java/com/newscurator/repository/` — 슬롯 UPSERT(native, data-model 집계 SQL), 윈도우 합산 조회(Top5/wordcloud/heatmap/WoW), 보존 DELETE
-- [ ] T014 [P] `IssueSnapshotRepository` in `src/main/java/com/newscurator/repository/` — `truncate`(native) + saveAll, findAll(delta DESC NULLS LAST)
+- [x] T014 [P] `IssueSnapshotRepository` in `src/main/java/com/newscurator/repository/` — `truncate`(native) + saveAll, findAll(delta DESC NULLS LAST)
 - [X] T015 [US-shared] `NoriKeywordExtractorTest` 단위 in `src/test/java/com/newscurator/client/keyword/NoriKeywordExtractorTest.java` — 명사(NNG/NNP) 추출·불용어 제거·조사 제거·중복 제거 검증(컨테이너 불요)
 
 **Checkpoint**: 마이그레이션·엔티티·repo·추출기 준비 — US 시작 가능
@@ -118,13 +118,13 @@
 
 **Independent Test**: 동시출현 공유 기사군→이슈 묶음, 재집계 시 스냅샷 전량 교체, over-merge 방지 (quickstart Scenario 6).
 
-- [ ] T035 [P] [US5] `IssueClusterer` 포트 + `DerivedIssue`/`IssueClusterContext` records in `src/main/java/com/newscurator/service/trend/`
-- [ ] T036 [US5] `CoOccurrenceIssueClusterer` 구현 in `src/main/java/com/newscurator/service/trend/CoOccurrenceIssueClusterer.java` — 동시출현 그래프(min-edge-weight≥2), 연결성분 묶음(min-cluster-size≥2), 대표 키워드 3 + article_ids + delta(멤버 WoW)
-- [ ] T037 [P] [US5] `IssueResponse`(keywords[], articleIds[], delta, clusteringMethod) record in `src/main/java/com/newscurator/dto/response/`
-- [ ] T038 [US5] `TrendAggregationService`에 이슈 재산출 연결 — aggregate() Phase3: clusterer.cluster() → IssueSnapshotRepository.truncate() + saveAll(clusteringMethod='CO_OCCURRENCE'), 단일 TX clean cutover
-- [ ] T039 [US5] `TrendQueryService.getIssues()` + `GET /api/v1/trends/issues` in TrendQueryService/TrendController — findAll delta DESC NULLS LAST, public
-- [ ] T040 [US5] `CoOccurrenceIssueClustererTest` 단위 in `src/test/java/com/newscurator/service/trend/CoOccurrenceIssueClustererTest.java` — over-merge 방지(우연 1회 동시출현 미연결), 강한 군집 묶임, 대표 키워드 3
-- [ ] T041 [US5] 이슈 재산출 IT in `src/test/java/com/newscurator/service/TrendIssueIT.java` (`BigmPostgresImage.NAME`) — 스냅샷 생성, 재집계 전량 교체(이전 row 소멸), clustering_method=CO_OCCURRENCE
+- [x] T035 [P] [US5] `IssueClusterer` 포트 + `DerivedIssue`/`IssueClusterContext` records in `src/main/java/com/newscurator/service/trend/`
+- [x] T036 [US5] `CoOccurrenceIssueClusterer` 구현 in `src/main/java/com/newscurator/service/trend/CoOccurrenceIssueClusterer.java` — 동시출현 그래프(min-edge-weight≥2), 연결성분 묶음(min-cluster-size≥2), 대표 키워드 3 + article_ids + delta(멤버 WoW)
+- [x] T037 [P] [US5] `IssueResponse`(keywords[], articleIds[], delta, clusteringMethod) record in `src/main/java/com/newscurator/dto/response/`
+- [x] T038 [US5] `TrendAggregationService`에 이슈 재산출 연결 — aggregate() Phase3: clusterer.cluster() → IssueSnapshotRepository.truncate() + saveAll(clusteringMethod='CO_OCCURRENCE'), 단일 TX clean cutover
+- [x] T039 [US5] `TrendQueryService.getIssues()` + `GET /api/v1/trends/issues` in TrendQueryService/TrendController — findAll delta DESC NULLS LAST, public
+- [x] T040 [US5] `CoOccurrenceIssueClustererTest` 단위 in `src/test/java/com/newscurator/service/trend/CoOccurrenceIssueClustererTest.java` — over-merge 방지(우연 1회 동시출현 미연결), 강한 군집 묶임, 대표 키워드 3
+- [x] T041 [US5] 이슈 재산출 IT in `src/test/java/com/newscurator/service/TrendIssueIT.java` (`BigmPostgresImage.NAME`) — 스냅샷 생성, 재집계 전량 교체(이전 row 소멸), clustering_method=CO_OCCURRENCE
 
 **Checkpoint**: 이슈 단위 트렌드 제공.
 
