@@ -31,3 +31,11 @@
 전망
 예정
 계획
+# --- 진단(NoriExtractionDiagnostic)에서 드러난 뉴스 형식어 boilerplate 보강 ---
+공개
+발표
+종합
+속보
+공식
+인사
+소식
