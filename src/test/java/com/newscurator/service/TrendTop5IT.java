@@ -53,10 +53,13 @@ class TrendTop5IT {
 
     @Autowired private TrendQueryService trendQueryService;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private org.springframework.cache.CacheManager cacheManager;
 
     @BeforeEach
     void clean() {
         jdbcTemplate.execute("TRUNCATE TABLE trend_keyword_slot RESTART IDENTITY");
+        // 캐시(R-006)도 DB와 함께 초기화 — 메서드 간 캐시 누수 방지(테스트 격리)
+        cacheManager.getCacheNames().forEach(n -> cacheManager.getCache(n).clear());
     }
 
     /** 슬롯 1행 삽입 (slot_start 지정 → 현재/직전 윈도우 배치). */

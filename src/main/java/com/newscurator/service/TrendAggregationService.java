@@ -1,6 +1,7 @@
 package com.newscurator.service;
 
 import com.newscurator.client.keyword.KeywordExtractor;
+import com.newscurator.config.TrendCacheConfig;
 import com.newscurator.config.TrendProperties;
 import com.newscurator.domain.Article;
 import com.newscurator.domain.IssueSnapshot;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,7 +70,19 @@ public class TrendAggregationService {
         this.trendProperties = trendProperties;
     }
 
-    /** 집계 1회: 추출 + 슬롯 UPSERT (멱등). 단일 인스턴스 fixedDelay 전제. */
+    /**
+     * 집계 1회: 추출 + 슬롯 UPSERT (멱등) + 이슈 재산출. 단일 인스턴스 fixedDelay 전제.
+     * 완료 시 트렌드 read 캐시 전량 무효화 → 캐시 신선도 = 집계 주기(R-006).
+     */
+    @CacheEvict(
+            cacheNames = {
+                TrendCacheConfig.TOP5,
+                TrendCacheConfig.WOW,
+                TrendCacheConfig.HEATMAP,
+                TrendCacheConfig.WORDCLOUD,
+                TrendCacheConfig.ISSUES
+            },
+            allEntries = true)
     @Transactional
     public void aggregate() {
         OffsetDateTime now = OffsetDateTime.now();
@@ -97,6 +111,19 @@ public class TrendAggregationService {
 
         log.info("[TREND] 집계 완료, candidates={}, extractedArticles={}, terms={}, slots={}, issues={}",
                 candidates.size(), extractedArticles, insertedTerms, affectedSlots, issueCount);
+    }
+
+    /**
+     * 보존 정리(FR-009): 90일 경과 트렌드 슬롯 + 잔존 이슈 스냅샷 삭제. 스케줄러 cron에서 호출.
+     * 단일 TX. cutoff = now - retentionDays.
+     */
+    @Transactional
+    public void cleanup() {
+        Instant cutoff = OffsetDateTime.now().minusDays(trendProperties.retentionDays()).toInstant();
+        int slots = trendKeywordSlotRepository.deleteOlderThan(cutoff);
+        int issues = issueSnapshotRepository.deleteOlderThan(cutoff);
+        log.info("[TREND] 보존 정리 완료, cutoff={}, deletedSlots={}, deletedIssues={}",
+                cutoff, slots, issues);
     }
 
     /**

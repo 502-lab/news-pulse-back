@@ -132,14 +132,14 @@
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T042 [P] 보존 정리 스케줄 — `TrendAggregationScheduler.cleanup()` `@Scheduled(cron="${app.scheduler.trend.cleanup-cron}")` → 90일 경과 슬롯 DELETE (FR-009)
-- [ ] T043 [P] 공개 접근 통합 테스트 in `src/test/java/com/newscurator/integration/TrendPublicAccessIT.java` (@SpringBootTest RANDOM_PORT, 실 SecurityConfig) — JWT 없이 5개 trends 엔드포인트 전부 200 (FR-013, quickstart Scenario 7)
-- [ ] T044 [P] 트렌드 read 캐싱 — Spring `ConcurrentMapCacheManager` 단기 TTL @Cacheable(R-006, Redis 미사용). 캐시 무효화 주기 = 집계 주기
-- [ ] T045 [P] 보존 정리 IT in `src/test/java/com/newscurator/service/TrendRetentionIT.java` — 90일 경과 슬롯 삭제, 최신 영향 없음 (quickstart Scenario 8)
-- [ ] T046 CHANGELOG.html 항목 추가 (tag-feature, stats 갱신, 결정 이유 — re-derive·summary-race 게이팅·over-merge 가드)
-- [ ] T047 quickstart 8개 시나리오 수동 검증 — Docker 기동, Nori 실추출 1건 확인(또는 "런타임/배포 시 검증" 명시)
-- [ ] T048 OpenApiSpecExportTest 통과 확인 → sync-openapi로 news-pulse-spec 반영
-- [ ] T049 ADR 작성 in `.specify/specs/007-trend-aggregation/adr/ADR-001-keyword-extraction-clustering.md` — Nori 선택·co-occurrence MVP·re-derive 결정 (CLAUDE.md 분석 로직 결정 기록)
+- [x] T042 [P] 보존 정리 스케줄 — `TrendAggregationScheduler.cleanup()` `@Scheduled(cron="${app.scheduler.trend.cleanup-cron}")` → 90일 경과 슬롯 DELETE (FR-009)
+- [x] T043 [P] 공개 접근 통합 테스트 in `src/test/java/com/newscurator/integration/TrendPublicAccessIT.java` (@SpringBootTest RANDOM_PORT, 실 SecurityConfig) — JWT 없이 5개 trends 엔드포인트 전부 200 (FR-013, quickstart Scenario 7)
+- [x] T044 [P] 트렌드 read 캐싱 — Spring `ConcurrentMapCacheManager` 단기 TTL @Cacheable(R-006, Redis 미사용). 캐시 무효화 주기 = 집계 주기
+- [x] T045 [P] 보존 정리 IT in `src/test/java/com/newscurator/service/TrendRetentionIT.java` — 90일 경과 슬롯 삭제, 최신 영향 없음 (quickstart Scenario 8)
+- [x] T046 CHANGELOG.html 항목 추가 (tag-feature, stats 갱신, 결정 이유 — re-derive·summary-race 게이팅·over-merge 가드)
+- [x] T047 quickstart 8개 시나리오 수동 검증 — Docker 기동, Nori 실추출 1건 확인(또는 "런타임/배포 시 검증" 명시)
+- [x] T048 OpenApiSpecExportTest 통과 확인 → sync-openapi로 news-pulse-spec 반영
+- [x] T049 ADR 작성 in `.specify/specs/007-trend-aggregation/adr/ADR-001-keyword-extraction-clustering.md` — Nori 선택·co-occurrence MVP·re-derive 결정 (CLAUDE.md 분석 로직 결정 기록)
 
 ---
 

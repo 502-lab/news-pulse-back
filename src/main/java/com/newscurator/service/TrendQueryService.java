@@ -1,5 +1,6 @@
 package com.newscurator.service;
 
+import com.newscurator.config.TrendCacheConfig;
 import com.newscurator.config.TrendProperties;
 import com.newscurator.domain.IssueSnapshot;
 import com.newscurator.dto.response.HeatmapCellResponse;
@@ -15,6 +16,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +51,7 @@ public class TrendQueryService {
      * 정렬은 평활비 (cur+k)/(prev+k)(SQL), 응답 deltaPct는 raw %, prev=0은 null+isNew.
      * 노이즈컷: cur < minArticleCount 제외(cur<2). category null이면 전체.
      */
+    @Cacheable(cacheNames = TrendCacheConfig.TOP5, key = "#category == null ? '_all' : #category")
     @Transactional(readOnly = true)
     public List<TrendKeywordResponse> getTop5(String category) {
         Instant now = Instant.now();
@@ -71,6 +74,7 @@ public class TrendQueryService {
      * US1과 동일한 평활비 정렬·isNew·null-delta 로직을 "주간 윈도우"에 적용(24h Top5와의 구분점 = 주간 경계).
      * prev주 슬롯은 cur주 합산에 섞이지 않는다(쿼리 FILTER 경계). cur<2 제외, prev=0 → isNew+deltaPct null.
      */
+    @Cacheable(cacheNames = TrendCacheConfig.WOW)
     @Transactional(readOnly = true)
     public List<TrendKeywordResponse> getWow() {
         Instant now = Instant.now();
@@ -91,6 +95,7 @@ public class TrendQueryService {
      * 히트맵 (FR-006): (시간버킷 × 카테고리) 격자의 기사 볼륨 = DISTINCT 기사 수.
      * per-term SUM이 아니라 article_keyword JOIN articles의 DISTINCT 기사(과대계상 방지).
      */
+    @Cacheable(cacheNames = TrendCacheConfig.HEATMAP, key = "#windowHours")
     @Transactional(readOnly = true)
     public List<HeatmapCellResponse> getHeatmap(int windowHours) {
         Instant windowStart = Instant.now().minus(windowHours, ChronoUnit.HOURS);
@@ -105,6 +110,7 @@ public class TrendQueryService {
     /**
      * 워드클라우드 (FR-006): term별 weight = 윈도우 내 article_count 합. min-freq(<2) 제외.
      */
+    @Cacheable(cacheNames = TrendCacheConfig.WORDCLOUD, key = "#windowHours")
     @Transactional(readOnly = true)
     public List<WordcloudItemResponse> getWordcloud(int windowHours) {
         Instant windowStart = Instant.now().minus(windowHours, ChronoUnit.HOURS);
@@ -116,6 +122,7 @@ public class TrendQueryService {
     /**
      * 이슈 목록 (FR-010). 최신 issue_snapshot을 delta 내림차순으로 서빙(매 집계 재산출, 안정 ID 없음).
      */
+    @Cacheable(cacheNames = TrendCacheConfig.ISSUES)
     @Transactional(readOnly = true)
     public List<IssueResponse> getIssues() {
         return issueSnapshotRepository.findAllOrderByDelta().stream()

@@ -37,4 +37,18 @@ public class TrendAggregationScheduler {
             MDC.remove("runId");
         }
     }
+
+    /** 보존 정리(FR-009): 90일 경과 슬롯/이슈 삭제. 기본 매일 03:30(UTC). */
+    @Scheduled(cron = "${app.scheduler.trend.cleanup-cron:0 30 3 * * *}")
+    public void cleanup() {
+        String runId = UUID.randomUUID().toString();
+        MDC.put("runId", runId);
+        try {
+            trendAggregationService.cleanup();
+        } catch (Exception e) {
+            log.error("[TREND-SCHEDULER] 보존 정리 실패, runId={}: {}", runId, e.getMessage(), e);
+        } finally {
+            MDC.remove("runId");
+        }
+    }
 }

@@ -60,12 +60,15 @@ class TrendHeatmapWordcloudIT {
     @Autowired private TrendQueryService trendQueryService;
     @Autowired private ArticleRepository articleRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private org.springframework.cache.CacheManager cacheManager;
 
     @BeforeEach
     void clean() {
         jdbcTemplate.execute(
                 "TRUNCATE TABLE article_keyword, trend_keyword_slot, summaries, article_sources,"
                         + " source_daily_usage, articles, sources RESTART IDENTITY CASCADE");
+        // 캐시(R-006)도 DB와 함께 초기화 — 메서드 간 캐시 누수 방지(테스트 격리)
+        cacheManager.getCacheNames().forEach(n -> cacheManager.getCache(n).clear());
     }
 
     /** 기사 1건 저장(카테고리·수집시각) + article_keyword 다중 term 삽입. */

@@ -19,12 +19,11 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * T043(US1 부분): 트렌드 공개 접근 — 실제 SecurityConfig 로딩(@SpringBootTest, standalone 아님).
+ * T043: 트렌드 공개 접근 — 실제 SecurityConfig 로딩(@SpringBootTest, standalone 아님).
  *
- * <p>FR-013: /api/v1/trends/** 는 permitAll. US1 슬라이스에선 top5만 구현 →
- * top5=200, 미구현 trends 경로=404(401/403 아님 → permitAll 서브트리 입증).
- * 대조: 인증 필요 엔드포인트는 JWT 없이 401(보안 필터 활성 증명).
- * (US3/4/5 구현 후 나머지 4개도 200으로 강화 — T043 Polish.)
+ * <p>FR-013: /api/v1/trends/** 는 permitAll. US1~US5 전부 구현 완료 →
+ * 5개 trends 엔드포인트(top5·wordcloud·heatmap·wow·issues) 모두 JWT 없이 200(빈 DB면 빈 목록).
+ * 대조: 인증 필요 엔드포인트(/api/v1/bias/spectrum)는 JWT 없이 401(보안 필터 활성 증명).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers(disabledWithoutDocker = true)
@@ -68,25 +67,18 @@ class TrendPublicAccessIT {
     }
 
     @Test
-    @DisplayName("JWT 없이 Top5 → 200 (공개)")
-    void top5_public_200() {
-        assertThat(statusOf("/api/v1/trends/keywords/top5")).isEqualTo(200);
-    }
-
-    @Test
-    @DisplayName("JWT 없이 미구현 trends 경로 → 401/403 아님(permitAll 서브트리 통과)")
-    void otherTrendPaths_notAuthBlocked() {
-        // 미구현 → 404 또는 500(no-handler catch-all). 핵심: 401(미인증)/403(권한)이 아니어야
-        // permitAll 매처가 서브트리를 덮음(보안 필터를 통과해 디스패처까지 도달).
+    @DisplayName("JWT 없이 5개 trends 엔드포인트 전부 200 (공개, 빈 DB면 빈 목록)")
+    void allFiveTrendEndpoints_public_200() {
+        // US1~US5 전부 구현 → 5개 모두 permitAll + 빈 DB에서 빈 목록 200
         for (String path : new String[] {
-                "/api/v1/trends/wordcloud",
-                "/api/v1/trends/heatmap",
-                "/api/v1/trends/wow",
-                "/api/v1/trends/issues"}) {
-            int st = statusOf(path);
-            assertThat(st)
-                    .as("path %s should pass permitAll (not 401/403)", path)
-                    .isNotIn(HttpStatus.UNAUTHORIZED.value(), HttpStatus.FORBIDDEN.value());
+                "/api/v1/trends/keywords/top5", // US1
+                "/api/v1/trends/wow",           // US4
+                "/api/v1/trends/heatmap",       // US3
+                "/api/v1/trends/wordcloud",     // US3
+                "/api/v1/trends/issues"}) {     // US5
+            assertThat(statusOf(path))
+                    .as("public trends endpoint %s → 200", path)
+                    .isEqualTo(200);
         }
     }
 
