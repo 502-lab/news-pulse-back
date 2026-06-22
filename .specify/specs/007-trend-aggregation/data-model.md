@@ -123,8 +123,9 @@ public interface IssueClusterer {
        AND ( a.summary_status IN ('COMPLETED','FAILED')
              OR (a.summary_status = 'PENDING' AND a.first_collected_at < NOW() - INTERVAL '1 hour') )
    for each gated article:
-     useSummary = (summary_status='COMPLETED')
-     text = title + (useSummary ? summaries.content[BALANCED] : "")   // 그 외 제목만
+     bal = summaryRepository.findByArticleIdAndDepth(id, BALANCED)   // Optional
+     useSummary = (summary_status='COMPLETED') AND bal.present AND bal.content non-null·non-blank
+     text = useSummary ? (title + " " + bal.content) : title          // 그 외/null이면 제목만(NPE 방어)
      terms = keywordExtractor.extractNouns(text)           // NNG/NNP, 불용어/중복 제거
      INSERT INTO article_keyword(article_id, term) VALUES ... ON CONFLICT DO NOTHING
    // race 제거: 요약 도착 전 제목만으로 굳히지 않고, recent-PENDING은 skip→다음 run에 본문 포함 재추출.
