@@ -108,7 +108,7 @@
 - **FR-002**: 시스템은 추출된 키워드를 (시간 슬롯, 카테고리) 단위로 기사당 1회 빈도로 집계해야 한다.
 - **FR-003**: 집계는 멱등해야 한다 — 동일 슬롯 재집계 시 중복 누적 없이 기사+키워드에서 재산출 가능해야 한다(수작업 큐레이션 금지). 집계 스케줄러 실행 간격은 환경변수(설정값, default 10분)이며, 빈번 실행해도 멱등 재집계라 안전하다(대부분 no-op).
 - **FR-004**: 시스템은 최근 윈도우 기준 급상승 키워드 Top5를 `term`·`count`·`deltaPct`와 함께 제공하는 API를 제공해야 한다(카테고리 필터 지원).
-- **FR-005**: 시스템은 키워드별 `term`, `count`, `deltaPct`, `slots[]`(시간대별 시계열)를 제공해야 한다.
+- **FR-005**: 시스템은 키워드별 `term`, `count`, `deltaPct`(+`isNew`)를 제공해야 한다. **키워드별 `slots[]`(시간대별 시계열)는 MVP 후순위(deferred)** — Top5/워드클라우드는 윈도우 합산(count/deltaPct/isNew)으로 충족한다. (forward-note: per-keyword 슬롯 데이터는 `trend_keyword_slot`에 이미 존재하므로, UI가 키워드별 스파크라인을 요구하면 `TrendKeywordResponse.slots[]` 필드 + 슬롯 분해 쿼리(T021 확장)로 저비용 추가 가능.)
 - **FR-006**: 시스템은 시간 슬롯 × 카테고리 격자의 히트맵 데이터와, 가중치를 가진 워드클라우드 데이터(W-02)를 제공하는 API를 제공해야 한다.
 - **FR-007**: 시스템은 WoW(이번 주 vs 지난주) 증감률을 산출하고 급상승 키워드 목록을 제공해야 한다. 작은 분모 가드(Q3): ① 직전 주 0건(prev=0)은 `deltaPct=null` + `isNew=true`로 처리한다(분모 0 회피). ② 급상승 정렬은 라플라스 평활비 `(current+1)/(previous+1)`로 계산하여 1→2/1→3 같은 미세 분모 %폭증을 억제한다. ③ current가 노이즈 컷(2건, FR-008) 미만인 키워드는 신규·급상승에서 제외한다. 평활 상수(add-one)는 환경변수로 파라미터화한다.
 - **FR-008**: 시스템은 최소 빈도(노이즈 컷, **윈도우 내 기사 2건 이상** — 기사 단위 빈도=키워드 등장 기사 수)와 불용어 제거 규칙을 적용하여 의미 없는 키워드를 트렌드 결과에서 제외해야 한다. 임계는 환경변수(설정값)로 조정 가능하며, 현재 저볼륨 기준 2건이 floor이고 볼륨 증가 시 상향한다. 이 임계는 일반 노이즈 컷(특히 24h Top5)용이며, 주간 WoW의 작은 분모 %폭증 문제는 FR-007에서 별도 가드로 처리한다.
@@ -123,7 +123,7 @@
 ### Key Entities *(include if feature involves data)*
 
 - **TrendKeyword**: 키워드 트렌드 집계 단위 — `term`, `category`, `slot`(시간 버킷), `count`(기사당 1회 빈도), 파생값 `deltaPct`(직전 윈도우 대비). (슬롯 × 카테고리 × term) 단위로 존재.
-- **KeywordView**: 조회용 키워드 집계 — `term`, `count`(윈도우 합), `deltaPct`(prev=0이면 null), `isNew`(직전 주 0건 신규 여부), `slots[]`(시간대별 시계열). API 응답 형태.
+- **KeywordView**: 조회용 키워드 집계 — `term`, `count`(윈도우 합), `deltaPct`(prev=0이면 null), `isNew`(직전 주 0건 신규 여부). API 응답 형태. (`slots[]` 시간대별 시계열은 MVP 후순위/deferred — FR-005 참조.)
 - **Issue**: 이슈 단위 묶음 — 관련 기사 묶음(article 참조), 증감, 대표 키워드 3개, `clusteringMethod`(default `'CO_OCCURRENCE'`, MVP는 항상 이 값; v2 임베딩 전환기 A/C 혼재 추적용, Q5). 기사+키워드에서 재산출 가능. 컬럼을 미리 두어 v2 전환 시 마이그레이션 없이 A/C 추적·필터·점진 재클러스터링이 가능하다(FR-011/012 교체 가능 설계와 정합).
 - **IssueClusterer**: 이슈 산출 포트(개념적 인터페이스). MVP 구현은 co-occurrence 기반. 교체 가능.
 - **KeywordExtractor**: 키워드 추출 포트(개념적 인터페이스). MVP 구현은 Lucene Nori 명사(NNG/NNP) 추출. 교체 가능(향후 다른 분석기/사전).
