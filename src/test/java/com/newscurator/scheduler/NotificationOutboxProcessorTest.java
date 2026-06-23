@@ -92,6 +92,7 @@ class NotificationOutboxProcessorTest {
     @Autowired ObjectMapper objectMapper;
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired com.newscurator.service.admin.SchedulerControlService schedulerControl;
 
     private UUID accountId;
     private PushNotificationPort mockPushPort;
@@ -113,7 +114,7 @@ class NotificationOutboxProcessorTest {
         mockPushPort = mock(PushNotificationPort.class);
         mockEmailPort = mock(EmailPort.class);
         processor = new NotificationOutboxProcessor(
-                claimer, mockPushPort, mockEmailPort, deviceTokenService, objectMapper, 50);
+                claimer, mockPushPort, mockEmailPort, deviceTokenService, objectMapper, 50, schedulerControl);
     }
 
     @AfterEach
@@ -246,7 +247,7 @@ class NotificationOutboxProcessorTest {
         savePushOutbox("concurrent-token-" + UUID.randomUUID());
 
         NotificationOutboxProcessor processor2 = new NotificationOutboxProcessor(
-                claimer, mockPushPort, mockEmailPort, deviceTokenService, objectMapper, 50);
+                claimer, mockPushPort, mockEmailPort, deviceTokenService, objectMapper, 50, schedulerControl);
 
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch doneLatch = new CountDownLatch(2);

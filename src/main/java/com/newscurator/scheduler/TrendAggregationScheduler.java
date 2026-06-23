@@ -2,6 +2,7 @@ package com.newscurator.scheduler;
 
 import com.newscurator.service.TrendAggregationService;
 import java.util.UUID;
+import com.newscurator.service.admin.SchedulerControlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -20,13 +21,19 @@ public class TrendAggregationScheduler {
     private static final Logger log = LoggerFactory.getLogger(TrendAggregationScheduler.class);
 
     private final TrendAggregationService trendAggregationService;
+    private final SchedulerControlService schedulerControl;
 
-    public TrendAggregationScheduler(TrendAggregationService trendAggregationService) {
+    public TrendAggregationScheduler(
+            TrendAggregationService trendAggregationService, SchedulerControlService schedulerControl) {
         this.trendAggregationService = trendAggregationService;
+        this.schedulerControl = schedulerControl;
     }
 
     @Scheduled(fixedDelayString = "${app.scheduler.trend.interval-ms:600000}")
     public void run() {
+        if (!schedulerControl.isEnabled("trend_aggregation")) {
+            return;
+        }
         String runId = UUID.randomUUID().toString();
         MDC.put("runId", runId);
         try {
@@ -41,6 +48,9 @@ public class TrendAggregationScheduler {
     /** 보존 정리(FR-009): 90일 경과 슬롯/이슈 삭제. 기본 매일 03:30(UTC). */
     @Scheduled(cron = "${app.scheduler.trend.cleanup-cron:0 30 3 * * *}")
     public void cleanup() {
+        if (!schedulerControl.isEnabled("trend_cleanup")) {
+            return;
+        }
         String runId = UUID.randomUUID().toString();
         MDC.put("runId", runId);
         try {

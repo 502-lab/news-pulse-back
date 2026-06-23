@@ -130,6 +130,11 @@ public class Article {
         this.summaryStatus = ProcessingStatus.FAILED;
     }
 
+    /** 008 US3: 관리자 요약 재시도 트리거 — FAILED 요약을 PENDING으로 되돌려 재처리 큐에 올린다. */
+    public void resetSummaryForRetry() {
+        this.summaryStatus = ProcessingStatus.PENDING;
+    }
+
     public void hide() {
         this.feedVisible = false;
     }

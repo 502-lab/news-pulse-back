@@ -10,6 +10,7 @@ import com.newscurator.exception.FcmUnregisteredException;
 import com.newscurator.service.DeviceTokenService;
 import java.util.List;
 import java.util.Map;
+import com.newscurator.service.admin.SchedulerControlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class NotificationOutboxProcessor {
     private final DeviceTokenService deviceTokenService;
     private final ObjectMapper objectMapper;
     private final int batchSize;
+    private final SchedulerControlService schedulerControl;
 
     public NotificationOutboxProcessor(
             NotificationOutboxClaimer claimer,
@@ -46,17 +48,22 @@ public class NotificationOutboxProcessor {
             EmailPort emailPort,
             DeviceTokenService deviceTokenService,
             ObjectMapper objectMapper,
-            @Value("${app.scheduler.notification.outbox-batch-size:50}") int batchSize) {
+            @Value("${app.scheduler.notification.outbox-batch-size:50}") int batchSize,
+            SchedulerControlService schedulerControl) {
         this.claimer = claimer;
         this.pushPort = pushPort;
         this.emailPort = emailPort;
         this.deviceTokenService = deviceTokenService;
         this.objectMapper = objectMapper;
         this.batchSize = batchSize;
+        this.schedulerControl = schedulerControl;
     }
 
     @Scheduled(fixedDelayString = "${app.scheduler.notification.outbox-interval-ms}")
     public void process() {
+        if (!schedulerControl.isEnabled("notification_outbox")) {
+            return;
+        }
         // Phase 1: 클레임 — TX 커밋 시 락 해제
         List<NotificationOutbox> batch = claimer.claimBatch(batchSize);
         if (batch.isEmpty()) {

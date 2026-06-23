@@ -10,6 +10,7 @@ import com.newscurator.service.NotificationSendService;
 import com.newscurator.service.S3AudioUploader;
 import java.util.List;
 import java.util.UUID;
+import com.newscurator.service.admin.SchedulerControlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class TtsProcessingScheduler {
     private final NotificationSendService notificationSendService;
     private final DailyBriefRepository dailyBriefRepository;
     private final int batchSize;
+    private final SchedulerControlService schedulerControl;
 
     public TtsProcessingScheduler(
             TtsAudioClaimer claimer,
@@ -47,7 +49,8 @@ public class TtsProcessingScheduler {
             SummaryRepository summaryRepository,
             NotificationSendService notificationSendService,
             DailyBriefRepository dailyBriefRepository,
-            @Value("${app.tts.scheduler.batch-size:10}") int batchSize) {
+            @Value("${app.tts.scheduler.batch-size:10}") int batchSize,
+            SchedulerControlService schedulerControl) {
         this.claimer = claimer;
         this.ttsProvider = ttsProvider;
         this.s3AudioUploader = s3AudioUploader;
@@ -55,10 +58,14 @@ public class TtsProcessingScheduler {
         this.notificationSendService = notificationSendService;
         this.dailyBriefRepository = dailyBriefRepository;
         this.batchSize = batchSize;
+        this.schedulerControl = schedulerControl;
     }
 
     @Scheduled(cron = "${app.tts.scheduler.cron}")
     public void process() {
+        if (!schedulerControl.isEnabled("tts_processing")) {
+            return;
+        }
         // Phase 1: claim batch — 짧은 @Transactional, 반환 시 FOR UPDATE 락 해제됨
         List<TtsAudio> batch = claimer.claimBatch(batchSize);
         if (batch.isEmpty()) {

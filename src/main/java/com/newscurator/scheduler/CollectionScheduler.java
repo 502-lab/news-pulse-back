@@ -2,6 +2,7 @@ package com.newscurator.scheduler;
 
 import com.newscurator.service.CollectionService;
 import java.util.UUID;
+import com.newscurator.service.admin.SchedulerControlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -16,13 +17,19 @@ public class CollectionScheduler {
     private static final Logger log = LoggerFactory.getLogger(CollectionScheduler.class);
 
     private final CollectionService collectionService;
+    private final SchedulerControlService schedulerControl;
 
-    public CollectionScheduler(CollectionService collectionService) {
+    public CollectionScheduler(
+            CollectionService collectionService, SchedulerControlService schedulerControl) {
         this.collectionService = collectionService;
+        this.schedulerControl = schedulerControl;
     }
 
     @Scheduled(fixedDelayString = "${app.scheduler.collection.interval-ms:900000}")
     public void run() {
+        if (!schedulerControl.isEnabled("collection")) {
+            return;
+        }
         String runId = UUID.randomUUID().toString();
         MDC.put("runId", runId);
         try {

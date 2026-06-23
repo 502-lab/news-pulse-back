@@ -93,28 +93,28 @@
 - [x] T040 [US3] 트렌드 추출/히트맵 JOIN에 hidden 제외 in `src/main/java/com/newscurator/repository/ArticleKeywordRepository.java` (windowArticleKeywords·heatmap `AND a.admin_hidden_at IS NULL`) — #10~#11 (007)
 - [x] T041 [US3] 트렌드 슬롯 UPSERT JOIN에 hidden 제외 in `src/main/java/com/newscurator/repository/TrendKeywordSlotRepository.java` (upsertSlots) — #12 (007)
 - [x] T042 [US3] 북마크 목록 hidden 제외 in `src/main/java/com/newscurator/service/SavedArticleService.java` (목록 쿼리 admin_hidden_at IS NULL) — #13
-- [ ] T043 [US3] 기사 숨김/해제 서비스 in `src/main/java/com/newscurator/service/admin/AdminOpsService.java` — hide(admin_hidden_at=now)·unhide(null) + 감사 record() + admin 기사 조회(hidden 포함)
+- [x] T043 [US3] 기사 숨김/해제 서비스 in `src/main/java/com/newscurator/service/admin/AdminOpsService.java` — hide(admin_hidden_at=now)·unhide(null) + 감사 record() + admin 기사 조회(hidden 포함)
 
 ### 스케줄러 제어 (12 @Scheduled 게이트)
 
-- [ ] T044 [P] [US3] CollectionScheduler·AiProcessingScheduler에 `isEnabled(key)` 게이트(disabled면 skip) in `src/main/java/com/newscurator/scheduler/CollectionScheduler.java`·`AiProcessingScheduler.java` (keys: collection·ai_processing)
-- [ ] T045 [P] [US3] BiasAnalysisScheduler 3메서드 게이트 in `src/main/java/com/newscurator/scheduler/BiasAnalysisScheduler.java` (keys: bias_analysis·bias_recovery·**bias_sla**)
+- [x] T044 [P] [US3] CollectionScheduler·AiProcessingScheduler에 `isEnabled(key)` 게이트(disabled면 skip) in `src/main/java/com/newscurator/scheduler/CollectionScheduler.java`·`AiProcessingScheduler.java` (keys: collection·ai_processing)
+- [x] T045 [P] [US3] BiasAnalysisScheduler 3메서드 게이트 in `src/main/java/com/newscurator/scheduler/BiasAnalysisScheduler.java` (keys: bias_analysis·bias_recovery·**bias_sla**)
 - [ ] T046 [P] [US3] TrendAggregationScheduler 2메서드 게이트 in `src/main/java/com/newscurator/scheduler/TrendAggregationScheduler.java` (keys: trend_aggregation·trend_cleanup)
-- [ ] T047 [P] [US3] TtsProcessingScheduler·NotificationOutboxProcessor·NotificationExpiryScheduler·WeeklyEmailScheduler·ExpiryScheduler 게이트 in 각 파일 (keys: tts_processing·notification_outbox·notification_expiry·weekly_email·expiry)
+- [x] T047 [P] [US3] TtsProcessingScheduler·NotificationOutboxProcessor·NotificationExpiryScheduler·WeeklyEmailScheduler·ExpiryScheduler 게이트 in 각 파일 (keys: tts_processing·notification_outbox·notification_expiry·weekly_email·expiry)
 - [ ] T048 [US3] 스케줄러 수동 실행(1회 즉시 트리거 + 동시실행 가드) + 토글 setEnabled in `AdminOpsService` (+ 감사)
 
 ### 제외 키워드 · 요약 재시도
 
-- [ ] T049 [US3] 제외 키워드 CRUD 서비스(add unique·list·delete) + 트렌드 집계 배제 연동(`term NOT IN excluded_keyword`) in `AdminOpsService` + `TrendKeywordSlotRepository.upsertSlots`/추출 쿼리
-- [ ] T050 [US3] 실패(FAILED) 요약 재시도 트리거(상태 재처리 전환) in `AdminOpsService` (+ 감사)
-- [ ] T051 [US3] DTO(`ArticleHideRequest`·`ExcludedKeywordRequest`·`SchedulerToggleRequest`=**{enabled} only**(interval 필드 미수용 — FR-031 거짓약속 회피 정합)) + `AdminOpsController` in `src/main/java/com/newscurator/controller/AdminOpsController.java` — schedulers run/toggle(enabled)·excluded-keywords·summary/retry·articles hide/unhide·admin articles
+- [x] T049 [US3] 제외 키워드 CRUD 서비스(add unique·list·delete) + 트렌드 집계 배제 연동(`term NOT IN excluded_keyword`) in `AdminOpsService` + `TrendKeywordSlotRepository.upsertSlots`/추출 쿼리
+- [x] T050 [US3] 실패(FAILED) 요약 재시도 트리거(상태 재처리 전환) in `AdminOpsService` (+ 감사)
+- [x] T051 [US3] DTO(`ArticleHideRequest`·`ExcludedKeywordRequest`·`SchedulerToggleRequest`=**{enabled} only**(interval 필드 미수용 — FR-031 거짓약속 회피 정합)) + `AdminOpsController` in `src/main/java/com/newscurator/controller/AdminOpsController.java` — schedulers run/toggle(enabled)·excluded-keywords·summary/retry·articles hide/unhide·admin articles
 
 ### US3 테스트 (크라운주얼)
 
 - [x] T052 [US3] ★ `ArticleHiddenConsistencyIT`(실 PG) in `src/test/java/com/newscurator/integration/ArticleHiddenConsistencyIT.java` — hide 후 피드·검색·트렌드 추출 입력·기사상세(일반=404)에서 0건, admin 포함, unhide 즉시 복귀. 경로 #1~#13 회귀 가드
-- [ ] T053 [US3] ★ `SchedulerTogglePersistenceIT`(실 PG) in `src/test/java/com/newscurator/integration/SchedulerTogglePersistenceIT.java` — **12 scheduler_key 전부 검증**(부분커버 금지): (a) `@ParameterizedTest`로 12키 each → 해당 키 disabled 토글 후 그 `@Scheduled` 메서드 직접 호출 시 **본문 skip(작업 미수행)** 단언, (b) 재조회 시 disabled 영속 유지(재기동 시뮬레이션 = 새 컨텍스트/재조회, SC-010). ★ `weekly_email`(WeeklyEmailScheduler — 전역 @ConditionalOnProperty 없어 DB 게이트가 유일 차단책) 반드시 포함. + **게이트 커버리지 단언**: 12개 @Scheduled 메서드가 모두 진입 시 `SchedulerControlService.isEnabled(key)`를 호출함을 12키 each 검증(T044~T047 주입 누락 색출)
-- [ ] T054 [P] [US3] `AdminOpsServiceTest`(단위) — hide/unhide·키워드·요약재시도·토글 + 각 변형액션 audit 1건 in `src/test/java/com/newscurator/service/admin/AdminOpsServiceTest.java`
-- [ ] T055 [P] [US3] 제외 키워드 집계 배제 IT(실 PG) — 등록 키워드가 다음 트렌드 집계 슬롯서 제외 in `src/test/java/com/newscurator/integration/ExcludedKeywordIT.java`
+- [x] T053 [US3] ★ `SchedulerTogglePersistenceIT`(실 PG) in `src/test/java/com/newscurator/integration/SchedulerTogglePersistenceIT.java` — **12 scheduler_key 전부 검증**(부분커버 금지): (a) `@ParameterizedTest`로 12키 each → 해당 키 disabled 토글 후 그 `@Scheduled` 메서드 직접 호출 시 **본문 skip(작업 미수행)** 단언, (b) 재조회 시 disabled 영속 유지(재기동 시뮬레이션 = 새 컨텍스트/재조회, SC-010). ★ `weekly_email`(WeeklyEmailScheduler — 전역 @ConditionalOnProperty 없어 DB 게이트가 유일 차단책) 반드시 포함. + **게이트 커버리지 단언**: 12개 @Scheduled 메서드가 모두 진입 시 `SchedulerControlService.isEnabled(key)`를 호출함을 12키 each 검증(T044~T047 주입 누락 색출)
+- [x] T054 [P] [US3] `AdminOpsServiceTest`(단위) — hide/unhide·키워드·요약재시도·토글 + 각 변형액션 audit 1건 in `src/test/java/com/newscurator/service/admin/AdminOpsServiceTest.java`
+- [x] T055 [P] [US3] 제외 키워드 집계 배제 IT(실 PG) — 등록 키워드가 다음 트렌드 집계 슬롯서 제외 in `src/test/java/com/newscurator/integration/ExcludedKeywordIT.java`
 
 **Checkpoint**: 능동 운영 제어 + hidden 일관성 + 스케줄러 영속 토글.
 
