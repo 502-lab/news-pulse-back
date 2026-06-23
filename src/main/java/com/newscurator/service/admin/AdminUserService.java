@@ -48,7 +48,12 @@ public class AdminUserService {
             Pageable pageable) {
         String emailFilter = (email == null || email.isBlank()) ? null : email;
         return accountRepository
-                .search(emailFilter, role, status, signupType, pageable)
+                .search(
+                        emailFilter,
+                        role == null ? null : role.name(),
+                        status == null ? null : status.name(),
+                        signupType == null ? null : signupType.name(),
+                        pageable)
                 .map(AdminUserSummaryResponse::from);
     }
 

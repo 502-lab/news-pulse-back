@@ -60,8 +60,7 @@ class AdminUserServiceTest {
                         PageRequest.of(0, 20));
 
         assertThat(page.getTotalElements()).isEqualTo(1);
-        verify(accountRepository).search(eq("u"), eq(AccountRole.USER), eq(AccountStatus.ACTIVE),
-                eq(SignupType.EMAIL), any());
+        verify(accountRepository).search(eq("u"), eq("USER"), eq("ACTIVE"), eq("EMAIL"), any());
     }
 
     @Test

@@ -25,3 +25,18 @@
 - `SchedulerTogglePersistenceIT`: 토글→skip→재기동 유지.
 - `AdminAuditCaptureTest`(단위): 변형 액션별 audit 1건 + diff.
 - `AdminPushIdempotencyIT`: 동일 발송 중복 0.
+
+## 검증 상태 (T076 — 2026-06-24, full suite 532 tests 0 fail)
+시나리오 대부분은 통합 테스트로 자동 검증됨(실 PG, BigmPostgresImage):
+- #1 인가 → `AdminAuthorizationIT`(5영역 401/403/200 + 공개 200)
+- #3 자기보호 가드 → `LastAdminGuardIT`
+- #4 빈데이터 안전 → `AdminMonitoringEmptyIT`
+- #5 hidden 일관성 → `ArticleHiddenConsistencyIT`·`HiddenExpiryIndependenceIT`·`AdminMonitoringHiddenIT`
+- #6 스케줄러 토글 영속/수동실행 → `SchedulerControlServiceIT`·`SchedulerManualRunIT`
+- #7 제외 키워드 → `ExcludedKeywordApplicationIT`
+- #9 공지 게시/미노출 → `NoticePublishIT`
+- #10 푸시 멱등 → `AdminPushIdempotencyIT`·`AdminInAppPushIT`
+- #11 감사 커버리지(전 변형 액션 누락 0) → `AdminAuditCoverageTest`·`AdminOpsActionsAuditIT`·`AdminAuditTxParticipationIT`
+- #12 에러 로그 집계 → `AdminOpsStatsIT`
+
+런타임/배포 시 검증 이연: #2 실 로그인 차단의 클라이언트 왕복, #8 요약 재시도의 실 Gemini 재처리(외부 연동)는 배포 환경에서 확인.

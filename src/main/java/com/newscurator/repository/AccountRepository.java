@@ -3,7 +3,6 @@ package com.newscurator.repository;
 import com.newscurator.domain.Account;
 import com.newscurator.domain.enums.AccountRole;
 import com.newscurator.domain.enums.AccountStatus;
-import com.newscurator.domain.enums.SignupType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,17 +27,31 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
 
     /**
      * 008 US1 — 어드민 사용자 목록(이메일 부분검색·역할·상태·가입유형 옵션 필터). null 필터는 무시.
+     *
+     * <p>nullable enum/문자열 파라미터는 JPQL에서 Postgres 바인드 타입 추론 실패("could not determine data type
+     * of parameter")를 유발하므로 native + CAST(:p AS text)로 처리한다. role·status·signup_type 컬럼은
+     * EnumType.STRING 저장이라 문자열 비교가 정합. role/status/signupType은 enum.name() 또는 null로 전달.
      */
     @Query(
-            "SELECT a FROM Account a WHERE "
-                    + "(:email IS NULL OR LOWER(a.email) LIKE LOWER(CONCAT('%', :email, '%'))) "
-                    + "AND (:role IS NULL OR a.role = :role) "
-                    + "AND (:status IS NULL OR a.status = :status) "
-                    + "AND (:signupType IS NULL OR a.signupType = :signupType)")
+            value =
+                    "SELECT * FROM accounts a WHERE "
+                            + "(CAST(:email AS text) IS NULL"
+                            + " OR LOWER(a.email) LIKE LOWER(CONCAT('%', CAST(:email AS text), '%'))) "
+                            + "AND (CAST(:role AS text) IS NULL OR a.role = CAST(:role AS text)) "
+                            + "AND (CAST(:status AS text) IS NULL OR a.status = CAST(:status AS text)) "
+                            + "AND (CAST(:signupType AS text) IS NULL OR a.signup_type = CAST(:signupType AS text))",
+            countQuery =
+                    "SELECT count(*) FROM accounts a WHERE "
+                            + "(CAST(:email AS text) IS NULL"
+                            + " OR LOWER(a.email) LIKE LOWER(CONCAT('%', CAST(:email AS text), '%'))) "
+                            + "AND (CAST(:role AS text) IS NULL OR a.role = CAST(:role AS text)) "
+                            + "AND (CAST(:status AS text) IS NULL OR a.status = CAST(:status AS text)) "
+                            + "AND (CAST(:signupType AS text) IS NULL OR a.signup_type = CAST(:signupType AS text))",
+            nativeQuery = true)
     Page<Account> search(
             @Param("email") String email,
-            @Param("role") AccountRole role,
-            @Param("status") AccountStatus status,
-            @Param("signupType") SignupType signupType,
+            @Param("role") String role,
+            @Param("status") String status,
+            @Param("signupType") String signupType,
             Pageable pageable);
 }

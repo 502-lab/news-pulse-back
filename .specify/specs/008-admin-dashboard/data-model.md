@@ -144,3 +144,18 @@ findFeedCandidates·findFeedCandidatesByCategory·searchByQuery·searchByQueryWi
 `ArticleKeywordRepository`의 windowArticleKeywords·heatmap; `TrendKeywordSlotRepository`의 upsertSlots(JOIN articles).
 신규 가드: `ArticleDetailService.findById`(일반 사용자 hidden 404), `SavedArticleService` 북마크 목록.
 admin 기사 조회는 필터 미적용(hidden 포함).
+
+## 추가 마이그레이션 — `V16__notification_dedup_key.sql` (US4 보강, FR-042 인앱 멱등)
+
+구현 중 FR-042("푸시/인앱 ... 중복 없이") 정합을 위해 추가. 어드민 인앱 알림을 결정적 키로 멱등 처리한다.
+
+```sql
+ALTER TABLE notifications ADD COLUMN dedup_key VARCHAR(200) NULL;
+-- 부분 unique 인덱스: dedup_key 있는 행만 유일성(기존 dedup 없는 NULL 알림과 공존)
+CREATE UNIQUE INDEX uq_notification_dedup
+    ON notifications (dedup_key) WHERE dedup_key IS NOT NULL;
+```
+
+- 키 패턴: 공지 `ADMIN:NOTICE:{noticeId}:{accountId}`(멱등) / 캠페인 `ADMIN:CAMPAIGN:{serverUuid}:{accountId}`(매 발송 고유).
+- 인앱(notifications)=토큰 무관 전원 + dedup 멱등 / 푸시(notification_outbox)=토큰 보유자만 + `uq_outbox_idempotency`.
+- `NotificationRepository.insertSystemIdempotent` native `INSERT ... ON CONFLICT (dedup_key) WHERE dedup_key IS NOT NULL DO NOTHING`.

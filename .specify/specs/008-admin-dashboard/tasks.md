@@ -99,7 +99,7 @@
 
 - [x] T044 [P] [US3] CollectionScheduler·AiProcessingScheduler에 `isEnabled(key)` 게이트(disabled면 skip) in `src/main/java/com/newscurator/scheduler/CollectionScheduler.java`·`AiProcessingScheduler.java` (keys: collection·ai_processing)
 - [x] T045 [P] [US3] BiasAnalysisScheduler 3메서드 게이트 in `src/main/java/com/newscurator/scheduler/BiasAnalysisScheduler.java` (keys: bias_analysis·bias_recovery·**bias_sla**)
-- [ ] T046 [P] [US3] TrendAggregationScheduler 2메서드 게이트 in `src/main/java/com/newscurator/scheduler/TrendAggregationScheduler.java` (keys: trend_aggregation·trend_cleanup)
+- [x] T046 [P] [US3] TrendAggregationScheduler 2메서드 게이트 in `src/main/java/com/newscurator/scheduler/TrendAggregationScheduler.java` (keys: trend_aggregation·trend_cleanup)
 - [x] T047 [P] [US3] TtsProcessingScheduler·NotificationOutboxProcessor·NotificationExpiryScheduler·WeeklyEmailScheduler·ExpiryScheduler 게이트 in 각 파일 (keys: tts_processing·notification_outbox·notification_expiry·weekly_email·expiry)
 - [x] T048 [US3] 스케줄러 수동 실행(1회 즉시 트리거 + 동시실행 가드) + 토글 setEnabled in `AdminOpsService` (+ 감사)
 
@@ -157,13 +157,13 @@
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T071 ★ `AdminAuthorizationIT`(실 SecurityConfig, @SpringBootTest RANDOM_PORT) in `src/test/java/com/newscurator/integration/AdminAuthorizationIT.java` — 5개 영역 대표 엔드포인트 × {비인증 401·USER 403·ADMIN 200} + 공개 `/api/v1/notices` 200
-- [ ] T072 전체 변형 액션 audit 커버리지 검증 테스트(role·status·hide·scheduler·notice·push 6종 누락 0) in `src/test/java/com/newscurator/service/admin/AdminAuditCoverageTest.java`
-- [ ] T073 [P] Swagger 문서화 마무리 — 전 admin 컨트롤러 @Tag/@Operation/@ApiResponses, DTO @Schema 점검
+- [x] T071 ★ `AdminAuthorizationIT`(실 SecurityConfig, @SpringBootTest RANDOM_PORT) in `src/test/java/com/newscurator/integration/AdminAuthorizationIT.java` — 5개 영역 대표 엔드포인트 × {비인증 401·USER 403·ADMIN 200} + 공개 `/api/v1/notices` 200
+- [x] T072 전체 변형 액션 audit 커버리지 검증 테스트(role·status·hide·scheduler·notice·push 6종 누락 0) in `src/test/java/com/newscurator/service/admin/AdminAuditCoverageTest.java`
+- [x] T073 [P] Swagger 문서화 마무리 — 전 admin 컨트롤러 @Tag/@Operation/@ApiResponses, DTO @Schema 점검
 - [ ] T074 [P] CHANGELOG.html 항목 추가(tag-feature·tag-db, stats 갱신, 결정 이유 — hidden 전용컬럼·감사 명시캡처·스케줄러 영속토글·푸시 dedup) in `CHANGELOG.html`
-- [ ] T075 [P] ADR 작성 in `.specify/specs/008-admin-dashboard/adr/ADR-001-admin-hidden-audit-scheduler.md` — admin_hidden_at(feed_visible 비재활용)·AdminAuditLog 명시캡처·SchedulerSetting 게이트·FR-031 범위 한정 결정
-- [ ] T076 [P] quickstart 12 시나리오 수동 검증(Docker, 또는 "런타임/배포 시 검증" 명시) per `quickstart.md`
-- [ ] T077 OpenApiSpecExportTest 통과 확인 → dev push 시 sync-openapi로 `/api/v1/admin/**`·`/api/v1/notices` news-pulse-spec 반영
+- [x] T075 [P] ADR 작성 in `.specify/specs/008-admin-dashboard/adr/ADR-001-admin-hidden-audit-scheduler.md` — admin_hidden_at(feed_visible 비재활용)·AdminAuditLog 명시캡처·SchedulerSetting 게이트·FR-031 범위 한정 결정
+- [x] T076 [P] quickstart 12 시나리오 수동 검증(Docker, 또는 "런타임/배포 시 검증" 명시) per `quickstart.md`
+- [x] T077 OpenApiSpecExportTest 통과 확인 → dev push 시 sync-openapi로 `/api/v1/admin/**`·`/api/v1/notices` news-pulse-spec 반영
 - [x] T078 보존/정합 점검 — admin_hidden_at 인덱스 적용 확인, ExpiryService와 admin_hidden_at 독립성(만료 물리삭제가 hidden과 무관) 회귀 테스트 in `src/test/java/com/newscurator/integration/HiddenExpiryIndependenceIT.java`
 - [ ] T079 분석문자(U+6790) 0건 점검 + 전체 스위트 0 fail 확인 후 dev로 PR
 
