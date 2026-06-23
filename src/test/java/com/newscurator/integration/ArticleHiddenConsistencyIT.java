@@ -119,7 +119,8 @@ class ArticleHiddenConsistencyIT {
                         .publishedAt(now.minusHours(1)).firstCollectedAt(now.minusHours(1))
                         .expiresAt(now.plusDays(90)).build();
         long id = articleRepository.save(a).getId();
-        jdbcTemplate.update("UPDATE articles SET category_status='COMPLETED' WHERE id=?", id);
+        jdbcTemplate.update(
+                "UPDATE articles SET category_status='COMPLETED', category='ECONOMY_FINANCE' WHERE id=?", id);
         if (hidden) {
             jdbcTemplate.update("UPDATE articles SET admin_hidden_at=NOW() WHERE id=?", id);
         }
@@ -139,10 +140,55 @@ class ArticleHiddenConsistencyIT {
     }
 
     @Test
+    @DisplayName("피드 커서 — hidden 기사 미포함(findFeedPageWithCursor, hidden이 커서 경로로 새지 않음)")
+    void feedWithCursor_excludesHidden() {
+        // 커서를 기사들보다 미래로 두어 둘 다 커서 범위에 들어오게 → hidden만 필터로 빠져야
+        List<Long> ids =
+                articleRepository
+                        .findFeedPageWithCursor(
+                                List.of(ProcessingStatus.COMPLETED),
+                                OffsetDateTime.now().plusMinutes(1),
+                                Long.MAX_VALUE,
+                                PageRequest.of(0, 10))
+                        .stream()
+                        .map(Article::getId)
+                        .toList();
+        assertThat(ids).contains(visibleId).doesNotContain(hiddenId);
+    }
+
+    @Test
+    @DisplayName("카테고리 피드 — hidden 기사 미포함(findFeedPageByCategory)")
+    void feedByCategory_excludesHidden() {
+        List<Long> ids =
+                articleRepository
+                        .findFeedPageByCategory(
+                                List.of(ProcessingStatus.COMPLETED),
+                                com.newscurator.domain.enums.Category.ECONOMY_FINANCE,
+                                PageRequest.of(0, 10))
+                        .stream()
+                        .map(Article::getId)
+                        .toList();
+        assertThat(ids).contains(visibleId).doesNotContain(hiddenId);
+    }
+
+    @Test
     @DisplayName("검색 — hidden 기사 미포함(visible만)")
     void search_excludesHidden() {
         List<Long> ids =
                 articleRepository.searchByQuery("금리", 10).stream()
+                        .map(row -> ((Number) row[0]).longValue())
+                        .toList();
+        assertThat(ids).contains(visibleId).doesNotContain(hiddenId);
+    }
+
+    @Test
+    @DisplayName("검색 커서 — hidden 기사 미포함(searchByQueryWithCursor, hidden이 커서 경로로 새지 않음)")
+    void searchWithCursor_excludesHidden() {
+        // cursorScore 높게(2.0) 두어 모든 결과가 커서 이후로 들어오게 → hidden만 필터로 빠져야
+        List<Long> ids =
+                articleRepository
+                        .searchByQueryWithCursor("금리", 2.0, OffsetDateTime.now().plusMinutes(1), Long.MAX_VALUE, 10)
+                        .stream()
                         .map(row -> ((Number) row[0]).longValue())
                         .toList();
         assertThat(ids).contains(visibleId).doesNotContain(hiddenId);
