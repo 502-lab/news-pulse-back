@@ -69,6 +69,9 @@ public class NotificationSendService {
      */
     @Transactional
     public void enqueueAdminPush(UUID accountId, String title, String body, String idempotencyKey) {
+        // 인앱(FR-042): 토큰 무관 전원 도달 + dedup_key로 멱등(같은 키 재발송 무시)
+        notificationService.createSystemNotificationIdempotent(accountId, title, body, idempotencyKey);
+        // 푸시: 디바이스 토큰 보유자만(토큰 없으면 푸시 skip), outbox uq_outbox_idempotency로 멱등
         deviceTokenRepository.findByAccountId(accountId).stream()
                 .findFirst()
                 .ifPresent(
