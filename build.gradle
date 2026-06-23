@@ -83,6 +83,12 @@ tasks.named('jar') { enabled = false }
 tasks.named('test') {
     useJUnitPlatform()
     maxParallelForks = 2
+    // forkEvery=1: 테스트 클래스마다 fork JVM 재활용. 35개 @SpringBootTest+Testcontainers IT가
+    // 한 JVM에 누적되면(컨텍스트·PG 컨테이너) ubuntu-latest(2 vCPU/7GB)에서 OOM/GC thrash로
+    // CI가 hang(008 532 tests 1h+ 무한진행 관측). ITs는 컨테이너/DataSource URL이 달라 컨텍스트
+    // 캐싱 이득이 거의 없어 추가비용은 JVM 기동분뿐. heap은 2 fork×3g=6g로 7GB 내 안전.
+    forkEvery = 1
+    maxHeapSize = '3g'
 }
 
 spotless {
