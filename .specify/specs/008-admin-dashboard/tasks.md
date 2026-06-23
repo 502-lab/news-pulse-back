@@ -13,7 +13,7 @@
 ## Phase 1: Setup
 
 - [ ] T001 contracts/openapi-patch.yaml의 admin 엔드포인트 경로/요약을 검토·확정 in `.specify/specs/008-admin-dashboard/contracts/openapi-patch.yaml` (구현과 동기화 기준점, news-pulse-spec 선반영은 Polish T079)
-- [ ] T002 `SecurityConfig`에 공개 공지 조회 `GET /api/v1/notices` permitAll 명시 추가 in `src/main/java/com/newscurator/config/SecurityConfig.java` (Constitution VI: 공개 엔드포인트 명시 선언; `/api/v1/admin/**`는 기존 hasRole ADMIN 재활용 — 변경 없음)
+- [x] T002 `SecurityConfig`에 공개 공지 조회 `GET /api/v1/notices` permitAll 명시 추가 in `src/main/java/com/newscurator/config/SecurityConfig.java` (Constitution VI: 공개 엔드포인트 명시 선언; `/api/v1/admin/**`는 기존 hasRole ADMIN 재활용 — 변경 없음)
 
 ---
 
@@ -125,15 +125,15 @@
 **Goal**: Notice CRUD·게시 노출, 공개 조회(published만), 005 멱등 푸시.
 **Independent Test**: 공지 생성(초안)→공개 미노출→게시→노출→비게시→미노출. 동일 푸시 2회→중복 0.
 
-- [ ] T056 [P] [US4] DTO `NoticeCreateRequest`·`NoticeUpdateRequest`·`NoticeResponse`·`AdminPushRequest`(record·@Valid·@Schema) in `src/main/java/com/newscurator/dto/`
-- [ ] T057 [US4] `NoticeService`(CRUD·게시 전환·검증 빈값/최대길이) + 감사 record() in `src/main/java/com/newscurator/service/admin/NoticeService.java`
-- [ ] T058 [US4] `AdminNoticeController`(admin CRUD) + `NoticeController`(공개 GET /api/v1/notices, published=true만) in `src/main/java/com/newscurator/controller/`
-- [ ] T059 [US4] 어드민 푸시 dedup 키 규칙 적용 — 공지 `ADMIN:NOTICE:{noticeId}:{accountId}` / 캠페인 `ADMIN:CAMPAIGN:{serverUuid}:{accountId}`(매 발송 고유) in `src/main/java/com/newscurator/service/AdminNotificationService.java`(확장) + `NotificationSendService` admin enqueue 경로(research D6)
-- [ ] T060 [US4] 어드민 푸시 발송에 감사 record() + `AdminNotificationController` 확장(발송 1회당 1 campaignId 발급) in `src/main/java/com/newscurator/controller/AdminNotificationController.java`
-- [ ] T061 [P] [US4] `NoticeServiceTest`(단위) — CRUD·게시 전환·검증 in `src/test/java/com/newscurator/service/admin/NoticeServiceTest.java`
-- [ ] T062 [P] [US4] 공지 게시 노출 IT(실 PG) — 초안 미노출/게시 노출/비게시 미노출(SC-006) in `src/test/java/com/newscurator/integration/NoticePublishIT.java`
-- [ ] T063 [P] [US4] ★ `AdminPushIdempotencyIT`(실 PG) — 동일 공지 푸시 2회 outbox 중복 0(uq_outbox_idempotency), 의도적 재발송(새 campaignId)은 별건 in `src/test/java/com/newscurator/integration/AdminPushIdempotencyIT.java`
-- [ ] T064 [P] [US4] 공개 공지 permitAll 동작 확인(인증 없이 200, 초안 제외) in `AdminAuthorizationIT`(T071와 통합 가능)
+- [x] T056 [P] [US4] DTO `NoticeCreateRequest`·`NoticeUpdateRequest`·`NoticeResponse`·`AdminPushRequest`(record·@Valid·@Schema) in `src/main/java/com/newscurator/dto/`
+- [x] T057 [US4] `NoticeService`(CRUD·게시 전환·검증 빈값/최대길이) + 감사 record() in `src/main/java/com/newscurator/service/admin/NoticeService.java`
+- [x] T058 [US4] `AdminNoticeController`(admin CRUD) + `NoticeController`(공개 GET /api/v1/notices, published=true만) in `src/main/java/com/newscurator/controller/`
+- [x] T059 [US4] 어드민 푸시 dedup 키 규칙 적용 — 공지 `ADMIN:NOTICE:{noticeId}:{accountId}` / 캠페인 `ADMIN:CAMPAIGN:{serverUuid}:{accountId}`(매 발송 고유) in `src/main/java/com/newscurator/service/AdminNotificationService.java`(확장) + `NotificationSendService` admin enqueue 경로(research D6)
+- [x] T060 [US4] 어드민 푸시 발송에 감사 record() + `AdminNotificationController` 확장(발송 1회당 1 campaignId 발급) in `src/main/java/com/newscurator/controller/AdminNotificationController.java`
+- [x] T061 [P] [US4] `NoticeServiceTest`(단위) — CRUD·게시 전환·검증 in `src/test/java/com/newscurator/service/admin/NoticeServiceTest.java`
+- [x] T062 [P] [US4] 공지 게시 노출 IT(실 PG) — 초안 미노출/게시 노출/비게시 미노출(SC-006) in `src/test/java/com/newscurator/integration/NoticePublishIT.java`
+- [x] T063 [P] [US4] ★ `AdminPushIdempotencyIT`(실 PG) — 동일 공지 푸시 2회 outbox 중복 0(uq_outbox_idempotency), 의도적 재발송(새 campaignId)은 별건 in `src/test/java/com/newscurator/integration/AdminPushIdempotencyIT.java`
+- [x] T064 [P] [US4] 공개 공지 permitAll 동작 확인(인증 없이 200, 초안 제외) in `AdminAuthorizationIT`(T071와 통합 가능)
 
 **Checkpoint**: 공지·푸시 운영.
 
