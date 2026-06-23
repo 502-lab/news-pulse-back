@@ -168,7 +168,7 @@ openapi.yaml 변경 시 반드시 news-curator-spec 레포에 반영.
 
 ### OpenAPI 자동 동기화
 
-- `dev`/`main` push 시 `.github/workflows/sync-openapi.yml` 워크플로우 실행
+- `dev`/`prd` push 시 `.github/workflows/sync-openapi.yml` 워크플로우 실행
 - `OpenApiSpecExportTest` → 앱 기동 후 `/api-docs` 호출 → JSON→YAML 변환 → `build/openapi.yaml` 저장
 - `SPEC_REPO_TOKEN` 시크릿(news-pulse-spec repo write 권한 PAT)으로 news-pulse-spec 레포에 자동 push
 
