@@ -21,19 +21,19 @@
 
 **모든 US 선행 — 신규 스키마·엔티티·리포지토리·횡단 서비스. 완료 전 US 구현 불가.**
 
-- [ ] T003 V15 마이그레이션 작성 in `src/main/resources/db/migration/V15__admin_dashboard.sql` — `articles.admin_hidden_at TIMESTAMPTZ NULL` 컬럼 + `idx_articles_admin_visible`(WHERE admin_hidden_at IS NULL) + 테이블 `notice`·`admin_audit_log`·`scheduler_setting`·`excluded_keyword` + 인덱스 + `scheduler_setting` 12키 시드(collection·ai_processing·bias_analysis·bias_recovery·bias_sla·trend_aggregation·trend_cleanup·tts_processing·notification_outbox·notification_expiry·weekly_email·expiry) (data-model.md DDL)
-- [ ] T004 [P] `AuditTargetType` enum 생성 in `src/main/java/com/newscurator/domain/enums/AuditTargetType.java` (ACCOUNT·ARTICLE·SCHEDULER·NOTICE·PUSH·EXCLUDED_KEYWORD·SUMMARY — ★ 기존 AdminTargetType 재활용 금지)
-- [ ] T005 [P] `Notice` 엔티티 in `src/main/java/com/newscurator/domain/Notice.java` (title·content·published·authorAccountId·created/updatedAt, 게시 상태 전이 캡슐화)
-- [ ] T006 [P] `AdminAuditLog` 엔티티 in `src/main/java/com/newscurator/domain/AdminAuditLog.java` (actorAccountId·action·targetType(AuditTargetType)·targetId·detail JSONB·createdAt)
-- [ ] T007 [P] `SchedulerSetting` 엔티티 in `src/main/java/com/newscurator/domain/SchedulerSetting.java` (schedulerKey PK·enabled·intervalOverrideMs(미노출)·updatedAt·updatedBy)
-- [ ] T008 [P] `ExcludedKeyword` 엔티티 in `src/main/java/com/newscurator/domain/ExcludedKeyword.java` (keyword UNIQUE·createdBy·createdAt)
-- [ ] T009 [P] `Article`에 `admin_hidden_at` 필드 + `hideByAdmin(Instant)`/`unhideByAdmin()`/`isAdminHidden()` 캡슐화 in `src/main/java/com/newscurator/domain/Article.java`
-- [ ] T010 [P] `NoticeRepository` in `src/main/java/com/newscurator/repository/NoticeRepository.java` (published 필터 조회·관리자 전체 조회)
-- [ ] T011 [P] `AdminAuditLogRepository` in `src/main/java/com/newscurator/repository/AdminAuditLogRepository.java` (시간 역순·targetType/action/기간 필터)
-- [ ] T012 [P] `SchedulerSettingRepository` in `src/main/java/com/newscurator/repository/SchedulerSettingRepository.java` (findBySchedulerKey·findAll)
-- [ ] T013 [P] `ExcludedKeywordRepository` in `src/main/java/com/newscurator/repository/ExcludedKeywordRepository.java` (전체·존재여부·insert/delete)
-- [ ] T014 `AdminAuditService` in `src/main/java/com/newscurator/service/admin/AdminAuditService.java` — `record(actorId, action, AuditTargetType, targetId, detailMap)` 단일 진입점(같은 TX 내 명시 호출, research D4)
-- [ ] T015 `SchedulerControlService` in `src/main/java/com/newscurator/service/admin/SchedulerControlService.java` — `isEnabled(schedulerKey)`(행 부재 시 true 기본)·`setEnabled(key, enabled, actor)`(영속 + 감사)
+- [x] T003 V15 마이그레이션 작성 in `src/main/resources/db/migration/V15__admin_dashboard.sql` — `articles.admin_hidden_at TIMESTAMPTZ NULL` 컬럼 + `idx_articles_admin_visible`(WHERE admin_hidden_at IS NULL) + 테이블 `notice`·`admin_audit_log`·`scheduler_setting`·`excluded_keyword` + 인덱스 + `scheduler_setting` 12키 시드(collection·ai_processing·bias_analysis·bias_recovery·bias_sla·trend_aggregation·trend_cleanup·tts_processing·notification_outbox·notification_expiry·weekly_email·expiry) (data-model.md DDL)
+- [x] T004 [P] `AuditTargetType` enum 생성 in `src/main/java/com/newscurator/domain/enums/AuditTargetType.java` (ACCOUNT·ARTICLE·SCHEDULER·NOTICE·PUSH·EXCLUDED_KEYWORD·SUMMARY — ★ 기존 AdminTargetType 재활용 금지)
+- [x] T005 [P] `Notice` 엔티티 in `src/main/java/com/newscurator/domain/Notice.java` (title·content·published·authorAccountId·created/updatedAt, 게시 상태 전이 캡슐화)
+- [x] T006 [P] `AdminAuditLog` 엔티티 in `src/main/java/com/newscurator/domain/AdminAuditLog.java` (actorAccountId·action·targetType(AuditTargetType)·targetId·detail JSONB·createdAt)
+- [x] T007 [P] `SchedulerSetting` 엔티티 in `src/main/java/com/newscurator/domain/SchedulerSetting.java` (schedulerKey PK·enabled·intervalOverrideMs(미노출)·updatedAt·updatedBy)
+- [x] T008 [P] `ExcludedKeyword` 엔티티 in `src/main/java/com/newscurator/domain/ExcludedKeyword.java` (keyword UNIQUE·createdBy·createdAt)
+- [x] T009 [P] `Article`에 `admin_hidden_at` 필드 + `hideByAdmin(Instant)`/`unhideByAdmin()`/`isAdminHidden()` 캡슐화 in `src/main/java/com/newscurator/domain/Article.java`
+- [x] T010 [P] `NoticeRepository` in `src/main/java/com/newscurator/repository/NoticeRepository.java` (published 필터 조회·관리자 전체 조회)
+- [x] T011 [P] `AdminAuditLogRepository` in `src/main/java/com/newscurator/repository/AdminAuditLogRepository.java` (시간 역순·targetType/action/기간 필터)
+- [x] T012 [P] `SchedulerSettingRepository` in `src/main/java/com/newscurator/repository/SchedulerSettingRepository.java` (findBySchedulerKey·findAll)
+- [x] T013 [P] `ExcludedKeywordRepository` in `src/main/java/com/newscurator/repository/ExcludedKeywordRepository.java` (전체·존재여부·insert/delete)
+- [x] T014 `AdminAuditService` in `src/main/java/com/newscurator/service/admin/AdminAuditService.java` — `record(actorId, action, AuditTargetType, targetId, detailMap)` 단일 진입점(같은 TX 내 명시 호출, research D4)
+- [x] T015 `SchedulerControlService` in `src/main/java/com/newscurator/service/admin/SchedulerControlService.java` — `isEnabled(schedulerKey)`(행 부재 시 true 기본)·`setEnabled(key, enabled, actor)`(영속 + 감사)
 - [ ] T016 [P] 공통 admin 예외(LastAdminProtectedException·SelfMutationForbiddenException·AdminTargetNotFoundException 등) + `@RestControllerAdvice` RFC7807 매핑 in `src/main/java/com/newscurator/exception/`
 
 **Checkpoint**: 스키마·엔티티·리포·횡단서비스 준비 → US 구현 가능.
