@@ -107,12 +107,12 @@
 
 - [ ] T049 [US3] 제외 키워드 CRUD 서비스(add unique·list·delete) + 트렌드 집계 배제 연동(`term NOT IN excluded_keyword`) in `AdminOpsService` + `TrendKeywordSlotRepository.upsertSlots`/추출 쿼리
 - [ ] T050 [US3] 실패(FAILED) 요약 재시도 트리거(상태 재처리 전환) in `AdminOpsService` (+ 감사)
-- [ ] T051 [US3] DTO(`ArticleHideRequest`·`ExcludedKeywordRequest`·`SchedulerToggleRequest`) + `AdminOpsController` in `src/main/java/com/newscurator/controller/AdminOpsController.java` — schedulers run/toggle·excluded-keywords·summary/retry·articles hide/unhide·admin articles
+- [ ] T051 [US3] DTO(`ArticleHideRequest`·`ExcludedKeywordRequest`·`SchedulerToggleRequest`=**{enabled} only**(interval 필드 미수용 — FR-031 거짓약속 회피 정합)) + `AdminOpsController` in `src/main/java/com/newscurator/controller/AdminOpsController.java` — schedulers run/toggle(enabled)·excluded-keywords·summary/retry·articles hide/unhide·admin articles
 
 ### US3 테스트 (크라운주얼)
 
 - [ ] T052 [US3] ★ `ArticleHiddenConsistencyIT`(실 PG) in `src/test/java/com/newscurator/integration/ArticleHiddenConsistencyIT.java` — hide 후 피드·검색·트렌드 추출 입력·기사상세(일반=404)에서 0건, admin 포함, unhide 즉시 복귀. 경로 #1~#13 회귀 가드
-- [ ] T053 [US3] ★ `SchedulerTogglePersistenceIT`(실 PG) in `src/test/java/com/newscurator/integration/SchedulerTogglePersistenceIT.java` — 토글 비활성→실행 skip→설정 영속(재조회 비활성 유지, SC-010)
+- [ ] T053 [US3] ★ `SchedulerTogglePersistenceIT`(실 PG) in `src/test/java/com/newscurator/integration/SchedulerTogglePersistenceIT.java` — **12 scheduler_key 전부 검증**(부분커버 금지): (a) `@ParameterizedTest`로 12키 each → 해당 키 disabled 토글 후 그 `@Scheduled` 메서드 직접 호출 시 **본문 skip(작업 미수행)** 단언, (b) 재조회 시 disabled 영속 유지(재기동 시뮬레이션 = 새 컨텍스트/재조회, SC-010). ★ `weekly_email`(WeeklyEmailScheduler — 전역 @ConditionalOnProperty 없어 DB 게이트가 유일 차단책) 반드시 포함. + **게이트 커버리지 단언**: 12개 @Scheduled 메서드가 모두 진입 시 `SchedulerControlService.isEnabled(key)`를 호출함을 12키 each 검증(T044~T047 주입 누락 색출)
 - [ ] T054 [P] [US3] `AdminOpsServiceTest`(단위) — hide/unhide·키워드·요약재시도·토글 + 각 변형액션 audit 1건 in `src/test/java/com/newscurator/service/admin/AdminOpsServiceTest.java`
 - [ ] T055 [P] [US3] 제외 키워드 집계 배제 IT(실 PG) — 등록 키워드가 다음 트렌드 집계 슬롯서 제외 in `src/test/java/com/newscurator/integration/ExcludedKeywordIT.java`
 
@@ -133,7 +133,7 @@
 - [ ] T061 [P] [US4] `NoticeServiceTest`(단위) — CRUD·게시 전환·검증 in `src/test/java/com/newscurator/service/admin/NoticeServiceTest.java`
 - [ ] T062 [P] [US4] 공지 게시 노출 IT(실 PG) — 초안 미노출/게시 노출/비게시 미노출(SC-006) in `src/test/java/com/newscurator/integration/NoticePublishIT.java`
 - [ ] T063 [P] [US4] ★ `AdminPushIdempotencyIT`(실 PG) — 동일 공지 푸시 2회 outbox 중복 0(uq_outbox_idempotency), 의도적 재발송(새 campaignId)은 별건 in `src/test/java/com/newscurator/integration/AdminPushIdempotencyIT.java`
-- [ ] T064 [P] [US4] 공개 공지 permitAll 동작 확인(인증 없이 200, 초안 제외) in `AdminAuthorizationIT`(T070와 통합 가능)
+- [ ] T064 [P] [US4] 공개 공지 permitAll 동작 확인(인증 없이 200, 초안 제외) in `AdminAuthorizationIT`(T071와 통합 가능)
 
 **Checkpoint**: 공지·푸시 운영.
 
