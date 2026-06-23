@@ -33,11 +33,32 @@ public class AdminOpsController {
 
     private final AdminOpsService adminOpsService;
     private final SchedulerControlService schedulerControlService;
+    private final com.newscurator.service.admin.SchedulerManualRunService schedulerManualRunService;
 
     public AdminOpsController(
-            AdminOpsService adminOpsService, SchedulerControlService schedulerControlService) {
+            AdminOpsService adminOpsService,
+            SchedulerControlService schedulerControlService,
+            com.newscurator.service.admin.SchedulerManualRunService schedulerManualRunService) {
         this.adminOpsService = adminOpsService;
         this.schedulerControlService = schedulerControlService;
+        this.schedulerManualRunService = schedulerManualRunService;
+    }
+
+    // ── 스케줄러 수동 실행(게이트 우회) ──
+
+    @Operation(
+            summary = "스케줄러 수동 1회 실행",
+            description = "토글로 꺼둔(disabled) 스케줄러도 게이트 우회로 1회 실행. SCHEDULER_RUN 감사.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "알 수 없는 스케줄러 키")
+    })
+    @PostMapping("/api/v1/admin/schedulers/{schedulerKey}/run")
+    public ResponseEntity<ApiResponse<Void>> runScheduler(
+            @AuthenticationPrincipal CustomUserDetails actor,
+            @Parameter(description = "스케줄러 키") @PathVariable String schedulerKey) {
+        schedulerManualRunService.runManually(actor.getAccountId(), schedulerKey);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     // ── 스케줄러 토글 ──

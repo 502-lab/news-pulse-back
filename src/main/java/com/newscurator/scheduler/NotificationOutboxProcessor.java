@@ -64,6 +64,11 @@ public class NotificationOutboxProcessor {
         if (!schedulerControl.isEnabled("notification_outbox")) {
             return;
         }
+        runNow();
+    }
+
+    /** 게이트 우회 수동 실행용 — 작업 본문(admin manual run). */
+    public void runNow() {
         // Phase 1: 클레임 — TX 커밋 시 락 해제
         List<NotificationOutbox> batch = claimer.claimBatch(batchSize);
         if (batch.isEmpty()) {

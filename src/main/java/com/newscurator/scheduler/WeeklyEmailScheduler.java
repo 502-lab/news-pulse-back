@@ -37,6 +37,11 @@ public class WeeklyEmailScheduler {
         if (!schedulerControl.isEnabled("weekly_email")) {
             return;
         }
+        runNow();
+    }
+
+    /** 게이트 우회 수동 실행용(admin manual run). */
+    public void runNow() {
         String yearWeek = currentYearWeek();
         log.info("[WeeklyEmail] 발송 시작: yearWeek={}", yearWeek);
         sendWeeklyEmailForWeek(yearWeek);

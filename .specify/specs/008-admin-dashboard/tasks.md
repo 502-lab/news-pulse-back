@@ -101,7 +101,7 @@
 - [x] T045 [P] [US3] BiasAnalysisScheduler 3메서드 게이트 in `src/main/java/com/newscurator/scheduler/BiasAnalysisScheduler.java` (keys: bias_analysis·bias_recovery·**bias_sla**)
 - [ ] T046 [P] [US3] TrendAggregationScheduler 2메서드 게이트 in `src/main/java/com/newscurator/scheduler/TrendAggregationScheduler.java` (keys: trend_aggregation·trend_cleanup)
 - [x] T047 [P] [US3] TtsProcessingScheduler·NotificationOutboxProcessor·NotificationExpiryScheduler·WeeklyEmailScheduler·ExpiryScheduler 게이트 in 각 파일 (keys: tts_processing·notification_outbox·notification_expiry·weekly_email·expiry)
-- [ ] T048 [US3] 스케줄러 수동 실행(1회 즉시 트리거 + 동시실행 가드) + 토글 setEnabled in `AdminOpsService` (+ 감사)
+- [x] T048 [US3] 스케줄러 수동 실행(1회 즉시 트리거 + 동시실행 가드) + 토글 setEnabled in `AdminOpsService` (+ 감사)
 
 ### 제외 키워드 · 요약 재시도
 

@@ -66,6 +66,11 @@ public class TtsProcessingScheduler {
         if (!schedulerControl.isEnabled("tts_processing")) {
             return;
         }
+        runNow();
+    }
+
+    /** 게이트 우회 수동 실행용 — 작업 본문(admin manual run). */
+    public void runNow() {
         // Phase 1: claim batch — 짧은 @Transactional, 반환 시 FOR UPDATE 락 해제됨
         List<TtsAudio> batch = claimer.claimBatch(batchSize);
         if (batch.isEmpty()) {
