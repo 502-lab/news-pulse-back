@@ -82,8 +82,9 @@ targetId, detail)`를 **명시 호출**한다. AOP 전역 인터셉트는 채택
 admin이 `SchedulerSetting.enabled` 갱신.
 
 **Rationale**:
-- 기존 `@ConditionalOnProperty(app.scheduler.enabled, matchIfMissing=true)`(9개 스케줄러 전부)는 **전역 빈 생성
-  여부** 토글이라 런타임 per-scheduler 제어 불가(재배포 필요). 런타임·영속·개별 제어가 필요 → DB 게이트.
+- 기존 `@ConditionalOnProperty(app.scheduler.enabled, matchIfMissing=true)`는 **9개 스케줄러 클래스 중 8개**에만
+  존재(grep: `WeeklyEmailScheduler`는 미보유)하고, 그나마 **전역 빈 생성 여부** 토글이라 런타임 per-scheduler 제어
+  불가(재배포 필요)·`WeeklyEmailScheduler`는 전역 토글로도 못 끔. 런타임·영속·개별 제어 필요 → DB 게이트(12 메서드 전부).
 - DB 영속 → 재기동 후에도 유지(SC-010). admin이 끈 스케줄러가 재기동으로 살아나지 않음.
 - skip 방식(메서드 진입 가드)은 fixedDelay/cron 트리거 자체는 돌되 본문만 건너뛰어 단순·안전(단일 인스턴스 전제).
 
