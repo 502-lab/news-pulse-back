@@ -49,8 +49,21 @@ public class ArticleDetailService {
 
     @Transactional
     public ArticleDetailResponse getDetail(Long articleId) {
+        return getDetail(articleId, false);
+    }
+
+    /**
+     * 008 #9: 기사 상세. {@code includeHidden=false}(일반 사용자)면 admin 숨김 기사는 존재 비노출(404),
+     * {@code includeHidden=true}(어드민)면 hidden 포함 조회 허용.
+     */
+    @Transactional
+    public ArticleDetailResponse getDetail(Long articleId, boolean includeHidden) {
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new ArticleNotFoundException(articleId));
+        if (!includeHidden && article.isAdminHidden()) {
+            // 일반 사용자에게 hidden 기사는 목록 제외만으로 부족 — 상세/딥링크 접근도 404
+            throw new ArticleNotFoundException(articleId);
+        }
 
         List<Summary> summaries = summaryRepository.findByArticleId(articleId);
         Map<SummaryDepth, Summary> slotMap = summaries.stream()

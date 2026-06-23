@@ -32,7 +32,7 @@ public interface ArticleKeywordRepository
                    COUNT(DISTINCT a.id)                     AS article_count
             FROM article_keyword ak
                      JOIN articles a ON a.id = ak.article_id
-            WHERE a.first_collected_at >= :windowStart
+            WHERE a.first_collected_at >= :windowStart AND a.admin_hidden_at IS NULL
             GROUP BY 1, 2
             ORDER BY 1, 2
             """, nativeQuery = true)
@@ -46,7 +46,7 @@ public interface ArticleKeywordRepository
             SELECT ak.article_id, ak.term
             FROM article_keyword ak
                      JOIN articles a ON a.id = ak.article_id
-            WHERE a.first_collected_at >= :windowStart
+            WHERE a.first_collected_at >= :windowStart AND a.admin_hidden_at IS NULL
             """, nativeQuery = true)
     List<Object[]> windowArticleKeywords(@Param("windowStart") Instant windowStart);
 
