@@ -34,7 +34,7 @@
 - [x] T013 [P] `ExcludedKeywordRepository` in `src/main/java/com/newscurator/repository/ExcludedKeywordRepository.java` (전체·존재여부·insert/delete)
 - [x] T014 `AdminAuditService` in `src/main/java/com/newscurator/service/admin/AdminAuditService.java` — `record(actorId, action, AuditTargetType, targetId, detailMap)` 단일 진입점(같은 TX 내 명시 호출, research D4)
 - [x] T015 `SchedulerControlService` in `src/main/java/com/newscurator/service/admin/SchedulerControlService.java` — `isEnabled(schedulerKey)`(행 부재 시 true 기본)·`setEnabled(key, enabled, actor)`(영속 + 감사)
-- [ ] T016 [P] 공통 admin 예외(LastAdminProtectedException·SelfMutationForbiddenException·AdminTargetNotFoundException 등) + `@RestControllerAdvice` RFC7807 매핑 in `src/main/java/com/newscurator/exception/`
+- [x] T016 [P] 공통 admin 예외(LastAdminProtectedException·SelfMutationForbiddenException·AdminTargetNotFoundException 등) + `@RestControllerAdvice` RFC7807 매핑 in `src/main/java/com/newscurator/exception/`
 
 **Checkpoint**: 스키마·엔티티·리포·횡단서비스 준비 → US 구현 가능.
 
@@ -45,16 +45,16 @@
 **Goal**: 사용자 목록·검색, UserStats, role USER↔ADMIN, 활성/비활성. 자기보호 가드(FR-014 a/b).
 **Independent Test**: ADMIN이 목록 조회→role 왕복→비활성(로그인 차단)→재활성. 자기/마지막 ADMIN 강등·비활성 거부. USER 토큰 403.
 
-- [ ] T017 [P] [US1] 응답 DTO `AdminUserSummaryResponse`·`AdminUserDetailResponse(UserStats)`·요청 `RoleChangeRequest`·`StatusChangeRequest`(record, @Schema, @Valid) in `src/main/java/com/newscurator/dto/`
-- [ ] T018 [US1] `AdminUserService` in `src/main/java/com/newscurator/service/admin/AdminUserService.java` — 목록(페이지·필터 email/status/role/signupType), 상세+UserStats(기존 데이터 산출), changeRole, changeStatus
-- [ ] T019 [US1] ★ 자기보호 가드 in `AdminUserService` — (a) 자기 자신 강등/비활성 거부, (b) 마지막 ADMIN 강등/비활성 거부(ADMIN 카운트 확인). 거부 시 도메인 예외(FR-014)
-- [ ] T020 [US1] 비활성 계정 로그인·토큰 발급 차단 연동 in `src/main/java/com/newscurator/service/AuthService.java` (AccountStatus 비활성 검사 — 기존 인증 경로에 가드, 002 재활용/확장)
-- [ ] T021 [US1] role 변경·활성/비활성에 `AdminAuditService.record()` 호출(같은 TX, before/after diff) in `AdminUserService`
-- [ ] T022 [US1] `AdminUserController` in `src/main/java/com/newscurator/controller/AdminUserController.java` — GET /api/v1/admin/users, GET /{id}, PATCH /{id}/role, PATCH /{id}/status (ApiResponse 래퍼, @Tag/@Operation/@ApiResponses)
-- [ ] T023 [P] [US1] `AdminUserServiceTest`(단위) in `src/test/java/com/newscurator/service/admin/AdminUserServiceTest.java` — 목록 필터, role 변경, 상태 변경
-- [ ] T024 [P] [US1] `LastAdminGuardIT`(실 PG) in `src/test/java/com/newscurator/integration/LastAdminGuardIT.java` — 자기 자신 강등/비활성 거부 + 마지막 ADMIN 강등/비활성 거부(둘 다)
-- [ ] T025 [P] [US1] 비활성 로그인 차단 테스트 in `src/test/java/com/newscurator/service/AuthServiceTest.java`(확장) — 비활성 계정 로그인 실패
-- [ ] T026 [P] [US1] `AdminAuditCaptureTest`(role·status 액션당 audit 1건+diff) in `src/test/java/com/newscurator/service/admin/AdminAuditCaptureTest.java`
+- [x] T017 [P] [US1] 응답 DTO `AdminUserSummaryResponse`·`AdminUserDetailResponse(UserStats)`·요청 `RoleChangeRequest`·`StatusChangeRequest`(record, @Schema, @Valid) in `src/main/java/com/newscurator/dto/`
+- [x] T018 [US1] `AdminUserService` in `src/main/java/com/newscurator/service/admin/AdminUserService.java` — 목록(페이지·필터 email/status/role/signupType), 상세+UserStats(기존 데이터 산출), changeRole, changeStatus
+- [x] T019 [US1] ★ 자기보호 가드 in `AdminUserService` — (a) 자기 자신 강등/비활성 거부, (b) 마지막 ADMIN 강등/비활성 거부(ADMIN 카운트 확인). 거부 시 도메인 예외(FR-014)
+- [x] T020 [US1] 비활성 계정 로그인·토큰 발급 차단 연동 in `src/main/java/com/newscurator/service/AuthService.java` (AccountStatus 비활성 검사 — 기존 인증 경로에 가드, 002 재활용/확장)
+- [x] T021 [US1] role 변경·활성/비활성에 `AdminAuditService.record()` 호출(같은 TX, before/after diff) in `AdminUserService`
+- [x] T022 [US1] `AdminUserController` in `src/main/java/com/newscurator/controller/AdminUserController.java` — GET /api/v1/admin/users, GET /{id}, PATCH /{id}/role, PATCH /{id}/status (ApiResponse 래퍼, @Tag/@Operation/@ApiResponses)
+- [x] T023 [P] [US1] `AdminUserServiceTest`(단위) in `src/test/java/com/newscurator/service/admin/AdminUserServiceTest.java` — 목록 필터, role 변경, 상태 변경
+- [x] T024 [P] [US1] `LastAdminGuardIT`(실 PG) in `src/test/java/com/newscurator/integration/LastAdminGuardIT.java` — 자기 자신 강등/비활성 거부 + 마지막 ADMIN 강등/비활성 거부(둘 다)
+- [x] T025 [P] [US1] 비활성 로그인 차단 테스트 in `src/test/java/com/newscurator/service/AuthServiceTest.java`(확장) — 비활성 계정 로그인 실패
+- [x] T026 [P] [US1] `AdminAuditCaptureTest`(role·status 액션당 audit 1건+diff) in `src/test/java/com/newscurator/service/admin/AdminAuditCaptureTest.java`
 
 **Checkpoint**: 사용자 관리 독립 동작 + 자기보호.
 

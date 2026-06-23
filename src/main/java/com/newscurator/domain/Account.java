@@ -115,4 +115,19 @@ public class Account {
         this.onboardingCompleted = true;
         this.personalizationActive = personalizationActive;
     }
+
+    /** 관리자: 역할 변경(USER↔ADMIN). 008 US1. */
+    public void changeRole(AccountRole newRole) {
+        this.role = newRole;
+    }
+
+    /** 관리자: 비활성화(SUSPENDED) — 로그인·토큰 차단(AuthService.login isSuspended 가드). */
+    public void deactivate() {
+        this.status = AccountStatus.SUSPENDED;
+    }
+
+    /** 관리자: 재활성화(ACTIVE). */
+    public void activate() {
+        this.status = AccountStatus.ACTIVE;
+    }
 }

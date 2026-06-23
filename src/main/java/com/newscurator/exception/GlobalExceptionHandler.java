@@ -83,6 +83,24 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("ACCOUNT_SUSPENDED", ex.getMessage()));
     }
 
+    @ExceptionHandler(SelfMutationForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleSelfMutation(SelfMutationForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("SELF_MUTATION_FORBIDDEN", ex.getMessage()));
+    }
+
+    @ExceptionHandler(LastAdminProtectedException.class)
+    public ResponseEntity<ErrorResponse> handleLastAdmin(LastAdminProtectedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("LAST_ADMIN_PROTECTED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AdminTargetNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAdminTargetNotFound(AdminTargetNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of("ADMIN_TARGET_NOT_FOUND", ex.getMessage()));
+    }
+
     @ExceptionHandler(ArticleNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleArticleNotFound(ArticleNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
