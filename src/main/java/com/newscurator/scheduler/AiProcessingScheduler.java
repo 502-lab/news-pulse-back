@@ -2,6 +2,7 @@ package com.newscurator.scheduler;
 
 import com.newscurator.service.AiProcessingService;
 import java.util.UUID;
+import com.newscurator.service.admin.SchedulerControlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -19,13 +20,19 @@ public class AiProcessingScheduler {
     private static final Logger log = LoggerFactory.getLogger(AiProcessingScheduler.class);
 
     private final AiProcessingService aiProcessingService;
+    private final SchedulerControlService schedulerControl;
 
-    public AiProcessingScheduler(AiProcessingService aiProcessingService) {
+    public AiProcessingScheduler(
+            AiProcessingService aiProcessingService, SchedulerControlService schedulerControl) {
         this.aiProcessingService = aiProcessingService;
+        this.schedulerControl = schedulerControl;
     }
 
     @Scheduled(fixedDelayString = "${app.scheduler.ai.interval-ms:60000}")
     public void run() {
+        if (!schedulerControl.isEnabled("ai_processing")) {
+            return;
+        }
         String runId = UUID.randomUUID().toString();
         MDC.put("runId", runId);
         try {

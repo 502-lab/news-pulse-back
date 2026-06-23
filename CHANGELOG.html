@@ -301,19 +301,23 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">74</div><div class="stat-label">총 변경 항목</div></div>
-  <div class="stat"><div class="stat-num">25</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">23</div><div class="stat-label">Feature</div></div>
-  <div class="stat"><div class="stat-num">7</div><div class="stat-label">DB Migration</div></div>
-  <div class="stat"><div class="stat-num">29</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-23</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">77</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">26</div><div class="stat-label">Bug Fix</div></div>
+  <div class="stat"><div class="stat-num">24</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">9</div><div class="stat-label">DB Migration</div></div>
+  <div class="stat"><div class="stat-num">42</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-24</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-24</div>
+  <a class="toc-item" href="#d0624-02">CI test 잡 1시간+ hang — Testcontainers IT 누적 OOM, forkEvery=1 + heap 캡 근본 차단</a>
+  <a class="toc-item" href="#d0624-01">008 full suite 회귀 중 발견 — AdminUser 검색 nullable enum 파라미터 타입 추론 실패로 /admin/users 500</a>
   <div class="toc-date">2026-06-23</div>
+  <a class="toc-item" href="#d0623-02">spec 008 어드민 대시보드 US1~US5 + Polish — 사용자관리·모니터링·수집제어·공지/푸시·심층통계</a>
   <a class="toc-item" href="#d0623-01">spec 007 트렌드 집계 US2~US5 + Polish — Nori 추출·슬롯 집계·Top5/WoW/히트맵/워드클라우드·이슈 클러스터링</a>
   <div class="toc-date">2026-06-22</div>
   <a class="toc-item" href="#d0622-01">spec 006 편향 분석 엔진 US1~US4 + Polish — 파이프라인·조회·집계·인가·backfill (slice 1~4)</a>
@@ -393,6 +397,64 @@
 
 <div class="content">
 
+<!-- ═══════ 2026-06-24 ═══════ -->
+<div class="date-group" id="date-0624">
+  <div class="date-heading">
+    <h2>2026-06-24</h2>
+    <div class="date-bar"></div>
+  </div>
+
+  <div class="entry" id="d0624-02" data-tags="config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-config">config</span>
+        <span class="sev sev-high">high</span>
+        <strong>CI test 잡 1시간+ hang — Testcontainers IT 누적 OOM/GC thrash, forkEvery=1 + heap 캡으로 근본 차단</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>008 PR #23 CI에서 <code>test</code> 잡이 1시간이 넘도록 "Run tests" 스텝에서 끝나지 않고 무한 진행(pending). 로컬에서 전체 스위트를 단일 JVM으로 돌렸을 때 겪은 OOM과 동일 패턴. 직전 007(457 tests)은 통과했으나 008에서 +75 tests(특히 @SpringBootTest+Testcontainers IT 다수)로 메모리 한계를 넘김.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>build.gradle</code> test 태스크가 <code>maxParallelForks=2</code>만 두고 <code>forkEvery</code>·<code>maxHeapSize</code> 캡이 없어, 35개 IT의 Spring 컨텍스트 + PostgreSQL 컨테이너가 한 fork JVM에 계속 누적됨. ubuntu-latest(2 vCPU/7GB)에서 힙 고갈 직전 GC thrash로 진행이 멈춰(즉시 OOM-kill이 아니라 장시간 hang) CI가 끝나지 않음.</dd>
+        <dt>수정 내용</dt>
+        <dd>test 태스크에 <code>forkEvery = 1</code>(클래스마다 fork JVM 재활용 → 누적 컨테이너·컨텍스트 즉시 해제) + <code>maxHeapSize = '3g'</code>(2 fork×3g=6g, 7GB 내 안전) 추가. ITs는 컨테이너/DataSource URL이 클래스마다 달라 컨텍스트 캐싱 이득이 거의 없어 forkEvery=1의 추가비용은 JVM 기동분(~1–2s/클래스)뿐. 1시간+ 진행 중이던 run 2건은 cancel 후 재트리거.</dd>
+        <dt>결정 이유 (대안 대비 근거)</dt>
+        <dd>대안 A(<code>maxHeapSize</code>만 상향)는 누적 자체를 못 막아 더 큰 힙에서 OOM 시점만 지연 → 근본 해결 아님. 대안 B(<code>maxParallelForks=1</code>로 동시성 축소)는 단일 JVM 누적이 그대로라 역시 OOM. 대안 C(러너 메모리 증설)는 hosted runner에서 불가. forkEvery=1은 fork 수명을 클래스 단위로 끊어 <strong>피크 메모리를 클래스 1개분으로 상한</strong> — 로컬에서 배치(fresh JVM)로 우회한 것과 동일 원리를 CI에 적용. ITs가 컨텍스트를 공유하지 않아 속도 손실이 미미한 점이 결정적. <strong>근본 수정</strong>: 메모리 누적원을 제거(증상인 hang을 timeout 상향 등으로 가리지 않음).</dd>
+        <dt>영향 파일</dt>
+        <dd>build.gradle(test 태스크 forkEvery·maxHeapSize)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="entry" id="d0624-01" data-tags="bugfix">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-bugfix">bugfix</span>
+        <span class="sev sev-high">high</span>
+        <strong>008 어드민 사용자 검색 — nullable enum 파라미터 Postgres 타입 추론 실패로 GET /api/v1/admin/users 500</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>008 Polish 슬라이스에서 001~008 전체 스위트를 1회 통합 실행하던 중 크라운주얼 <code>AdminAuthorizationIT</code>가 실패. ADMIN 토큰으로 <code>GET /api/v1/admin/users</code> 호출 시 기대 200이 아닌 500 반환. 단위 테스트(<code>AdminUserServiceTest</code>)는 리포지토리를 모킹해 실 쿼리를 타지 않아 이 결함을 잡지 못했고, 실 PostgreSQL을 띄우는 인가 IT에서만 드러남.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>AccountRepository.search</code>가 JPQL <code>(:role IS NULL OR a.role = :role)</code> 형태로 nullable enum/문자열 파라미터를 바인딩했는데, 필터가 모두 null(무필터)일 때 Postgres가 바인드 파라미터의 데이터 타입을 추론하지 못해 "could not determine data type of parameter" 오류 → 500. 006/007에서 겪은 nullable temporal 파라미터 이슈와 동일 계열.</dd>
+        <dt>수정 내용</dt>
+        <dd><code>search</code>를 native 쿼리로 전환하고 각 nullable 파라미터를 <code>CAST(:p AS text)</code>로 명시 캐스팅(countQuery 동일). <code>role·status·signup_type</code> 컬럼은 <code>EnumType.STRING</code> 저장이라 문자열 비교가 정합. 호출부 <code>AdminUserService.list</code>는 enum을 <code>.name()</code>(또는 null)으로 전달하도록 변경. 단위 테스트 verify도 문자열 인자로 갱신. 수정 후 <code>AdminAuthorizationIT</code> 5개 admin 영역 전부 200, 전체 스위트 122 클래스 532 tests 0 fail.</dd>
+        <dt>결정 이유 (대안 대비 근거)</dt>
+        <dd>대안 A(JPQL 유지 + 파라미터별 분기 메서드)는 4개 필터 조합 폭증으로 유지보수 불가. 대안 B(<code>CriteriaBuilder</code> 동적 쿼리)는 타입 안전하나 단순 4필터에 과한 보일러플레이트. native + CAST는 이미 코드베이스에 확립된 nullable 파라미터 패턴(006/007 temporal)과 일관되고, EnumType.STRING 저장 규약과 맞물려 최소 변경으로 근본 해결. <strong>근본 수정</strong>(증상 가리기 아님): 모킹이 숨긴 실 쿼리 결함을 native 쿼리 교체로 제거.</dd>
+        <dt>영향 파일</dt>
+        <dd>AccountRepository.java(search native+CAST, SignupType import 제거), AdminUserService.java(enum→name() 전달), AdminUserServiceTest.java(verify 문자열 인자), quickstart.md(T076 검증 상태)</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════ 2026-06-23 ═══════ -->
 <div class="date-group" id="date-0623">
   <div class="date-heading">
@@ -427,6 +489,38 @@
         <dd>Nori DecompoundMode를 NONE으로 둔 것은 트렌드 키워드가 의미 단위(대한민국·월드컵·백혈병)여야 하기 때문 — DISCARD는 이를 과분할해 슬롯 식별자 일관성을 깬다. 이슈를 re-derive(매 집계 전량 교체)로 설계한 것은 이슈 증감이 멤버 키워드의 WoW delta 집계로 파생되고 term이 안정 식별자라 이슈 자체의 영속성이 불필요하며, FR-012(재산출 가능)와 정합하기 때문(클러스터러 교체 시 재클러스터링만으로 전환). co-occurrence는 임베딩/외부 호출 없이 이미 추출된 article_keyword만으로 즉시 동작하는 MVP — 단 연결성분 방식의 transitive bridge over-merge 한계를 테스트로 명시 고정하고 v2 경로(임계 상향·community detection·임베딩)를 ADR에 문서화했다. 캐시는 저장된 집계가 집계 사이 불변이므로 TTL 대신 aggregate() @CacheEvict로 무효화를 집계 주기에 정렬해 stale 없이 단순화. 히트맵을 COUNT(DISTINCT 기사)로 한 것은 per-term SUM이 한 기사를 키워드 수만큼 중복 계상하는 것을 막기 위함.</dd>
         <dt>영향 파일</dt>
         <dd>V14__add_trend_aggregation.sql(신규), TrendKeywordSlot.java·IssueSnapshot.java·ArticleKeyword.java(신규 도메인), TrendKeywordSlotRepository·ArticleKeywordRepository·IssueSnapshotRepository(신규), KeywordExtractor·NoriKeywordExtractor(신규 client), IssueClusterer·CoOccurrenceIssueClusterer·DerivedIssue·IssueClusterContext(신규 service/trend), TrendAggregationService·TrendQueryService(신규), TrendController(신규), TrendAggregationScheduler(신규, run+cleanup), TrendProperties·TrendCacheConfig(신규 config), SecurityConfig(trends permitAll 추가), DTO(TrendKeywordResponse·HeatmapCellResponse·WordcloudItemResponse·IssueResponse), ADR-001-keyword-extraction-clustering.md(신규), 테스트 다수(Trend*IT·CoOccurrenceIssueClustererTest·TrendAggregationServiceTest·TrendControllerTest)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="entry" id="d0623-02" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-feature">feature</span>
+        <span class="tag tag-db">db</span>
+        <strong>spec 008 어드민 대시보드 US1~US5 + Polish — 사용자관리·모니터링·수집제어·공지/푸시·심층통계</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>작업 내용</dt>
+        <dd>
+          <ul>
+            <li>Foundational(V15): notice·admin_audit_log·scheduler_setting·excluded_keyword 4테이블 + articles.admin_hidden_at 컬럼 + scheduler_setting 12키 시드. AuditTargetType enum, AdminAuditService(호출자 TX 참여 — 외부 롤백 시 감사도 롤백), SchedulerControlService(isEnabled 게이트·토글 영속).</li>
+            <li>US1 사용자 관리: 목록·UserStats·역할 변경(USER↔ADMIN)·활성/비활성(비활성=SUSPENDED→로그인 차단, 002 재사용). ★ 자기보호 가드 둘 다(자기 자신·마지막 ADMIN 강등/비활성 거부).</li>
+            <li>US2 모니터링(read-only): KPI·파이프라인 stats·스케줄러 상태·소스 수집량·bias/trend 어드민 뷰(★ hidden 포함). 빈 데이터 0/빈값(분모 0 가드).</li>
+            <li>US3 수집·콘텐츠 제어: ★ 12 @Scheduled 메서드 전부 DB 게이트(isEnabled, weekly_email 포함) + 수동 실행(게이트 우회) + 제외 키워드 CRUD/적용 + 요약 재시도 + 기사 숨김(가역). ★ hidden 13경로 일관 제외(피드6·검색2·상세404·트렌드추출/히트맵/슬롯·북마크), admin_hidden_at 전용 컬럼(feed_visible 만료 물리삭제와 독립).</li>
+            <li>US4 공지+푸시: Notice CRUD·게시 토글·공개 조회(GET /api/v1/notices permitAll). ★ 어드민 푸시/인앱 멱등(V16 dedup_key): 공지=ADMIN:NOTICE 멱등 / 캠페인=ADMIN:CAMPAIGN 매발송 고유. 인앱=토큰 무관 전원·멱등, 푸시=토큰 보유자만.</li>
+            <li>US5 심층통계(read-only): OpsStats 추이·ErrorLog(기존 FAILED 집계, 신규 테이블 없음)·수집량 드릴다운·감사 로그 조회(action/actor/기간 필터).</li>
+            <li>인가: 전 /api/v1/admin/** hasRole ADMIN(기존 SecurityConfig 재사용, 신규 role 없음). 변형 액션 14종 감사 같은 TX.</li>
+            <li>테스트: 실 PG(Testcontainers) IT 다수 — 인가(401/403/200)·hidden 일관성·자기보호 가드·스케줄러 게이트 12 each·수동실행·푸시/인앱 멱등·감사 TX참여·감사 커버리지 전수·ErrorLog 집계. 전 슬라이스 GREEN.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>기사 숨김을 feed_visible 재활용이 아닌 전용 admin_hidden_at으로 둔 것은 feed_visible이 ExpiryService 2단계 물리삭제와 엮여 있어 숨긴 기사가 만료 스케줄러에 비가역 삭제되는 충돌을 막기 위함. AdminAuditService를 AOP가 아닌 서비스 명시 호출(REQUIRED 참여)로 한 것은 diff 컨텍스트 확보와 같은 TX 롤백 일관성(고아 감사 0) 때문. 스케줄러를 DB 게이트로 제어한 것은 @ConditionalOnProperty가 빌드 토글이라 런타임·영속·개별 제어가 불가하기 때문이며, weekly_email은 전역 토글이 없어 DB 게이트가 유일 차단책. 어드민 푸시는 enqueueSystem이 매 호출 새 notification→비결정 키라 멱등 불가여서 결정적 dedup 키 경로를 신설했고, FR-042의 인앱 요구를 위해 토큰 없는 사용자도 인앱으로 받도록 채널을 분리(인앱 무조건·멱등 / 푸시 토큰 조건부). ErrorLog는 전용 캡처 테이블 대신 기존 FAILED 상태 집계로 008 비대를 피함.</dd>
+        <dt>영향 파일</dt>
+        <dd>V15__admin_dashboard.sql·V16__notification_dedup_key.sql(신규), Notice·AdminAuditLog·SchedulerSetting·ExcludedKeyword(신규 도메인)·AuditTargetType(신규 enum)·Article(admin_hidden_at)·Notification(dedup_key), 신규 repository 4 + AdminAuditLog/Account/NotificationOutbox/ArticleKeyword/SourceDailyUsage/Notification 확장, AdminUserService·AdminMonitoringService·AdminOpsService·SchedulerControlService·SchedulerManualRunService·AdminAuditService·NoticeService·AdminPushService·AdminOpsStatsService(신규 service/admin), AdminUserController·AdminMonitoringController·AdminOpsController·AdminNoticeController·NoticeController·AdminOpsStatsController(신규), 9 스케줄러(게이트 주입)·NotificationSendService(enqueueAdminPush)·ArticleDetailService/SavedArticleService(hidden 가드)·SecurityConfig(notices permitAll), DTO 다수, ADR-001-admin-layer-design.md(신규), 테스트 다수(Admin*IT·SchedulerGateCoverageTest·AdminAuditCoverageTest 등)</dd>
       </dl>
     </div>
   </div>

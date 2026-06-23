@@ -40,6 +40,7 @@ class TtsProcessingSchedulerTest {
     @Mock private SummaryRepository summaryRepository;
     @Mock private NotificationSendService notificationSendService;
     @Mock private DailyBriefRepository dailyBriefRepository;
+    @Mock private com.newscurator.service.admin.SchedulerControlService schedulerControl;
     @Mock private Summary mockSummary;
 
     private TtsProcessingScheduler scheduler;
@@ -47,7 +48,8 @@ class TtsProcessingSchedulerTest {
     @BeforeEach
     void setUp() {
         scheduler = new TtsProcessingScheduler(claimer, ttsProvider, s3AudioUploader, summaryRepository,
-                notificationSendService, dailyBriefRepository, 10);
+                notificationSendService, dailyBriefRepository, 10, schedulerControl);
+        when(schedulerControl.isEnabled(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
         // 기본: 요약 조회 → 빈 결과 (resolveTtsText가 IllegalStateException → FAILED)
         when(summaryRepository.findByArticleIdAndDepth(any(), eq(SummaryDepth.BALANCED)))
                 .thenReturn(Optional.empty());

@@ -54,6 +54,7 @@ public class TrendAggregationService {
     private final IssueClusterer issueClusterer;
     private final TrendProperties trendProperties;
     private final CacheManager cacheManager;
+    private final com.newscurator.repository.ExcludedKeywordRepository excludedKeywordRepository;
 
     public TrendAggregationService(
             ArticleRepository articleRepository,
@@ -64,7 +65,8 @@ public class TrendAggregationService {
             KeywordExtractor keywordExtractor,
             IssueClusterer issueClusterer,
             TrendProperties trendProperties,
-            CacheManager cacheManager) {
+            CacheManager cacheManager,
+            com.newscurator.repository.ExcludedKeywordRepository excludedKeywordRepository) {
         this.articleRepository = articleRepository;
         this.summaryRepository = summaryRepository;
         this.articleKeywordRepository = articleKeywordRepository;
@@ -72,6 +74,7 @@ public class TrendAggregationService {
         this.issueSnapshotRepository = issueSnapshotRepository;
         this.keywordExtractor = keywordExtractor;
         this.issueClusterer = issueClusterer;
+        this.excludedKeywordRepository = excludedKeywordRepository;
         this.trendProperties = trendProperties;
         this.cacheManager = cacheManager;
     }
@@ -92,12 +95,21 @@ public class TrendAggregationService {
         List<Article> candidates =
                 articleRepository.findTrendExtractionCandidates(windowStart, summaryCutoff);
 
+        // 008 FR-032: 제외 키워드는 추출 단계에서 배제(집계에 들어가지 않음)
+        Set<String> excluded =
+                excludedKeywordRepository.findAll().stream()
+                        .map(com.newscurator.domain.ExcludedKeyword::getKeyword)
+                        .collect(java.util.stream.Collectors.toSet());
+
         int extractedArticles = 0;
         int insertedTerms = 0;
         for (Article a : candidates) {
             String text = buildText(a);
             Set<String> terms = keywordExtractor.extractNouns(text);
             for (String term : terms) {
+                if (excluded.contains(term)) {
+                    continue; // 제외 키워드 스킵
+                }
                 articleKeywordRepository.insertIgnore(a.getId(), term);
                 insertedTerms++;
             }

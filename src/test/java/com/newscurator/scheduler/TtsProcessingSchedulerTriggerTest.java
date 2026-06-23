@@ -38,6 +38,7 @@ class TtsProcessingSchedulerTriggerTest {
     @Mock private SummaryRepository summaryRepository;
     @Mock private NotificationSendService notificationSendService;
     @Mock private DailyBriefRepository dailyBriefRepository;
+    @Mock private com.newscurator.service.admin.SchedulerControlService schedulerControl;
 
     private TtsProcessingScheduler scheduler;
 
@@ -47,7 +48,8 @@ class TtsProcessingSchedulerTriggerTest {
     void setUp() {
         scheduler = new TtsProcessingScheduler(
                 ttsAudioClaimer, ttsProvider, s3AudioUploader, summaryRepository,
-                notificationSendService, dailyBriefRepository, 10);
+                notificationSendService, dailyBriefRepository, 10, schedulerControl);
+        when(schedulerControl.isEnabled(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
     }
 
     private TtsAudio buildTtsAudio(String refId, String voiceId) {

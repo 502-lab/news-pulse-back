@@ -32,7 +32,7 @@ public interface ArticleKeywordRepository
                    COUNT(DISTINCT a.id)                     AS article_count
             FROM article_keyword ak
                      JOIN articles a ON a.id = ak.article_id
-            WHERE a.first_collected_at >= :windowStart
+            WHERE a.first_collected_at >= :windowStart AND a.admin_hidden_at IS NULL
             GROUP BY 1, 2
             ORDER BY 1, 2
             """, nativeQuery = true)
@@ -46,7 +46,16 @@ public interface ArticleKeywordRepository
             SELECT ak.article_id, ak.term
             FROM article_keyword ak
                      JOIN articles a ON a.id = ak.article_id
-            WHERE a.first_collected_at >= :windowStart
+            WHERE a.first_collected_at >= :windowStart AND a.admin_hidden_at IS NULL
             """, nativeQuery = true)
     List<Object[]> windowArticleKeywords(@Param("windowStart") Instant windowStart);
+
+    /**
+     * ★ 008 US2 어드민 트렌드 뷰: 키워드 추출된 기사 수 — admin_hidden_at 필터 안 함(어드민은 hidden 포함).
+     * 일반 사용자 트렌드 경로(US3에서 hidden 제외)와 달리 숨김 기사도 집계에 포함된다.
+     */
+    @Query(
+            value = "SELECT COUNT(DISTINCT ak.article_id) FROM article_keyword ak",
+            nativeQuery = true)
+    long countKeywordedArticlesIncludingHidden();
 }

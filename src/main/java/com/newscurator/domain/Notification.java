@@ -52,6 +52,10 @@ public class Notification {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
+    // 008 FR-042: 어드민 인앱 알림 멱등 키(결정적). 일반 알림은 null. 부분 unique 인덱스로 유일성.
+    @Column(name = "dedup_key", length = 200)
+    private String dedupKey;
+
     @Builder
     public Notification(UUID accountId, NotificationType type, String title, String body, String referenceId) {
         this.accountId = accountId;

@@ -12,6 +12,23 @@ public interface BiasAnalysisRepository extends JpaRepository<BiasAnalysis, Long
 
     Optional<BiasAnalysis> findByArticleId(Long articleId);
 
+    // ── 008 US2 어드민 모니터링(편향) ──
+
+    /** 상태별 카운트(네이티브 — enum 비결합). status ∈ PENDING/PROCESSING/DONE/FAILED. */
+    @Query(value = "SELECT COUNT(*) FROM bias_analysis WHERE status = :status", nativeQuery = true)
+    long countByStatusValue(@Param("status") String status);
+
+    /**
+     * ★ 어드민 편향 뷰: 분석 완료(DONE) 기사 수 — admin_hidden_at 필터 안 함(어드민은 hidden 포함).
+     * 일반 사용자 경로와 달리 숨김 기사의 분석도 집계에 포함된다.
+     */
+    @Query(
+            value =
+                    "SELECT COUNT(DISTINCT a.id) FROM bias_analysis ba"
+                            + " JOIN articles a ON a.id = ba.article_id WHERE ba.status = 'DONE'",
+            nativeQuery = true)
+    long countAnalyzedArticlesIncludingHidden();
+
     List<BiasAnalysis> findAllByArticleIdIn(List<Long> articleIds);
 
     // Claimer: PENDING + lease 만료된 PROCESSING(stuck) 행 회수, SKIP LOCKED

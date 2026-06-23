@@ -63,6 +63,28 @@ public class NotificationSendService {
     }
 
     /**
+     * 008 어드민 푸시 enqueue — 호출자가 제공한 <b>결정적 idempotency_key</b>로 PUSH outbox 단건.
+     * 같은 키 재발송은 uq_outbox_idempotency로 무시(멱등). 공지=ADMIN:NOTICE:{noticeId}:{accountId},
+     * 캠페인=ADMIN:CAMPAIGN:{serverUuid}:{accountId}(매 발송 고유 UUID). 디바이스 토큰 없으면 skip.
+     */
+    @Transactional
+    public void enqueueAdminPush(UUID accountId, String title, String body, String idempotencyKey) {
+        // 인앱(FR-042): 토큰 무관 전원 도달 + dedup_key로 멱등(같은 키 재발송 무시)
+        notificationService.createSystemNotificationIdempotent(accountId, title, body, idempotencyKey);
+        // 푸시: 디바이스 토큰 보유자만(토큰 없으면 푸시 skip), outbox uq_outbox_idempotency로 멱등
+        deviceTokenRepository.findByAccountId(accountId).stream()
+                .findFirst()
+                .ifPresent(
+                        dt -> {
+                            String payload =
+                                    buildPayload(
+                                            Map.of("token", dt.getToken(), "title", title, "body", body));
+                            insertOutbox(
+                                    accountId, null, NotificationChannel.PUSH, payload, idempotencyKey);
+                        });
+    }
+
+    /**
      * 속보(BREAKING) 알림 enqueue.
      * 인앱 알림 생성 + PUSH outbox enqueue (토큰이 없으면 인앱만 생성).
      */

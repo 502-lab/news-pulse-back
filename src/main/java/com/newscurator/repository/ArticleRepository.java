@@ -47,7 +47,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     // 피드 조회: 커서 없음 (첫 페이지)
     @Query(
             "SELECT a FROM Article a "
-                    + "WHERE a.feedVisible = true "
+                    + "WHERE a.feedVisible = true AND a.adminHiddenAt IS NULL "
                     + "AND a.categoryStatus IN :statuses "
                     + "ORDER BY a.publishedAt DESC, a.id DESC")
     List<Article> findFeedPage(
@@ -57,7 +57,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     // 피드 조회: 커서 기반 (published_at+id 복합 커서)
     @Query(
             "SELECT a FROM Article a "
-                    + "WHERE a.feedVisible = true "
+                    + "WHERE a.feedVisible = true AND a.adminHiddenAt IS NULL "
                     + "AND a.categoryStatus IN :statuses "
                     + "AND (a.publishedAt < :cursorPublishedAt "
                     + "     OR (a.publishedAt = :cursorPublishedAt AND a.id < :cursorId)) "
@@ -71,7 +71,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     // 카테고리 필터 피드 조회: 첫 페이지
     @Query(
             "SELECT a FROM Article a "
-                    + "WHERE a.feedVisible = true "
+                    + "WHERE a.feedVisible = true AND a.adminHiddenAt IS NULL "
                     + "AND a.categoryStatus IN :statuses "
                     + "AND a.category = :category "
                     + "ORDER BY a.publishedAt DESC, a.id DESC")
@@ -84,7 +84,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     // 커서가 만료·삭제된 기사를 가리켜도 커서 위치 이후 결과를 graceful하게 반환
     @Query(
             "SELECT a FROM Article a "
-                    + "WHERE a.feedVisible = true "
+                    + "WHERE a.feedVisible = true AND a.adminHiddenAt IS NULL "
                     + "AND a.categoryStatus IN :statuses "
                     + "AND a.category = :category "
                     + "AND (a.publishedAt < :cursorPublishedAt "
@@ -136,9 +136,18 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Query("SELECT COUNT(a) FROM Article a WHERE a.summaryStatus = 'COMPLETED'")
     long countSummaryCompleted();
 
+    // 008 US5 OpsStats: 일자별 수집 건수(추이). Object[]: [0]=day(Timestamp), [1]=count(Long). 빈 윈도우면 빈 목록.
+    @Query(
+            value =
+                    "SELECT date_trunc('day', first_collected_at) AS d, COUNT(*) AS c"
+                            + " FROM articles WHERE first_collected_at >= :since"
+                            + " GROUP BY 1 ORDER BY 1 DESC",
+            nativeQuery = true)
+    List<Object[]> dailyCollectedSince(@Param("since") java.time.Instant since);
+
     // spec 003 개인화 피드: 시간 창 내 후보 기사 전체 조회 (Java에서 랭킹 정렬)
     @Query("SELECT a FROM Article a "
-            + "WHERE a.feedVisible = true "
+            + "WHERE a.feedVisible = true AND a.adminHiddenAt IS NULL "
             + "AND a.categoryStatus IN :statuses "
             + "AND a.publishedAt >= :windowStart AND a.publishedAt <= :refTs "
             + "ORDER BY a.id ASC")
@@ -150,7 +159,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     // spec 003 개인화 피드 (카테고리 필터)
     @Query("SELECT a FROM Article a "
-            + "WHERE a.feedVisible = true "
+            + "WHERE a.feedVisible = true AND a.adminHiddenAt IS NULL "
             + "AND a.categoryStatus IN :statuses "
             + "AND a.category = :category "
             + "AND a.publishedAt >= :windowStart AND a.publishedAt <= :refTs "
@@ -180,7 +189,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
                     LIMIT 1) AS source_name,
                    a.published_at
             FROM articles a
-            WHERE a.feed_visible = true
+            WHERE a.feed_visible = true AND a.admin_hidden_at IS NULL
               AND a.category_status IN ('COMPLETED', 'FAILED')
               AND a.published_at >= NOW() - INTERVAL '90 days'
               AND (
@@ -212,7 +221,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
                         LIMIT 1) AS source_name,
                        a.published_at
                 FROM articles a
-                WHERE a.feed_visible = true
+                WHERE a.feed_visible = true AND a.admin_hidden_at IS NULL
                   AND a.category_status IN ('COMPLETED', 'FAILED')
                   AND a.published_at >= NOW() - INTERVAL '90 days'
                   AND (

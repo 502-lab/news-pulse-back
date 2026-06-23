@@ -33,6 +33,15 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
+    /**
+     * 008 FR-042: 어드민 SYSTEM 인앱 알림 멱등 생성. 같은 dedupKey 재발송은 무시(ON CONFLICT). 토큰 무관 전원.
+     */
+    @Transactional
+    public void createSystemNotificationIdempotent(
+            UUID accountId, String title, String body, String dedupKey) {
+        notificationRepository.insertSystemIdempotent(accountId, title, body, dedupKey);
+    }
+
     @Transactional(readOnly = true)
     public Page<NotificationResponse> listNotifications(UUID accountId, boolean unread, Pageable pageable) {
         Page<Notification> page = unread

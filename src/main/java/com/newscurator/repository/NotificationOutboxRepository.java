@@ -21,4 +21,8 @@ public interface NotificationOutboxRepository extends JpaRepository<Notification
             FOR UPDATE SKIP LOCKED
             """, nativeQuery = true)
     List<NotificationOutbox> findPendingWithLock(@Param("limit") int limit);
+
+    /** 008 US5 ErrorLog: 발송 실패(FAILED) outbox 수. */
+    @Query(value = "SELECT COUNT(*) FROM notification_outbox WHERE status = 'FAILED'", nativeQuery = true)
+    long countFailed();
 }

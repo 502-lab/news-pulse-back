@@ -65,6 +65,10 @@ public class Article {
     @Column(name = "feed_visible", nullable = false)
     private boolean feedVisible = true;
 
+    // admin_hidden_at: 관리자 숨김 시각(가역). NULL=노출, NOT NULL=숨김. feed_visible(만료 물리삭제)과 독립(008).
+    @Column(name = "admin_hidden_at")
+    private OffsetDateTime adminHiddenAt;
+
     // user_saved: 단일 boolean; 다중 사용자 저장 추적은 spec 002 범위
     @Column(name = "user_saved", nullable = false)
     private boolean userSaved = false;
@@ -126,7 +130,26 @@ public class Article {
         this.summaryStatus = ProcessingStatus.FAILED;
     }
 
+    /** 008 US3: 관리자 요약 재시도 트리거 — FAILED 요약을 PENDING으로 되돌려 재처리 큐에 올린다. */
+    public void resetSummaryForRetry() {
+        this.summaryStatus = ProcessingStatus.PENDING;
+    }
+
     public void hide() {
         this.feedVisible = false;
+    }
+
+    /** 관리자 숨김(가역, 008). feed_visible과 독립 — 만료 물리삭제와 무관. */
+    public void hideByAdmin(OffsetDateTime at) {
+        this.adminHiddenAt = at;
+    }
+
+    /** 관리자 숨김 해제(unhide). */
+    public void unhideByAdmin() {
+        this.adminHiddenAt = null;
+    }
+
+    public boolean isAdminHidden() {
+        return this.adminHiddenAt != null;
     }
 }

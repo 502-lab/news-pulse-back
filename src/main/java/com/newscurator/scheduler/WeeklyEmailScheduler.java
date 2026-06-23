@@ -7,6 +7,7 @@ import com.newscurator.service.NotificationSendService;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import com.newscurator.service.admin.SchedulerControlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,16 +21,27 @@ public class WeeklyEmailScheduler {
 
     private final EmailSubscriptionRepository emailSubscriptionRepository;
     private final NotificationSendService notificationSendService;
+    private final SchedulerControlService schedulerControl;
 
     public WeeklyEmailScheduler(
             EmailSubscriptionRepository emailSubscriptionRepository,
-            NotificationSendService notificationSendService) {
+            NotificationSendService notificationSendService,
+            SchedulerControlService schedulerControl) {
         this.emailSubscriptionRepository = emailSubscriptionRepository;
         this.notificationSendService = notificationSendService;
+        this.schedulerControl = schedulerControl;
     }
 
     @Scheduled(cron = "${app.weekly-email.cron}", zone = "UTC")
     public void scheduleWeeklyEmail() {
+        if (!schedulerControl.isEnabled("weekly_email")) {
+            return;
+        }
+        runNow();
+    }
+
+    /** 게이트 우회 수동 실행용(admin manual run). */
+    public void runNow() {
         String yearWeek = currentYearWeek();
         log.info("[WeeklyEmail] 발송 시작: yearWeek={}", yearWeek);
         sendWeeklyEmailForWeek(yearWeek);
