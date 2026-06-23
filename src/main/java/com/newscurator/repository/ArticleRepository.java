@@ -17,6 +17,21 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     boolean existsByNormalizedUrl(String normalizedUrl);
 
+    // 007 트렌드 추출 대상 게이팅: article_keyword 미보유 + summary-race 게이트
+    //   COMPLETED / FAILED → 즉시 추출, PENDING은 수집 후 1h 경과해야(요약 대기) 제목만 추출,
+    //   1h 이내 PENDING은 제외(이번 run skip → 다음 run 대기). NOT EXISTS로 재추출 안 함.
+    @Query(value = """
+            SELECT * FROM articles a
+            WHERE a.first_collected_at >= :windowStart
+              AND NOT EXISTS (SELECT 1 FROM article_keyword ak WHERE ak.article_id = a.id)
+              AND ( a.summary_status IN ('COMPLETED','FAILED')
+                    OR (a.summary_status = 'PENDING' AND a.first_collected_at < :summaryCutoff) )
+            ORDER BY a.first_collected_at ASC
+            """, nativeQuery = true)
+    List<Article> findTrendExtractionCandidates(
+            @Param("windowStart") OffsetDateTime windowStart,
+            @Param("summaryCutoff") OffsetDateTime summaryCutoff);
+
     // SELECT ... FOR UPDATE SKIP LOCKED: 다중 인스턴스 동시 실행 safe (research #13)
     // category_status = PENDING 기사를 batch-size 건 잠금 획득 후 반환
     @Query(

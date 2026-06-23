@@ -107,6 +107,20 @@ firebase:
       outbox-batch-size: 50       # outbox 클레임 배치 크기
       outbox-interval-ms: 10000   # outbox 처리 주기 (ms)
       expiry-cron: "0 0 3 * * *"  # 인앱 알림 90일 만료 정리 (UTC 03:00)
+    trend:
+      interval-ms: 600000             # 트렌드 집계 주기 (10분)
+      cleanup-cron: "0 30 3 * * *"    # 90일 경과 슬롯 정리 (UTC 03:30)
+  trend:
+    slot-hours: 1                     # 슬롯 단위(시간)
+    top5-window-hours: 24             # 실시간 Top5 윈도우
+    retention-days: 90                # 슬롯 보존
+    min-article-count: 2              # 노이즈 컷(윈도우 내 등장 기사 수)
+    smoothing-k: 1                    # WoW 평활 상수(add-one)
+    extract-window-hours: 25          # 추출/집계 대상 윈도우(24h+버퍼)
+    summary-wait-hours: 1             # PENDING 요약 대기 한도(초과 시 제목만)
+    cooccurrence:
+      min-edge-weight: 2              # 동시출현 최소 기사 수(over-merge 방지)
+      min-cluster-size: 2             # 이슈 승격 최소 키워드/기사 수
   weekly-email:
     sender: ${WEEKLY_EMAIL_SENDER}  # 주간 이메일 발신자 (예: no-reply@newsift.app)
     cron: "0 0 0 * * MON"           # 매주 월요일 00:00 UTC (KST 09:00)

@@ -48,6 +48,10 @@ dependencies {
     // RSS/Atom 파싱
     implementation 'com.rometools:rome:2.1.0'
 
+    // 007 트렌드: 한국어 형태소(명사 NNG/NNP) 추출 — 순수 JVM, 네이티브 없음
+    implementation 'org.apache.lucene:lucene-analysis-nori:9.12.0'
+    implementation 'org.apache.lucene:lucene-core:9.12.0'
+
     // ShedLock (scale-out 시 활성화 예정, 현재 단일 EC2 전제로 비활성)
     implementation 'net.javacrumbs.shedlock:shedlock-spring:6.3.0'
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.3.0'

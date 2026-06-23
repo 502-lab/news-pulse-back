@@ -301,18 +301,20 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">73</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">74</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">25</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">22</div><div class="stat-label">Feature</div></div>
-  <div class="stat"><div class="stat-num">6</div><div class="stat-label">DB Migration</div></div>
-  <div class="stat"><div class="stat-num">27</div><div class="stat-label">커밋</div></div>
-  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-22</div><div class="stat-label">작업 기간</div></div>
+  <div class="stat"><div class="stat-num">23</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">7</div><div class="stat-label">DB Migration</div></div>
+  <div class="stat"><div class="stat-num">29</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">2026-06-03 ~ 06-23</div><div class="stat-label">작업 기간</div></div>
 </div>
 
 <div class="main">
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-23</div>
+  <a class="toc-item" href="#d0623-01">spec 007 트렌드 집계 US2~US5 + Polish — Nori 추출·슬롯 집계·Top5/WoW/히트맵/워드클라우드·이슈 클러스터링</a>
   <div class="toc-date">2026-06-22</div>
   <a class="toc-item" href="#d0622-01">spec 006 편향 분석 엔진 US1~US4 + Polish — 파이프라인·조회·집계·인가·backfill (slice 1~4)</a>
   <div class="toc-date">2026-06-19</div>
@@ -390,6 +392,45 @@
 </nav>
 
 <div class="content">
+
+<!-- ═══════ 2026-06-23 ═══════ -->
+<div class="date-group" id="date-0623">
+  <div class="date-heading">
+    <h2>2026-06-23</h2>
+    <div class="date-bar"></div>
+  </div>
+
+  <div class="entry" id="d0623-01" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-feature">feature</span>
+        <strong>spec 007 트렌드 집계 US2~US5 + Polish — Nori 추출·슬롯 집계·Top5/WoW/히트맵/워드클라우드·이슈 클러스터링</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>작업 내용</dt>
+        <dd>
+          <ul>
+            <li>키워드 추출(Nori): Lucene Nori 9.12.0 형태소 분석으로 명사 추출. DecompoundMode.NONE(복합명사 통째 유지 — DISCARD의 대한민국→[대한,민국] 과분할 회피) + UserDictionary(OOV 연준·홍명보) + stopwords. KeywordExtractor 포트 뒤 격리.</li>
+            <li>US2 집계: V14 마이그레이션(trend_keyword_slot·issue_snapshot). TrendAggregationService.aggregate() — summary-race 게이팅(COMPLETED+BALANCED만 본문, 1h 경과 PENDING은 제목 fallback), article_keyword 멱등 삽입(ON CONFLICT DO NOTHING), 슬롯 UPSERT(date_trunc 시간버킷, DISTINCT 기사). 단일 인스턴스 fixedDelay 스케줄러.</li>
+            <li>US1 Top5: GET /api/v1/trends/keywords/top5 — 24h 윈도우, 평활비 (cur+k)/(prev+k) 정렬, raw deltaPct(prev=0→null+isNew), cur&lt;2 노이즈컷, 카테고리 필터. 공개(permitAll).</li>
+            <li>US4 WoW: GET /api/v1/trends/wow — 최근 7일 vs 7~14일 전 주간 경계, US1 동일 평활·isNew 로직.</li>
+            <li>US3 히트맵/워드클라우드: GET /api/v1/trends/heatmap(시간×카테고리, intensity=COUNT(DISTINCT 기사) — per-term SUM 과대계상 회피) + GET /api/v1/trends/wordcloud(term weight=article_count 합, min-freq 컷).</li>
+            <li>US5 이슈 클러스터링: IssueClusterer 포트 + CoOccurrenceIssueClusterer(동시출현 그래프, min-edge-weight=2, union-find 연결성분, min-cluster-size=2, 대표 top3 + article_ids + 멤버 WoW delta 평균). issue_snapshot TRUNCATE+INSERT 단일 TX 재산출(re-derive, OI-4, 안정 ID 없음). GET /api/v1/trends/issues(delta DESC NULLS LAST, 공개).</li>
+            <li>Polish: 보존 정리 스케줄(@Scheduled cron, 90일 경과 슬롯/이슈 DELETE, FR-009). 트렌드 read 캐싱(ConcurrentMapCacheManager, Redis 미사용, aggregate() @CacheEvict로 집계 주기와 무효화 정렬, R-006). ADR-001(Nori·co-occurrence·re-derive·캐싱·런타임 이연 게이트).</li>
+            <li>테스트: 실 PostgreSQL(Testcontainers BigmPostgresImage) IT — TrendAggregationIT(집계 멱등)·TrendTop5IT·TrendWowIT·TrendHeatmapWordcloudIT·TrendIssueRederiveIT(재산출 전량교체·스테일0·안정ID없음)·TrendRetentionIT(보존정리)·TrendPublicAccessIT(5개 엔드포인트 공개 200, /bias/spectrum 401 대조) + CoOccurrenceIssueClustererTest 단위(over/under-merge·transitive bridge over-merge 정직 단언). 전체 스위트 457 tests GREEN.</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>Nori DecompoundMode를 NONE으로 둔 것은 트렌드 키워드가 의미 단위(대한민국·월드컵·백혈병)여야 하기 때문 — DISCARD는 이를 과분할해 슬롯 식별자 일관성을 깬다. 이슈를 re-derive(매 집계 전량 교체)로 설계한 것은 이슈 증감이 멤버 키워드의 WoW delta 집계로 파생되고 term이 안정 식별자라 이슈 자체의 영속성이 불필요하며, FR-012(재산출 가능)와 정합하기 때문(클러스터러 교체 시 재클러스터링만으로 전환). co-occurrence는 임베딩/외부 호출 없이 이미 추출된 article_keyword만으로 즉시 동작하는 MVP — 단 연결성분 방식의 transitive bridge over-merge 한계를 테스트로 명시 고정하고 v2 경로(임계 상향·community detection·임베딩)를 ADR에 문서화했다. 캐시는 저장된 집계가 집계 사이 불변이므로 TTL 대신 aggregate() @CacheEvict로 무효화를 집계 주기에 정렬해 stale 없이 단순화. 히트맵을 COUNT(DISTINCT 기사)로 한 것은 per-term SUM이 한 기사를 키워드 수만큼 중복 계상하는 것을 막기 위함.</dd>
+        <dt>영향 파일</dt>
+        <dd>V14__add_trend_aggregation.sql(신규), TrendKeywordSlot.java·IssueSnapshot.java·ArticleKeyword.java(신규 도메인), TrendKeywordSlotRepository·ArticleKeywordRepository·IssueSnapshotRepository(신규), KeywordExtractor·NoriKeywordExtractor(신규 client), IssueClusterer·CoOccurrenceIssueClusterer·DerivedIssue·IssueClusterContext(신규 service/trend), TrendAggregationService·TrendQueryService(신규), TrendController(신규), TrendAggregationScheduler(신규, run+cleanup), TrendProperties·TrendCacheConfig(신규 config), SecurityConfig(trends permitAll 추가), DTO(TrendKeywordResponse·HeatmapCellResponse·WordcloudItemResponse·IssueResponse), ADR-001-keyword-extraction-clustering.md(신규), 테스트 다수(Trend*IT·CoOccurrenceIssueClustererTest·TrendAggregationServiceTest·TrendControllerTest)</dd>
+      </dl>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════ 2026-06-22 ═══════ -->
 <div class="date-group" id="date-0622">
