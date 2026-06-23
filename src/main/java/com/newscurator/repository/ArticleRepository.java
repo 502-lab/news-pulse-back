@@ -136,6 +136,15 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Query("SELECT COUNT(a) FROM Article a WHERE a.summaryStatus = 'COMPLETED'")
     long countSummaryCompleted();
 
+    // 008 US5 OpsStats: 일자별 수집 건수(추이). Object[]: [0]=day(Timestamp), [1]=count(Long). 빈 윈도우면 빈 목록.
+    @Query(
+            value =
+                    "SELECT date_trunc('day', first_collected_at) AS d, COUNT(*) AS c"
+                            + " FROM articles WHERE first_collected_at >= :since"
+                            + " GROUP BY 1 ORDER BY 1 DESC",
+            nativeQuery = true)
+    List<Object[]> dailyCollectedSince(@Param("since") java.time.Instant since);
+
     // spec 003 개인화 피드: 시간 창 내 후보 기사 전체 조회 (Java에서 랭킹 정렬)
     @Query("SELECT a FROM Article a "
             + "WHERE a.feedVisible = true AND a.adminHiddenAt IS NULL "

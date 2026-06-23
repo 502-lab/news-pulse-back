@@ -52,4 +52,17 @@ public interface SourceDailyUsageRepository
                             + " WHERE usage_date >= :since GROUP BY source_id ORDER BY 2 DESC",
             nativeQuery = true)
     List<Object[]> volumeSince(@Param("since") LocalDate since);
+
+    /**
+     * 008 US5 수집량 드릴다운: 특정 소스의 일자별 call_count. Object[]: [0]=usage_date(Date), [1]=call_count(Integer).
+     * 빈 데이터면 빈 목록.
+     */
+    @Query(
+            value =
+                    "SELECT usage_date, call_count FROM source_daily_usage"
+                            + " WHERE source_id = :sourceId AND usage_date >= :since"
+                            + " ORDER BY usage_date DESC",
+            nativeQuery = true)
+    List<Object[]> detailBySource(
+            @Param("sourceId") Long sourceId, @Param("since") LocalDate since);
 }

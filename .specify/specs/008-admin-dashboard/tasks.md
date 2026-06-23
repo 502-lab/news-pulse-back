@@ -144,12 +144,12 @@
 **Goal**: OpsStats 추이·에러 로그(기존 FAILED 집계, 신규 테이블 없음)·수집량 드릴다운·감사 조회.
 **Independent Test**: 기간 OpsStats·수집량 상세·에러 로그(시간역순) 조회. 감사 로그 조회.
 
-- [ ] T065 [P] [US5] DTO `OpsStatsResponse`·`ErrorLogItemResponse`·`CollectionDetailResponse`·`AuditLogItemResponse` in `src/main/java/com/newscurator/dto/response/`
-- [ ] T066 [US5] `AdminOpsStatsService` — OpsStats(일자별 수집·요약·편향·트렌드 처리량 추이) in `src/main/java/com/newscurator/service/admin/AdminOpsStatsService.java`
-- [ ] T067 [US5] 에러 로그 = 기존 FAILED 집계(summary_status·bias status·notification_outbox FAILED, 필터·페이지·시간역순) in `AdminOpsStatsService` (★ 신규 저장소 없음)
-- [ ] T068 [US5] 수집량 상세 드릴다운(소스별 일자 call_count·예산 대비) + 감사 로그 조회 서비스 in `AdminOpsStatsService`/`AdminAuditService`
-- [ ] T069 [US5] `AdminOpsStatsController` — GET ops/stats·ops/errors·ops/collection/{sourceId}·audit in `src/main/java/com/newscurator/controller/AdminOpsStatsController.java`
-- [ ] T070 [P] [US5] `AdminOpsStatsServiceTest`(단위) — FAILED 집계·OpsStats in `src/test/java/com/newscurator/service/admin/AdminOpsStatsServiceTest.java`
+- [x] T065 [P] [US5] DTO `OpsStatsResponse`·`ErrorLogItemResponse`·`CollectionDetailResponse`·`AuditLogItemResponse` in `src/main/java/com/newscurator/dto/response/`
+- [x] T066 [US5] `AdminOpsStatsService` — OpsStats(일자별 수집·요약·편향·트렌드 처리량 추이) in `src/main/java/com/newscurator/service/admin/AdminOpsStatsService.java`
+- [x] T067 [US5] 에러 로그 = 기존 FAILED 집계(summary_status·bias status·notification_outbox FAILED, 필터·페이지·시간역순) in `AdminOpsStatsService` (★ 신규 저장소 없음)
+- [x] T068 [US5] 수집량 상세 드릴다운(소스별 일자 call_count·예산 대비) + 감사 로그 조회 서비스 in `AdminOpsStatsService`/`AdminAuditService`
+- [x] T069 [US5] `AdminOpsStatsController` — GET ops/stats·ops/errors·ops/collection/{sourceId}·audit in `src/main/java/com/newscurator/controller/AdminOpsStatsController.java`
+- [x] T070 [P] [US5] `AdminOpsStatsServiceTest`(단위) — FAILED 집계·OpsStats in `src/test/java/com/newscurator/service/admin/AdminOpsStatsServiceTest.java`
 
 **Checkpoint**: 심층 가시성.
 
