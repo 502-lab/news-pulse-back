@@ -79,9 +79,15 @@ over-merge 품질이 실사용에서 문제로 확인되면 `IssueClusterer` 구
 
 ## Decision 4 — 트렌드 read 캐싱: 인메모리, 집계 주기 정렬 (R-006)
 
-`ConcurrentMapCacheManager`(Redis 미사용) + `@Cacheable`로 5개 read를 캐싱하고,
-`aggregate()` 완료 시 `@CacheEvict(allEntries)`로 전량 무효화 → **캐시 신선도 = 집계 주기**(기본 10분).
-저장된 집계(slot/snapshot)는 집계 사이 불변이라 TTL 없이도 안전. 단일 인스턴스 전제(multi-instance 시
+`ConcurrentMapCacheManager`(Redis 미사용) + `@Cacheable`로 5개 read를 캐싱한다. TTL은 없고 무효화는
+`aggregate()`의 **TX 커밋 후(afterCommit) evict**로만 한다 → **캐시 신선도 = 집계 주기**(기본 10분).
+
+`@CacheEvict`를 쓰지 않은 이유: `@CacheEvict`(기본 `beforeInvocation=false`)는 캐시/트랜잭션 advisor
+순서가 고정되지 않아 evict가 **커밋 전**에 실행될 수 있고, 그 사이 동시 read가 커밋 전 데이터를 재적재해
+최대 1주기 stale이 남는 race가 있다. 대신 `TransactionSynchronizationManager.registerSynchronization`으로
+`afterCommit`에 evict를 등록해 그 창을 제거한다(`aggregate()`는 항상 `@Transactional` 경계 안에서 외부
+호출되므로 동기화 활성; 비활성 시 즉시 evict 폴백). 롤백 시엔 evict 미발생 → 데이터·캐시 모두 불변(정합).
+검증: `TrendCacheFreshnessIT`(커밋 후 즉시 반영 + 롤백 시 캐시 유지). 단일 인스턴스 전제(multi-instance 시
 분산 캐시 필요 — 미래 seam).
 
 ---

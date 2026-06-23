@@ -10,9 +10,10 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 트렌드 조회 캐싱(R-006, Redis 미사용). 인메모리 {@link ConcurrentMapCacheManager}.
  *
- * <p>무효화는 TTL이 아니라 <b>집계 주기와 정렬</b>: {@code TrendAggregationService.aggregate()}가
- * 완료될 때 {@code @CacheEvict(allEntries=true)}로 전 트렌드 캐시를 비운다. 따라서 캐시 신선도 =
- * 집계 주기(기본 10분). 저장된 집계(slot/snapshot)를 그대로 서빙하는 read는 집계 사이에서 불변이라 안전.
+ * <p>무효화는 TTL이 아니라 <b>집계 TX 커밋 후(afterCommit)</b> 전 캐시 clear:
+ * {@code TrendAggregationService.aggregate()}가 활성 TX의 {@code afterCommit} 동기화로 evict를 등록한다.
+ * {@code @CacheEvict}는 advisor 순서 미고정으로 커밋 전 evict→stale 재적재 창이 생길 수 있어 쓰지 않는다.
+ * 따라서 캐시 신선도 = 집계 주기(기본 10분). 저장된 집계(slot/snapshot)는 집계 사이 불변이라 안전.
  */
 @Configuration
 @EnableCaching

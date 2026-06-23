@@ -39,6 +39,7 @@ class TrendAggregationServiceTest {
     @Mock private com.newscurator.repository.IssueSnapshotRepository issueSnapshotRepository;
     @Mock private KeywordExtractor keywordExtractor;
     @Mock private com.newscurator.service.trend.IssueClusterer issueClusterer;
+    @Mock private org.springframework.cache.CacheManager cacheManager;
 
     private TrendAggregationService service;
 
@@ -50,7 +51,7 @@ class TrendAggregationServiceTest {
         service = new TrendAggregationService(
                 articleRepository, summaryRepository, articleKeywordRepository,
                 trendKeywordSlotRepository, issueSnapshotRepository, keywordExtractor,
-                issueClusterer, PROPS);
+                issueClusterer, PROPS, cacheManager);
         when(keywordExtractor.extractNouns(any())).thenReturn(Set.of("x"));
         when(issueClusterer.cluster(any())).thenReturn(java.util.List.of());
     }

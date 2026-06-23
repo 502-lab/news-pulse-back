@@ -28,9 +28,12 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 트렌드 집계 — 키워드 추출(summary-race 게이팅) → 슬롯 멱등 UPSERT → 이슈 재산출(re-derive, 전량 교체).
@@ -50,6 +53,7 @@ public class TrendAggregationService {
     private final KeywordExtractor keywordExtractor;
     private final IssueClusterer issueClusterer;
     private final TrendProperties trendProperties;
+    private final CacheManager cacheManager;
 
     public TrendAggregationService(
             ArticleRepository articleRepository,
@@ -59,7 +63,8 @@ public class TrendAggregationService {
             IssueSnapshotRepository issueSnapshotRepository,
             KeywordExtractor keywordExtractor,
             IssueClusterer issueClusterer,
-            TrendProperties trendProperties) {
+            TrendProperties trendProperties,
+            CacheManager cacheManager) {
         this.articleRepository = articleRepository;
         this.summaryRepository = summaryRepository;
         this.articleKeywordRepository = articleKeywordRepository;
@@ -68,21 +73,16 @@ public class TrendAggregationService {
         this.keywordExtractor = keywordExtractor;
         this.issueClusterer = issueClusterer;
         this.trendProperties = trendProperties;
+        this.cacheManager = cacheManager;
     }
 
     /**
      * 집계 1회: 추출 + 슬롯 UPSERT (멱등) + 이슈 재산출. 단일 인스턴스 fixedDelay 전제.
-     * 완료 시 트렌드 read 캐시 전량 무효화 → 캐시 신선도 = 집계 주기(R-006).
+     *
+     * <p>캐시 무효화는 <b>커밋 후(afterCommit)</b>에만 수행한다(R-006). {@code @CacheEvict}는
+     * advisor 순서가 고정되지 않아 evict가 커밋 전에 실행될 수 있고, 그 사이 동시 read가 커밋 전
+     * 데이터를 재적재해 최대 1주기 stale이 남을 수 있다. TX 커밋 후 evict로 그 창을 제거한다.
      */
-    @CacheEvict(
-            cacheNames = {
-                TrendCacheConfig.TOP5,
-                TrendCacheConfig.WOW,
-                TrendCacheConfig.HEATMAP,
-                TrendCacheConfig.WORDCLOUD,
-                TrendCacheConfig.ISSUES
-            },
-            allEntries = true)
     @Transactional
     public void aggregate() {
         OffsetDateTime now = OffsetDateTime.now();
@@ -109,8 +109,38 @@ public class TrendAggregationService {
         // 이슈 재산출(re-derive, OI-4): co-occurrence 클러스터링 → issue_snapshot 전량 교체(clean cutover)
         int issueCount = rederiveIssues(now);
 
+        // 캐시 무효화는 커밋 후에만(아래 등록). 롤백 시엔 evict 미발생 → 데이터·캐시 모두 불변(정합).
+        evictTrendCachesAfterCommit();
+
         log.info("[TREND] 집계 완료, candidates={}, extractedArticles={}, terms={}, slots={}, issues={}",
                 candidates.size(), extractedArticles, insertedTerms, affectedSlots, issueCount);
+    }
+
+    /**
+     * 트렌드 read 캐시 무효화를 활성 TX의 커밋 후로 미룬다. aggregate()는 항상 {@code @Transactional}
+     * 경계 안에서 외부 호출(스케줄러→프록시)되므로 동기화가 활성 상태다. 방어적으로, 동기화가 비활성인
+     * (비정상) 호출에선 즉시 evict로 폴백해 캐시가 절대 stale로 남지 않게 한다.
+     */
+    private void evictTrendCachesAfterCommit() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    clearTrendCaches();
+                }
+            });
+        } else {
+            clearTrendCaches();
+        }
+    }
+
+    private void clearTrendCaches() {
+        for (String name : TrendCacheConfig.allTrendCaches()) {
+            Cache cache = cacheManager.getCache(name);
+            if (cache != null) {
+                cache.clear();
+            }
+        }
     }
 
     /**
