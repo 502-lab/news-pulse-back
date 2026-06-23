@@ -23,6 +23,9 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     /** 008 US1 — 마지막 ADMIN 가드용 역할별 카운트. */
     long countByRole(AccountRole role);
 
+    /** 008 US2 — KPI 활성 사용자 수. */
+    long countByStatus(AccountStatus status);
+
     /**
      * 008 US1 — 어드민 사용자 목록(이메일 부분검색·역할·상태·가입유형 옵션 필터). null 필터는 무시.
      */

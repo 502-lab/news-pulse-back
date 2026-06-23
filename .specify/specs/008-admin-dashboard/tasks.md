@@ -65,16 +65,16 @@
 **Goal**: KPI·파이프라인 stats·수집량·스케줄러 상태·bias/trend 어드민 뷰(읽기 전용, 빈 데이터 0/빈값 안전).
 **Independent Test**: ADMIN이 KPI·pipeline·schedulers·collection 조회 → 기존 데이터 집계. 빈 환경서 0/빈값.
 
-- [ ] T027 [P] [US2] 응답 DTO `AdminKpiResponse`·`SchedulerStatusResponse`·`CollectionVolumeResponse`·`BiasAdminViewResponse`·`TrendAdminViewResponse` in `src/main/java/com/newscurator/dto/response/`
-- [ ] T028 [US2] `AdminMonitoringService` in `src/main/java/com/newscurator/service/admin/AdminMonitoringService.java` — KPI(총·활성 사용자·수집기사·요약완료율·편향완료율·트렌드이슈수), 빈값 안전(COALESCE/NULLIF)
-- [ ] T029 [P] [US2] 파이프라인 stats 확장 — 기존 `PipelineStatsService` 재활용/확장(요약·편향 status 분포) in `src/main/java/com/newscurator/service/PipelineStatsService.java`
-- [ ] T030 [P] [US2] 소스별 수집량 집계(source_daily_usage call_count, 기간) in `AdminMonitoringService`
-- [ ] T031 [P] [US2] 스케줄러 상태 조회(SchedulerSetting enabled + 최근실행/주기 메타) in `AdminMonitoringService` (SchedulerControlService 연동)
-- [ ] T032 [P] [US2] bias(006)·trend(007) 어드민 요약 뷰 집계 in `AdminMonitoringService`
-- [ ] T033 [US2] `AdminMonitoringController` in `src/main/java/com/newscurator/controller/AdminMonitoringController.java` — GET kpi·collection·schedulers·monitoring/bias·monitoring/trend. 파이프라인은 기존 `AdminPipelineController` 재활용
-- [ ] T034 [P] [US2] `AdminMonitoringServiceTest`(단위) — KPI 계산·빈값 안전 in `src/test/java/com/newscurator/service/admin/AdminMonitoringServiceTest.java`
-- [ ] T035 [P] [US2] 빈 데이터 안전 IT(실 PG, 신규 환경 0/빈값) in `src/test/java/com/newscurator/integration/AdminMonitoringEmptyIT.java`
-- [ ] T036 [P] [US2] 수집량 집계 리포지토리 테스트(BigmPostgresImage) in `src/test/java/com/newscurator/repository/SourceDailyUsageRepositoryTest.java`(확장)
+- [x] T027 [P] [US2] 응답 DTO `AdminKpiResponse`·`SchedulerStatusResponse`·`CollectionVolumeResponse`·`BiasAdminViewResponse`·`TrendAdminViewResponse` in `src/main/java/com/newscurator/dto/response/`
+- [x] T028 [US2] `AdminMonitoringService` in `src/main/java/com/newscurator/service/admin/AdminMonitoringService.java` — KPI(총·활성 사용자·수집기사·요약완료율·편향완료율·트렌드이슈수), 빈값 안전(COALESCE/NULLIF)
+- [x] T029 [P] [US2] 파이프라인 stats 확장 — 기존 `PipelineStatsService` 재활용/확장(요약·편향 status 분포) in `src/main/java/com/newscurator/service/PipelineStatsService.java`
+- [x] T030 [P] [US2] 소스별 수집량 집계(source_daily_usage call_count, 기간) in `AdminMonitoringService`
+- [x] T031 [P] [US2] 스케줄러 상태 조회(SchedulerSetting enabled + 최근실행/주기 메타) in `AdminMonitoringService` (SchedulerControlService 연동)
+- [x] T032 [P] [US2] bias(006)·trend(007) 어드민 요약 뷰 집계 in `AdminMonitoringService`
+- [x] T033 [US2] `AdminMonitoringController` in `src/main/java/com/newscurator/controller/AdminMonitoringController.java` — GET kpi·collection·schedulers·monitoring/bias·monitoring/trend. 파이프라인은 기존 `AdminPipelineController` 재활용
+- [x] T034 [P] [US2] `AdminMonitoringServiceTest`(단위) — KPI 계산·빈값 안전 in `src/test/java/com/newscurator/service/admin/AdminMonitoringServiceTest.java`
+- [x] T035 [P] [US2] 빈 데이터 안전 IT(실 PG, 신규 환경 0/빈값) in `src/test/java/com/newscurator/integration/AdminMonitoringEmptyIT.java`
+- [x] T036 [P] [US2] 수집량 집계 리포지토리 테스트(BigmPostgresImage) in `src/test/java/com/newscurator/repository/SourceDailyUsageRepositoryTest.java`(확장)
 
 **Checkpoint**: 운영 관측 가능 (P1 완료 → MVP 후보).
 
