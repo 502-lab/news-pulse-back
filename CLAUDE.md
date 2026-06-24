@@ -214,6 +214,6 @@ specs/ ← news-curator-spec submodule (수정 금지)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `.specify/specs/009-read-tracking/plan.md`.
+at `.specify/specs/010-insights/plan.md`.
 
 <!-- SPECKIT END -->

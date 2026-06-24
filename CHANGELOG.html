@@ -301,11 +301,11 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">78</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">79</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">26</div><div class="stat-label">Bug Fix</div></div>
-  <div class="stat"><div class="stat-num">25</div><div class="stat-label">Feature</div></div>
+  <div class="stat"><div class="stat-num">26</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">10</div><div class="stat-label">DB Migration</div></div>
-  <div class="stat"><div class="stat-num">43</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">44</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-24</div><div class="stat-label">작업 기간</div></div>
 </div>
 
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-24</div>
+  <a class="toc-item" href="#d0624-04">010 인사이트+추천 — 개인 소비 리포트 6항목(온디맨드·테이블 0) + 룰베이스 놓친 기사 추천</a>
   <a class="toc-item" href="#d0624-03">009 읽기 추적 P1 — 기사 조회 BE 단독 기록(best-effort 격리·디바운스) + 읽은수·조회이력</a>
   <a class="toc-item" href="#d0624-02">CI test 잡 1시간+ hang — Testcontainers IT 누적 OOM, forkEvery=1 + heap 캡 근본 차단</a>
   <a class="toc-item" href="#d0624-01">008 full suite 회귀 중 발견 — AdminUser 검색 nullable enum 파라미터 타입 추론 실패로 /admin/users 500</a>
@@ -403,6 +404,35 @@
   <div class="date-heading">
     <h2>2026-06-24</h2>
     <div class="date-bar"></div>
+  </div>
+
+  <div class="entry" id="d0624-04" data-tags="feature">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-feature">feature</span>
+        <strong>010 인사이트 + 추천 — 개인 소비 리포트(온디맨드 6항목·테이블 0) + 룰베이스 놓친 기사 추천</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>작업 내용</dt>
+        <dd>
+          <ul>
+            <li>US1 개인 소비 리포트: <code>GET /api/v1/me/insights</code> — 읽은수(009 distinct)·북마크(003)·최다카테고리·관심분포(007 article_keyword)·주요언론사(sources)·내편향(006). 전부 기존 데이터 온디맨드 GROUP BY, <strong>신규 테이블 0</strong>(V18 없음). 인사이트 1회 = 최대 6쿼리 상한.</li>
+            <li>내 편향 = 중립적 분포 %(진보[-100,-34]/중립[-33,33]/보수[34,100], 006 aggregateSpectrum 버킷 미러, status=DONE만, 단정 라벨 없음). 표본<5(읽은 고유 기사)면 sampleSufficient=false·분포 null(카운트는 항상, NPE·분모0 없음).</li>
+            <li>US2 놓친 기사 추천: <code>GET /api/v1/me/recommendations</code> — 후보 최근 14일 비숨김 − 조회(009)·저장(003)·숨김(008) 제외, ArticleRelevanceScorer(카테고리·키워드·최근성) + 트렌드(007) 가중. RecommendationEngine 인터페이스(임베딩 v2 seam, 007 IssueClusterer 패턴).</li>
+            <li>★ 콜드스타트 4분기: 조회0&관심사0→트렌드 fallback(coldStart=true) / 조회0&관심사有→관심사 / 조회有&관심사0→조회 프로파일 / 둘다→결합. 개인화 신호가 fallback에 덮이지 않음.</li>
+            <li>ArticleRelevanceScorer behavior-preserving 추출(FeedService.computeScore 이동, 위임) — 003 피드/010 추천 공유. 가중치·14일·임계5 = @ConfigurationProperties(하드코딩 0).</li>
+            <li>테스트(실 PG): InsightAggregationIT·InsightSampleThresholdIT·RecommendationExclusionIT·RecommendationColdStartIT + 단위(ArticleRelevanceScorer 동일점수·InsightService·RuleBasedRecommender 4분기/가중치). FeedServiceTest 랭킹 단언 수정 없이 GREEN(추출 회귀 가드).</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>신규 테이블을 안 만든 것은 인사이트가 per-user 소량 집계라 온디맨드로 충분하고(008 ErrorLog와 동일 철학), 대량 사용자 사전집계는 forward-note로 미룰 수 있기 때문이다. 6항목을 단일 CTE로 통합하지 않고 분리한 것은 카테고리·언론사·키워드·편향이 다대다 JOIN이라 통합 시 FANOUT으로 카운트가 부풀기 때문 — 언론사·카테고리는 <code>COUNT(DISTINCT a.id)</code>로 기사 단위 distinct를 보장했다. FeedService 스코어링을 복제하지 않고 추출한 것은 003/010 랭킹 로직 발산(DRY 위반)을 막기 위함이며, 순수 함수라 추출이 저위험이고 기존 FeedServiceTest 랭킹 단언이 불변으로 통과하는 것이 behavior-preserving 증거다. 콜드스타트 fallback을 "조회·관심사 둘 다 0일 때만"으로 한정한 것은 개인화 신호가 하나라도 있으면 그것을 우선해 트렌드가 개인화를 덮지 않게 하기 위함이다. 편향을 중립 분포로 표현하고 단정 라벨을 금지한 것은 006 evenhandedness 정합 + 사용자 판단 존중이며, 006의 기존 버킷 경계를 그대로 미러해 전역 스펙트럼과 일관성을 유지했다.</dd>
+        <dt>영향 파일</dt>
+        <dd>InsightAggregationRepository(신규 집계/추천후보 native), ArticleRelevanceScorer(추출 신규)·FeedService(위임 변경), InsightsRecommendationProperties(신규 config)·AppConfig·application.yaml, InsightService·RecommendationEngine·RuleBasedRecommender(신규), InsightController(신규), InsightResponse·BiasDistributionResponse·RecommendationResponse(신규 DTO), 테스트 7종(신규)·FeedServiceTest(배선 1줄), ADR-001-aggregation-recommendation.md. <strong>마이그레이션 없음(테이블 0)</strong>. 버그수정: article_keyword 컬럼 term(keyword 아님).</dd>
+      </dl>
+    </div>
   </div>
 
   <div class="entry" id="d0624-03" data-tags="feature">
