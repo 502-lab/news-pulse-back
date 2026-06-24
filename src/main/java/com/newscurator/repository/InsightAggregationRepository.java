@@ -103,4 +103,19 @@ public interface InsightAggregationRepository extends Repository<Article, Long> 
             nativeQuery = true)
     List<Article> findRecommendationCandidates(
             @Param("acc") UUID accountId, @Param("days") int days, @Param("limit") int limit);
+
+    /** 최근 7일 트렌딩 term 상위(추천 트렌드 가중용, 007 trend_keyword_slot). */
+    @Query(
+            value =
+                    "SELECT term FROM trend_keyword_slot"
+                        + " WHERE slot_start >= NOW() - make_interval(days => 7)"
+                        + " GROUP BY term ORDER BY SUM(article_count) DESC LIMIT :limit",
+            nativeQuery = true)
+    List<String> trendingTerms(@Param("limit") int limit);
+
+    /** 후보 기사들의 키워드(article_keyword.term) — 트렌드 매칭용 배치 조회. [article_id, term] */
+    @Query(
+            value = "SELECT article_id, term FROM article_keyword WHERE article_id IN (:ids)",
+            nativeQuery = true)
+    List<Object[]> keywordsForArticles(@Param("ids") List<Long> articleIds);
 }

@@ -27,3 +27,13 @@
 ## 런타임/배포 시 검증 이연
 - 실 사용자 인사이트 체감 응답성(SC-002 정량)·대량 시 사전집계 필요성.
 - 추천 품질(클릭률) — 런타임 관측 후 가중치 튜닝(config).
+
+## 검증 상태 (2026-06-24, US1·US2 구현 완료)
+실 PG(BigmPostgresImage) 자동 검증:
+- 추출 회귀 → ArticleRelevanceScorerTest(동일점수) + FeedServiceTest 랭킹 단언 불변 GREEN
+- 6항목/스코프/숨김/편향버킷 → InsightAggregationIT
+- 표본<5 → InsightSampleThresholdIT
+- 추천 제외 → RecommendationExclusionIT(조회·저장·숨김 0건 + fresh 포함)
+- 콜드스타트 4분기 → RuleBasedRecommenderTest(단위) + RecommendationColdStartIT(조회·관심사 0/관심사만/조회만)
+- 가중치 config → RuleBasedRecommenderTest(props 변경→순위 변화)
+런타임 이연: 인사이트 p95·추천 클릭률 튜닝.

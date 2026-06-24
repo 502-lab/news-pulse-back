@@ -58,16 +58,16 @@
 
 ### 구현
 
-- [ ] T015 [P] [US2] DTO `RecommendationResponse`(items·coldStart) + `RecommendedArticle`(articleId·title·category·publishedAt·reason) in `src/main/java/com/newscurator/dto/response/RecommendationResponse.java` — @Schema.
-- [ ] T016 [US2] `RecommendationEngine` 인터페이스 in `src/main/java/com/newscurator/service/recommendation/RecommendationEngine.java` — `RecommendationResponse recommend(UUID accountId, int limit)`. 임베딩 v2 교체 seam(007 IssueClusterer 패턴).
-- [ ] T017 [US2] `RuleBasedRecommender` in `src/main/java/com/newscurator/service/recommendation/RuleBasedRecommender.java` — 후보(14일 비숨김 − 조회 − 저장, T005) → `ArticleRelevanceScorer`(카테고리·키워드·최근성) + **트렌드 가중**(007) 블렌드(config 가중치) → top N. **★ 콜드스타트 분기**: 조회(009 distinct=0) AND 관심사(user_interests+follow_keywords=0) → 트렌드/최근 fallback(coldStart=true) / 조회0+관심사有→관심사 / 조회有+관심사0→조회 프로파일. 빈 목록 금지.
-- [ ] T018 [US2] `InsightController` 확장 in `src/main/java/com/newscurator/controller/InsightController.java` — `GET /api/v1/me/recommendations?limit`, 본인만, ApiResponse, Swagger.
+- [x] T015 [P] [US2] DTO `RecommendationResponse`(items·coldStart) + `RecommendedArticle`(articleId·title·category·publishedAt·reason) in `src/main/java/com/newscurator/dto/response/RecommendationResponse.java` — @Schema.
+- [x] T016 [US2] `RecommendationEngine` 인터페이스 in `src/main/java/com/newscurator/service/recommendation/RecommendationEngine.java` — `RecommendationResponse recommend(UUID accountId, int limit)`. 임베딩 v2 교체 seam(007 IssueClusterer 패턴).
+- [x] T017 [US2] `RuleBasedRecommender` in `src/main/java/com/newscurator/service/recommendation/RuleBasedRecommender.java` — 후보(14일 비숨김 − 조회 − 저장, T005) → `ArticleRelevanceScorer`(카테고리·키워드·최근성) + **트렌드 가중**(007) 블렌드(config 가중치) → top N. **★ 콜드스타트 분기**: 조회(009 distinct=0) AND 관심사(user_interests+follow_keywords=0) → 트렌드/최근 fallback(coldStart=true) / 조회0+관심사有→관심사 / 조회有+관심사0→조회 프로파일. 빈 목록 금지.
+- [x] T018 [US2] `InsightController` 확장 in `src/main/java/com/newscurator/controller/InsightController.java` — `GET /api/v1/me/recommendations?limit`, 본인만, ApiResponse, Swagger.
 
 ### 테스트 (크라운주얼)
 
-- [ ] T019 [P] [US2] `RuleBasedRecommenderTest`(단위) in `src/test/java/com/newscurator/service/recommendation/RuleBasedRecommenderTest.java` — 가중치 config 반영(props 변경→결과 변화, 하드코딩 0), 콜드스타트 분기 4경우(조회·관심사 조합).
-- [ ] T020 [US2] ★ `RecommendationExclusionIT`(실 PG) in `src/test/java/com/newscurator/integration/RecommendationExclusionIT.java` — **크라운주얼 #4**: 이미 조회(009)·저장(003)·숨김(admin_hidden) 기사가 추천에 **0건**.
-- [ ] T021 [US2] ★ `RecommendationColdStartIT`(실 PG) in `src/test/java/com/newscurator/integration/RecommendationColdStartIT.java` — **크라운주얼 #5**: 조회·관심사 0 신규 사용자 → 트렌드/최근 fallback 추천 **비어있지 않음**(coldStart=true). 대조 2케이스: **관심사만 있는 사용자 → 관심사 기반**(coldStart=false), **★ 조회만 있는 사용자(관심사 0) → 조회 기반**(coldStart=false, F3) — fallback이 둘 다 0일 때만임을 IT로도 확정.
+- [x] T019 [P] [US2] `RuleBasedRecommenderTest`(단위) in `src/test/java/com/newscurator/service/recommendation/RuleBasedRecommenderTest.java` — 가중치 config 반영(props 변경→결과 변화, 하드코딩 0), 콜드스타트 분기 4경우(조회·관심사 조합).
+- [x] T020 [US2] ★ `RecommendationExclusionIT`(실 PG) in `src/test/java/com/newscurator/integration/RecommendationExclusionIT.java` — **크라운주얼 #4**: 이미 조회(009)·저장(003)·숨김(admin_hidden) 기사가 추천에 **0건**.
+- [x] T021 [US2] ★ `RecommendationColdStartIT`(실 PG) in `src/test/java/com/newscurator/integration/RecommendationColdStartIT.java` — **크라운주얼 #5**: 조회·관심사 0 신규 사용자 → 트렌드/최근 fallback 추천 **비어있지 않음**(coldStart=true). 대조 2케이스: **관심사만 있는 사용자 → 관심사 기반**(coldStart=false), **★ 조회만 있는 사용자(관심사 0) → 조회 기반**(coldStart=false, F3) — fallback이 둘 다 0일 때만임을 IT로도 확정.
 
 **Checkpoint**: 추천 + 제외 + 콜드스타트 → US2 완료.
 
@@ -75,12 +75,12 @@
 
 ## Phase 5: Polish & Cross-Cutting
 
-- [ ] T022 [P] ★ `FeedService` 003 피드 랭킹 회귀 확인 — **크라운주얼 #1(추출 회귀)**: behavior-preserving 증거 = **`FeedServiceTest`의 랭킹 단언(T1 카테고리우위·T3 최신성·T4 개인화없음→publishedAt DESC) + 피드 IT가 ArticleRelevanceScorer 추출 후 단언 수정 없이 GREEN**. ★ "테스트 수정 없이"가 아니라 "**랭킹 단언 수정 없이**" — 생성자 배선 1줄(rankingProps→scorer 주입) 기계적 조정은 리팩터 정상이며 행위 변경 아님. **단언을 고쳐야 green이면 행위 변경 신호 → 정직 보고**.
-- [ ] T023 [P] ADR in `.specify/specs/010-insights/adr/ADR-001-aggregation-recommendation.md` — 온디맨드 집계(테이블 0·쿼리 6 상한·FANOUT 회피), behavior-preserving 추출(공유 scorer), RecommendationEngine seam, 콜드스타트 분기, 편향 버킷 006 미러, 표본<5 처리.
-- [ ] T024 [P] CHANGELOG 항목 in `CHANGELOG.html` — 010 insights+추천(온디맨드 6항목·룰베이스 추천·테이블 0) feature 엔트리 + stats 갱신.
-- [ ] T025 quickstart 검증 상태 갱신 in `.specify/specs/010-insights/quickstart.md` — 시나리오↔IT 매핑·full suite 결과.
-- [ ] T026 OpenApiSpecExportTest 통과 확인 → dev push 시 sync-openapi가 `/api/v1/me/insights`·`/me/recommendations` news-pulse-spec 반영.
-- [ ] T027 010 전체 회귀 + 001~010 full suite(V1~V17, **신규 마이그레이션 0**) 0 fail 확인(forkEvery=1).
+- [x] T022 [P] ★ `FeedService` 003 피드 랭킹 회귀 확인 — **크라운주얼 #1(추출 회귀)**: behavior-preserving 증거 = **`FeedServiceTest`의 랭킹 단언(T1 카테고리우위·T3 최신성·T4 개인화없음→publishedAt DESC) + 피드 IT가 ArticleRelevanceScorer 추출 후 단언 수정 없이 GREEN**. ★ "테스트 수정 없이"가 아니라 "**랭킹 단언 수정 없이**" — 생성자 배선 1줄(rankingProps→scorer 주입) 기계적 조정은 리팩터 정상이며 행위 변경 아님. **단언을 고쳐야 green이면 행위 변경 신호 → 정직 보고**.
+- [x] T023 [P] ADR in `.specify/specs/010-insights/adr/ADR-001-aggregation-recommendation.md` — 온디맨드 집계(테이블 0·쿼리 6 상한·FANOUT 회피), behavior-preserving 추출(공유 scorer), RecommendationEngine seam, 콜드스타트 분기, 편향 버킷 006 미러, 표본<5 처리.
+- [x] T024 [P] CHANGELOG 항목 in `CHANGELOG.html` — 010 insights+추천(온디맨드 6항목·룰베이스 추천·테이블 0) feature 엔트리 + stats 갱신.
+- [x] T025 quickstart 검증 상태 갱신 in `.specify/specs/010-insights/quickstart.md` — 시나리오↔IT 매핑·full suite 결과.
+- [x] T026 OpenApiSpecExportTest 통과 확인 → dev push 시 sync-openapi가 `/api/v1/me/insights`·`/me/recommendations` news-pulse-spec 반영.
+- [x] T027 010 전체 회귀 + 001~010 full suite(V1~V17, **신규 마이그레이션 0**) 0 fail 확인(forkEvery=1).
 
 ---
 
