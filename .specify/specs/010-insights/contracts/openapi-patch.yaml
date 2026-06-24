@@ -1,0 +1,81 @@
+# 010 insights — OpenAPI 패치(신규 경로). 구현 후 OpenApiSpecExportTest로 추출, dev push 시 sync-openapi 반영.
+paths:
+  /api/v1/me/insights:
+    get:
+      tags: [Insights]
+      summary: 내 소비 인사이트 조회
+      description: >
+        인증 사용자의 개인 소비 리포트(읽은수·북마크수·최다카테고리·관심분포·주요언론사·내편향).
+        모든 통계는 읽은 기사(009 조회) 기준 온디맨드 집계, 본인 데이터만. 읽은 고유 기사 < 5이면
+        sampleSufficient=false, 분포 필드는 null(카운트는 항상 반환). 편향은 중립적 분포 %(단정 라벨 없음).
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 성공, content: { application/json: { schema: { $ref: '#/components/schemas/ApiResponseInsight' } } } }
+        '401': { description: 미인증 }
+  /api/v1/me/recommendations:
+    get:
+      tags: [Insights]
+      summary: 놓친 기사 추천 조회
+      description: >
+        관심사에 맞지만 아직 보지 않은(저장도 안 한) 최근 14일 기사 추천. 이미 조회·저장·숨김 기사 제외.
+        조회이력·관심사가 둘 다 없으면 트렌드/최근 인기 fallback(coldStart=true), 빈 목록 아님.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 10, minimum: 1, maximum: 50 } }
+      responses:
+        '200': { description: 성공, content: { application/json: { schema: { $ref: '#/components/schemas/ApiResponseRecommendation' } } } }
+        '401': { description: 미인증 }
+
+components:
+  schemas:
+    InsightResponse:
+      type: object
+      properties:
+        readCount: { type: integer, example: 42 }
+        bookmarkCount: { type: integer, example: 7 }
+        sampleSufficient: { type: boolean, description: "읽은 고유 기사 ≥ 5", example: true }
+        topCategory: { type: string, nullable: true, example: "TECH" }
+        categoryDistribution:
+          type: array, nullable: true
+          items: { type: object, properties: { category: { type: string }, percent: { type: number } } }
+        keywordDistribution:
+          type: array, nullable: true
+          items: { type: object, properties: { keyword: { type: string }, count: { type: integer } } }
+        topOutlets:
+          type: array, nullable: true
+          items: { type: object, properties: { name: { type: string }, count: { type: integer } } }
+        biasDistribution:
+          type: object, nullable: true
+          description: "읽은 기사 편향 분포 %(중립 기술, 006 DONE분). 진보[-100,-34]/중립[-33,33]/보수[34,100]"
+          properties:
+            liberalPercent: { type: number, example: 40.0 }
+            neutralPercent: { type: number, example: 35.0 }
+            conservativePercent: { type: number, example: 25.0 }
+            total: { type: integer, example: 20 }
+    RecommendedArticle:
+      type: object
+      properties:
+        articleId: { type: integer, format: int64 }
+        title: { type: string }
+        category: { type: string, nullable: true }
+        publishedAt: { type: string, format: date-time }
+        reason: { type: string, enum: [INTEREST_MATCH, TREND, RECENT], description: 추천 사유 }
+    RecommendationResponse:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/RecommendedArticle' } }
+        coldStart: { type: boolean, description: "조회·관심사 0 → 트렌드 fallback" }
+    ApiResponseInsight:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: success }
+        message: { type: string, example: OK }
+        data: { $ref: '#/components/schemas/InsightResponse' }
+    ApiResponseRecommendation:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: success }
+        message: { type: string, example: OK }
+        data: { $ref: '#/components/schemas/RecommendationResponse' }
