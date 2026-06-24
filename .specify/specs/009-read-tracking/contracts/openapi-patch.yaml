@@ -1,0 +1,96 @@
+# 009 read-tracking — OpenAPI 패치(신규 경로). 구현 후 OpenApiSpecExportTest로 자동 추출,
+# dev push 시 sync-openapi가 news-pulse-spec 반영. 본 파일은 선반영 계약서.
+# 변경: GET /api/v1/articles/{id}는 동작(조회 기록)만 추가되고 응답 스키마 불변 → 여기선 생략.
+
+paths:
+  /api/v1/me/read-count:
+    get:
+      tags: [Read Tracking]
+      summary: 내 읽은 기사 수 조회
+      description: >
+        인증 사용자가 지금까지 읽은 기사 수(읽은수)를 반환한다.
+        읽은수 = 고유 기사 수(distinct article, VIEW 이벤트 기준). 본인 데이터만.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReadCount'
+        '401': { description: 미인증 }
+
+  /api/v1/me/read-history:
+    get:
+      tags: [Read Tracking]
+      summary: 내 조회 이력 조회
+      description: >
+        인증 사용자의 조회 이력을 최신순으로 페이지네이션 반환한다(동일 기사 다회 조회는
+        최신 조회 기준 1건 표현). 본인 데이터만.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: 직전 페이지 마지막 항목의 occurred_at(ISO-8601). 최초 호출 시 생략.
+          schema: { type: string, format: date-time }
+        - name: size
+          in: query
+          required: false
+          description: 페이지 크기(기본 20, 최대 50).
+          schema: { type: integer, default: 20, minimum: 1, maximum: 50 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReadHistory'
+        '401': { description: 미인증 }
+
+components:
+  schemas:
+    ReadCountResponse:
+      type: object
+      description: 읽은수(고유 기사 수)
+      properties:
+        readCount:
+          type: integer
+          description: 고유 기사 수(distinct article, VIEW 기준)
+          example: 42
+    ReadHistoryItemResponse:
+      type: object
+      description: 조회 이력 항목
+      properties:
+        articleId: { type: integer, format: int64, example: 12345 }
+        title: { type: string, example: "삼성전자 3분기 실적 발표" }
+        lastViewedAt:
+          type: string
+          format: date-time
+          description: 가장 최근 조회 시각
+          example: "2026-06-24T09:30:00Z"
+    ReadHistoryPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ReadHistoryItemResponse' }
+        nextCursor:
+          type: string
+          format: date-time
+          nullable: true
+          description: 다음 페이지 커서(없으면 null)
+    ApiResponseReadCount:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: success }
+        message: { type: string, example: OK }
+        data: { $ref: '#/components/schemas/ReadCountResponse' }
+    ApiResponseReadHistory:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        status: { type: string, example: success }
+        message: { type: string, example: OK }
+        data: { $ref: '#/components/schemas/ReadHistoryPage' }
