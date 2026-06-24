@@ -25,3 +25,16 @@
 
 - 실 트래픽에서 핫패스 p95 영향(SC-002 정량) — 배포 환경 측정.
 - 대량 성장 시 파티셔닝/보존정책 — 후속.
+
+## 검증 상태 (2026-06-24, US1·US2 구현 완료)
+실 PG(BigmPostgresImage) 테스트로 자동 검증됨:
+- #1 조회 기록 → `ArticleViewRecordIT`·`ArticleEventRepositoryTest`
+- #2 ★ best-effort 격리 → `ReadTrackingBestEffortIT`(recordView 실패 → 상세 200 + DEEP 요약 보존 + article_event 0)
+- #3 디바운스 30분 → `ArticleViewRecordIT`(30분내 1행/경과 2행/다른기사 독립)·`ArticleEventRepositoryTest`
+- #5 읽은수 distinct → `ReadHistoryIT`·`ArticleEventRepositoryTest`
+- #6 이력 역순·article 1건 → `ReadHistoryIT`·`ReadHistoryServiceTest`
+- #7 본인 스코프 → `ReadHistoryIT`(B 토큰 → A 데이터 0)
+- #8 forward-seam → `ArticleViewRecordIT`(VIEW·SERVER·metric_value=null 단언)
+- #4 비로그인 미기록 → 상세가 인증 필요(SecurityConfig authenticated), account_id NOT NULL로 구조적 보장.
+
+런타임/배포 시 검증 이연: 실 트래픽 p95(SC-002 정량)·대량 성장 파티셔닝.
