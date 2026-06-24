@@ -137,6 +137,14 @@ app:
       recency-window-hours: 30
       recency-max-score: 20
       feed-window-days: 7
+  insights:
+    recommendation:
+      category-weight: 0.5
+      trend-weight: 0.3
+      recency-weight: 0.2
+      candidate-days: 14
+      min-sample-size: 5
+      recommend-limit: 10
   retention:
     days: 90
     grace-period-days: 7

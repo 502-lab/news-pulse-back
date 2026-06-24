@@ -30,4 +30,22 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Modifying
     @Query("UPDATE Notification n SET n.expiresAt = :expiresAt WHERE n.id = :id")
     void updateExpiresAt(@Param("id") Long id, @Param("expiresAt") Instant expiresAt);
+
+    /**
+     * 008 FR-042: 어드민 SYSTEM 인앱 알림 멱등 삽입. 같은 dedup_key 재발송은
+     * 부분 unique 인덱스(uq_notification_dedup)로 무시(ON CONFLICT DO NOTHING). 토큰 무관 전원 도달.
+     */
+    @Modifying
+    @Query(
+            value =
+                    "INSERT INTO notifications (account_id, type, title, body, dedup_key, created_at, expires_at)"
+                        + " VALUES (CAST(:accountId AS uuid), 'SYSTEM', :title, :body, :dedupKey, NOW(),"
+                        + " NOW() + INTERVAL '90 days')"
+                        + " ON CONFLICT (dedup_key) WHERE dedup_key IS NOT NULL DO NOTHING",
+            nativeQuery = true)
+    void insertSystemIdempotent(
+            @Param("accountId") UUID accountId,
+            @Param("title") String title,
+            @Param("body") String body,
+            @Param("dedupKey") String dedupKey);
 }

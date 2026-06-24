@@ -1,0 +1,67 @@
+# 008 어드민 대시보드 API 계약 (openapi-patch). 전 경로 /api/v1/admin/** = hasRole(ADMIN).
+# 공개 공지 조회만 permitAll. 응답은 ApiResponse<T> 래퍼, 에러 RFC7807. (스키마 상세는 구현 시 DTO record).
+
+paths:
+  # ── US1 사용자 관리 ──
+  /api/v1/admin/users:
+    get: { summary: 사용자 목록(페이지네이션·필터 email/status/role/signupType), security: [ADMIN] }
+  /api/v1/admin/users/{accountId}:
+    get: { summary: 사용자 상세 + UserStats(가입일·마지막활동·저장수 등 기존데이터), security: [ADMIN] }
+  /api/v1/admin/users/{accountId}/role:
+    patch: { summary: "역할 변경 USER↔ADMIN (자기자신·마지막ADMIN 강등 거부)", security: [ADMIN] }
+  /api/v1/admin/users/{accountId}/status:
+    patch: { summary: "활성/비활성 전환 (자기자신·마지막ADMIN 비활성 거부, 비활성시 로그인·토큰 차단)", security: [ADMIN] }
+
+  # ── US2 모니터링 조회(읽기) ──
+  /api/v1/admin/monitoring/kpi:
+    get: { summary: 핵심 KPI(총·활성 사용자·수집기사·요약완료율·편향완료율·트렌드이슈수), security: [ADMIN] }
+  /api/v1/admin/pipeline/stats:        # 기존 AdminPipelineController 재활용/확장
+    get: { summary: 파이프라인 단계별 상태 분포(요약·편향 status 카운트), security: [ADMIN] }
+  /api/v1/admin/monitoring/collection:
+    get: { summary: 소스별 수집량(source_daily_usage call_count, 기간), security: [ADMIN] }
+  /api/v1/admin/monitoring/schedulers:
+    get: { summary: 스케줄러 상태(활성여부·최근실행·주기), security: [ADMIN] }
+  /api/v1/admin/monitoring/bias:
+    get: { summary: 편향(006) 어드민 요약 뷰(전역 분포), security: [ADMIN] }
+  /api/v1/admin/monitoring/trend:
+    get: { summary: 트렌드(007) 어드민 요약 뷰, security: [ADMIN] }
+
+  # ── US3 수집·콘텐츠 제어 ──
+  /api/v1/admin/schedulers/{schedulerKey}/run:
+    post: { summary: 스케줄러 수동 1회 실행(동시실행 가드), security: [ADMIN] }
+  /api/v1/admin/schedulers/{schedulerKey}:
+    patch: { summary: "스케줄러 enabled 토글 (SchedulerSetting 영속). 주기 동적 변경은 MVP 미노출", security: [ADMIN] }
+  /api/v1/admin/excluded-keywords:
+    get:  { summary: 제외 키워드 목록, security: [ADMIN] }
+    post: { summary: 제외 키워드 추가(unique), security: [ADMIN] }
+  /api/v1/admin/excluded-keywords/{id}:
+    delete: { summary: 제외 키워드 삭제, security: [ADMIN] }
+  /api/v1/admin/articles/{articleId}/summary/retry:
+    post: { summary: 실패(FAILED) 요약 재시도 트리거, security: [ADMIN] }
+  /api/v1/admin/articles/{articleId}/hide:
+    post:   { summary: 기사 숨김(admin_hidden_at=now, 가역), security: [ADMIN] }
+    delete: { summary: 기사 숨김 해제(unhide, admin_hidden_at=null), security: [ADMIN] }
+  /api/v1/admin/articles:
+    get: { summary: "어드민 기사 조회(hidden 포함)", security: [ADMIN] }
+
+  # ── US4 공지 + 푸시 ──
+  /api/v1/admin/notices:
+    get:  { summary: 공지 목록(초안 포함, admin), security: [ADMIN] }
+    post: { summary: 공지 생성(title·content·published, 검증), security: [ADMIN] }
+  /api/v1/admin/notices/{id}:
+    put:    { summary: 공지 수정, security: [ADMIN] }
+    delete: { summary: 공지 삭제, security: [ADMIN] }
+  /api/v1/notices:                     # 공개(permitAll)
+    get: { summary: "공개 공지 목록(published=true만)", security: [] }
+  /api/v1/admin/notifications/send:    # 기존 AdminNotificationController 재활용/확장
+    post: { summary: "어드민 푸시 발송(005 outbox, 멱등 dedup key)", security: [ADMIN] }
+
+  # ── US5 심층 통계·에러로그·수집량 상세 ──
+  /api/v1/admin/ops/stats:
+    get: { summary: OpsStats(일자별 수집·요약·편향·트렌드 처리량 추이), security: [ADMIN] }
+  /api/v1/admin/ops/errors:
+    get: { summary: "에러 로그(기존 FAILED 집계: summary/bias/outbox, 필터·페이지·역순)", security: [ADMIN] }
+  /api/v1/admin/ops/collection/{sourceId}:
+    get: { summary: 소스 수집량 상세 드릴다운(일자별 call_count·예산대비), security: [ADMIN] }
+  /api/v1/admin/audit:
+    get: { summary: "어드민 감사 로그 조회(변형 액션, 시간역순·필터)", security: [ADMIN] }

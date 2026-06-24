@@ -121,7 +121,8 @@ public class SavedArticleService {
         List<SavedArticleItem> items = page.stream()
                 .map(sa -> {
                     Article a = articleMap.get(sa.getArticleId());
-                    if (a == null) return null;
+                    // 008 #13: 관리자 숨김(admin_hidden_at) 기사는 북마크 목록에서 제외(저장 행은 보존)
+                    if (a == null || a.isAdminHidden()) return null;
                     String category = a.getCategory() != null ? a.getCategory().name() : "OTHER";
                     FeedSummarySlot slot = buildSummarySlot(
                             summaryMap.getOrDefault(sa.getArticleId(), List.of()), preferredDepth);

@@ -68,6 +68,8 @@ public class SecurityConfig {
                 // 007 트렌드 조회: 공개(permitAll). 비민감 전역 집계이며 비로그인 홈/탐색에 노출(FR-013).
                 // Constitution VI: 공개 엔드포인트는 명시적으로 선언한다. 5개 read 엔드포인트 모두 GET 공개.
                 .requestMatchers(HttpMethod.GET, "/api/v1/trends/**").permitAll()
+                // 008 공개 공지 조회: 게시된 공지만 노출(FR-041). Constitution VI 명시 선언.
+                .requestMatchers(HttpMethod.GET, "/api/v1/notices").permitAll()
                 .requestMatchers(
                     "/actuator/**",
                     "/api-docs/**",

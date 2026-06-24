@@ -60,6 +60,8 @@ class FeedServiceTest {
 
     @BeforeEach
     void setUp() {
+        // 010 F1: ArticleRelevanceScorer 추출에 따른 생성자 배선 1줄 조정(실 scorer + 동일 RANKING_PROPS).
+        // 랭킹 단언(T1·T3·T4)은 불변 — behavior-preserving 증거.
         feedService = new FeedService(
                 userInterestsRepository,
                 followKeywordRepository,
@@ -68,7 +70,8 @@ class FeedServiceTest {
                 summaryRepository,
                 articleSourceRepository,
                 savedArticleRepository,
-                RANKING_PROPS);
+                RANKING_PROPS,
+                new ArticleRelevanceScorer(RANKING_PROPS));
 
         // 기본 stubbing
         when(summaryRepository.findCompletedByArticleIdIn(any())).thenReturn(List.of());

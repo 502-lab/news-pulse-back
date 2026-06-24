@@ -9,6 +9,7 @@ import com.newscurator.dto.response.SummarySlot;
 import com.newscurator.exception.ArticleNotFoundException;
 import com.newscurator.exception.GlobalExceptionHandler;
 import com.newscurator.service.ArticleDetailService;
+import com.newscurator.service.ReadTrackingService;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -25,14 +27,18 @@ class ArticleDetailControllerTest {
 
     @Mock private ArticleDetailService articleDetailService;
 
+    @Mock private ReadTrackingService readTrackingService;
+
     @InjectMocks private ArticleDetailController articleDetailController;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
+        // 009: @AuthenticationPrincipal 파라미터를 standalone에서 해소(인증 컨텍스트 없으면 null → 기록 skip)
         mockMvc =
                 MockMvcBuilders.standaloneSetup(articleDetailController)
+                        .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                         .setControllerAdvice(new GlobalExceptionHandler())
                         .build();
     }

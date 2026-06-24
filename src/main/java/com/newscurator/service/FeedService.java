@@ -54,6 +54,7 @@ public class FeedService {
     private final ArticleSourceRepository articleSourceRepository;
     private final SavedArticleRepository savedArticleRepository;
     private final FeedRankingProperties rankingProps;
+    private final ArticleRelevanceScorer relevanceScorer;
 
     public FeedService(
             UserInterestsRepository userInterestsRepository,
@@ -63,7 +64,8 @@ public class FeedService {
             SummaryRepository summaryRepository,
             ArticleSourceRepository articleSourceRepository,
             SavedArticleRepository savedArticleRepository,
-            FeedRankingProperties rankingProps) {
+            FeedRankingProperties rankingProps,
+            ArticleRelevanceScorer relevanceScorer) {
         this.userInterestsRepository = userInterestsRepository;
         this.followKeywordRepository = followKeywordRepository;
         this.readingPreferenceRepository = readingPreferenceRepository;
@@ -72,6 +74,7 @@ public class FeedService {
         this.articleSourceRepository = articleSourceRepository;
         this.savedArticleRepository = savedArticleRepository;
         this.rankingProps = rankingProps;
+        this.relevanceScorer = relevanceScorer;
     }
 
     public FeedResponse getFeed(UUID accountId, String cursorToken, int requestedSize, Category categoryFilter) {
@@ -178,31 +181,9 @@ public class FeedService {
         }
 
         return candidates.stream()
-                .map(a -> new ScoredArticle(a, computeScore(a, userCategories, userKeywords, referenceTs)))
+                .map(a -> new ScoredArticle(a, relevanceScorer.score(a, userCategories, userKeywords, referenceTs)))
                 .sorted(order)
                 .toList();
-    }
-
-    double computeScore(Article article, List<String> userCategories, List<String> userKeywords, Instant referenceTs) {
-        double score = 0;
-
-        if (article.getCategory() != null && userCategories.contains(article.getCategory().name())) {
-            score += rankingProps.categoryMatchScore();
-        }
-
-        long matches = userKeywords.stream()
-                .filter(kw -> article.getTitle().toLowerCase().contains(kw.toLowerCase()))
-                .count();
-        score += Math.min(matches * rankingProps.keywordMatchScore(),
-                5L * rankingProps.keywordMatchScore());
-
-        long hoursOld = Duration.between(article.getPublishedAt().toInstant(), referenceTs).toHours();
-        if (hoursOld >= 0 && hoursOld <= rankingProps.recencyWindowHours()) {
-            double ratio = 1.0 - (double) hoursOld / rankingProps.recencyWindowHours();
-            score += rankingProps.recencyMaxScore() * ratio;
-        }
-
-        return score;
     }
 
     private List<ScoredArticle> skipToCursor(List<ScoredArticle> sorted, FeedCursor cursor, boolean personalized) {

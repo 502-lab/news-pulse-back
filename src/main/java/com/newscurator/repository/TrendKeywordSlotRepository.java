@@ -53,7 +53,7 @@ public interface TrendKeywordSlotRepository
                    NOW()
             FROM article_keyword ak
                      JOIN articles a ON a.id = ak.article_id
-            WHERE a.first_collected_at >= :windowStart
+            WHERE a.first_collected_at >= :windowStart AND a.admin_hidden_at IS NULL
             GROUP BY 1, 2, 3
             ON CONFLICT (slot_start, category, term)
                 DO UPDATE SET article_count = EXCLUDED.article_count, updated_at = NOW()

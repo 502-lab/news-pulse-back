@@ -3,6 +3,7 @@ package com.newscurator.repository;
 import com.newscurator.domain.SourceDailyUsage;
 import com.newscurator.domain.SourceDailyUsageId;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -40,4 +41,28 @@ public interface SourceDailyUsageRepository
                     + "WHERE u.id.sourceId = :sourceId AND u.id.usageDate = :usageDate")
     Optional<Integer> findCallCount(
             @Param("sourceId") Long sourceId, @Param("usageDate") LocalDate usageDate);
+
+    /**
+     * 008 US2 — 소스별 수집량 집계(기간). Object[]: [0]=source_id(Long), [1]=totalCalls(Long).
+     * 빈 데이터 시 빈 목록(0/빈값 안전).
+     */
+    @Query(
+            value =
+                    "SELECT source_id, COALESCE(SUM(call_count), 0) FROM source_daily_usage"
+                            + " WHERE usage_date >= :since GROUP BY source_id ORDER BY 2 DESC",
+            nativeQuery = true)
+    List<Object[]> volumeSince(@Param("since") LocalDate since);
+
+    /**
+     * 008 US5 수집량 드릴다운: 특정 소스의 일자별 call_count. Object[]: [0]=usage_date(Date), [1]=call_count(Integer).
+     * 빈 데이터면 빈 목록.
+     */
+    @Query(
+            value =
+                    "SELECT usage_date, call_count FROM source_daily_usage"
+                            + " WHERE source_id = :sourceId AND usage_date >= :since"
+                            + " ORDER BY usage_date DESC",
+            nativeQuery = true)
+    List<Object[]> detailBySource(
+            @Param("sourceId") Long sourceId, @Param("since") LocalDate since);
 }
