@@ -301,7 +301,7 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">80</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">81</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">26</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">26</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">10</div><div class="stat-label">DB Migration</div></div>
@@ -315,6 +315,7 @@
   <h3>날짜</h3>
   <div class="toc-date">2026-06-24</div>
   <a class="toc-item" href="#d0624-05">deploy.yml — 배포 중 jar 교체 레이스 제거(무결성검증→정지→원자교체→기동)</a>
+  <a class="toc-item" href="#d0624-06">v1.0.0 운영 릴리스 — 006~010 dev→prd 통합 + EC2 배포(운영 DB V11→V17 마이그레이션 성공·헬스 검증)</a>
   <a class="toc-item" href="#d0624-04">010 인사이트+추천 — 개인 소비 리포트 6항목(온디맨드·테이블 0) + 룰베이스 놓친 기사 추천</a>
   <a class="toc-item" href="#d0624-03">009 읽기 추적 P1 — 기사 조회 BE 단독 기록(best-effort 격리·디바운스) + 읽은수·조회이력</a>
   <a class="toc-item" href="#d0624-02">CI test 잡 1시간+ hang — Testcontainers IT 누적 OOM, forkEvery=1 + heap 캡 근본 차단</a>
@@ -428,6 +429,33 @@
         <dd>대안 A(<code>pm2 reload</code> 유지 + 재시작 임계 상향)는 fork 모드라 reload가 실질 restart이고 교체 레이스가 남아 근본 해결 아님. 대안 B(blue-green/심볼릭 링크 무중단)는 단일 인스턴스 운영에 과한 인프라. 선택안은 <b>최소 변경으로 레이스 자체를 제거</b>(정지 후 교체)하고, 짧은 배포 다운타임(단일 인스턴스라 수용 가능)을 감수하는 대신 truncated 재시도를 없앤다. 무결성 검증 선행으로 truncated 전송 시에도 구버전을 안 깬다. 향후 무중단이 필요해지면 심볼릭 링크 교체로 확장(forward-note). <b>근본 수정</b>: 교체 레이스 제거(증상인 재시작 임계 조정 아님).</dd>
         <dt>영향 파일</dt>
         <dd>.github/workflows/deploy.yml. 적용 시점: 다음 <code>v*</code> 태그 배포부터(현재 가동 중인 v1.0.0에는 무영향). 전제: 운영 서버에 <code>unzip</code> 존재(Ubuntu 기본).</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="entry" id="d0624-06" data-tags="config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-config">config</span>
+        <strong>v1.0.0 운영 릴리스 — 006~010 dev→prd 통합 + EC2 배포(운영 DB V11→V17 마이그레이션 성공·헬스 검증)</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>작업 내용</dt>
+        <dd>
+          <ul>
+            <li>릴리스 경로(정석): dev→prd 릴리스 PR(#26, merge commit)로 prd를 V17까지 정렬(dev 보존) → prd HEAD에 <code>v1.0.0</code> 태그 생성·push → deploy.yml(<code>v*</code> 트리거)이 EC2에 bootJar 배포.</li>
+            <li>★ 운영 PostgreSQL <strong>V11 → V17 마이그레이션 성공</strong>(서버 로그 verbatim 확인): <code>Current version of schema "public": 11</code> → V12(알림)·V13(편향)·V14(트렌드)·V15(어드민)·V16(dedup)·V17(읽기추적) → <code>Successfully applied 6 migrations ... now at version v17</code>.</li>
+            <li>기동·헬스 검증(SSH): <code>Started NewsCuratorApplication in 25.2s</code> + <code>Tomcat started on port 8080</code>, <code>pm2 status</code> online·uptime 2h 무중단·재시작 안정, <code>/actuator/health</code> = <code>{"status":"UP"}</code>.</li>
+            <li>탑재 기능: 006 편향·007 트렌드·008 어드민·009 읽기추적·010 인사이트 (직전 운영 v0.4.0 = V11/006 이전 대비 대규모 추가).</li>
+          </ul>
+        </dd>
+        <dt>결정 이유</dt>
+        <dd>dev에 직접 태그하지 않고 dev→prd PR 후 prd에 태그한 것은 사용자가 정한 prd=운영 / dev=통합 브랜치 전략을 지키기 위함(prd 브랜치가 실제 운영과 일치). dev→prd를 squash가 아닌 merge commit으로 한 것은 squash 시 prd가 dev와 히스토리 분기해 향후 릴리스 PR diff가 꼬이기 때문. 버전을 v1.0.0으로 올린 것은 006~010 핵심 기능 집결로 첫 정식 릴리스에 해당한다는 판단. 운영 DB 마이그레이션·신규 키 의존(Gemini·Resend·FCM)은 비가역·확인 불가 요소라 태그 push(=배포) 직전에 운영 준비 여부를 확인받고 진행했다.</dd>
+        <dt>영향 파일</dt>
+        <dd>코드 변경 없음(릴리스/배포 이벤트). prd 브랜치(V17 정렬), 태그 v1.0.0, 운영 EC2(jar 교체·pm2 reload·운영 DB 스키마 V17). 민감정보(EC2 호스트·키·DB 접속) 미기재.</dd>
       </dl>
     </div>
   </div>
