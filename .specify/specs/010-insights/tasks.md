@@ -17,7 +17,7 @@
 ## Phase 2: Foundational (차단 선행)
 
 - [ ] T002 `InsightsRecommendationProperties` in `src/main/java/com/newscurator/config/InsightsRecommendationProperties.java` — `@ConfigurationProperties(prefix="app.insights.recommendation")`: categoryWeight=0.5·trendWeight=0.3·recencyWeight=0.2·candidateDays=14·minSampleSize=5·recommendLimit. application.yaml 기본값 추가. **하드코딩 0**.
-- [ ] T003 ★ `ArticleRelevanceScorer` 추출 in `src/main/java/com/newscurator/service/ArticleRelevanceScorer.java` — `FeedService.computeScore(Article, List<String> userCategories, List<String> userKeywords, Instant referenceTs)`를 **behavior-preserving 이동**(본문·인자·연산순서·반환 100% 보존), `FeedRankingProperties` 주입. @Component.
+- [ ] T003 ★ `ArticleRelevanceScorer` 추출 in `src/main/java/com/newscurator/service/ArticleRelevanceScorer.java` — `FeedService.computeScore(Article, List<String> userCategories, List<String> userKeywords, Instant referenceTs)`를 **behavior-preserving 이동**(본문·인자·연산순서·반환 100% 보존), `FeedRankingProperties` 주입. @Component. **DI 이디엄 유지**(scorer를 FeedService·RuleBasedRecommender에 주입; 비주입 내부 인스턴스화 채택 안 함). **★ behavior-preserving 증거 = `FeedServiceTest`의 랭킹 단언(T1 카테고리우위·T3 최신성·T4 개인화없음→publishedAt DESC)이 불변으로 통과**. FeedService 생성자에 scorer 의존성이 추가되므로 `FeedServiceTest` setUp의 **생성자 배선 1줄만 기계적 조정**(rankingProps → `new ArticleRelevanceScorer(RANKING_PROPS)` 주입) — **랭킹 단언은 수정 금지**. 단언을 고쳐야 통과하면 그건 행위 변경 신호 → 정직 보고(추출 재검토).
 - [ ] T004 `FeedService` 위임 변경 in `src/main/java/com/newscurator/service/FeedService.java` — computeScore 제거하고 `ArticleRelevanceScorer` 주입·위임(순수 위임, 상태 구성·호출부 동일). 003 피드 행위 불변.
 - [ ] T005 `InsightAggregationRepository` in `src/main/java/com/newscurator/repository/InsightAggregationRepository.java` — 읽은 기사(article_event VIEW distinct, `JOIN articles ON admin_hidden_at IS NULL`) 기준 6항목 집계 native 쿼리: (1)readCount distinct, (2)카테고리 분포/최다, (3)언론사 top-k(article_sources→sources.name), (4)키워드 분포(article_keyword), (5)편향 분포(bias_analysis DONE, 버킷 진보[-100,-34]·중립[-33,33]·보수[34,100], NULLIF 안전). + 추천 후보 쿼리(최근 candidateDays 비숨김 − article_event NOT EXISTS − saved_articles NOT EXISTS).
 
@@ -67,7 +67,7 @@
 
 - [ ] T019 [P] [US2] `RuleBasedRecommenderTest`(단위) in `src/test/java/com/newscurator/service/recommendation/RuleBasedRecommenderTest.java` — 가중치 config 반영(props 변경→결과 변화, 하드코딩 0), 콜드스타트 분기 4경우(조회·관심사 조합).
 - [ ] T020 [US2] ★ `RecommendationExclusionIT`(실 PG) in `src/test/java/com/newscurator/integration/RecommendationExclusionIT.java` — **크라운주얼 #4**: 이미 조회(009)·저장(003)·숨김(admin_hidden) 기사가 추천에 **0건**.
-- [ ] T021 [US2] ★ `RecommendationColdStartIT`(실 PG) in `src/test/java/com/newscurator/integration/RecommendationColdStartIT.java` — **크라운주얼 #5**: 조회·관심사 0 신규 사용자 → 트렌드/최근 fallback 추천 **비어있지 않음**(coldStart=true). + 관심사만 있는 사용자는 관심사 기반(fallback 아님) 대조.
+- [ ] T021 [US2] ★ `RecommendationColdStartIT`(실 PG) in `src/test/java/com/newscurator/integration/RecommendationColdStartIT.java` — **크라운주얼 #5**: 조회·관심사 0 신규 사용자 → 트렌드/최근 fallback 추천 **비어있지 않음**(coldStart=true). 대조 2케이스: **관심사만 있는 사용자 → 관심사 기반**(coldStart=false), **★ 조회만 있는 사용자(관심사 0) → 조회 기반**(coldStart=false, F3) — fallback이 둘 다 0일 때만임을 IT로도 확정.
 
 **Checkpoint**: 추천 + 제외 + 콜드스타트 → US2 완료.
 
@@ -75,7 +75,7 @@
 
 ## Phase 5: Polish & Cross-Cutting
 
-- [ ] T022 [P] ★ `FeedService` 003 피드 랭킹 회귀 확인 — **크라운주얼 #1(추출 회귀)**: 기존 003 피드/랭킹 테스트(`FeedService`·피드 IT)가 ArticleRelevanceScorer 추출 후 **동일 통과**(행위 보존 증거). 별도 테스트 추가 없이 기존 스위트 GREEN 확인(또는 추출 전후 동일성 명시 단언).
+- [ ] T022 [P] ★ `FeedService` 003 피드 랭킹 회귀 확인 — **크라운주얼 #1(추출 회귀)**: behavior-preserving 증거 = **`FeedServiceTest`의 랭킹 단언(T1 카테고리우위·T3 최신성·T4 개인화없음→publishedAt DESC) + 피드 IT가 ArticleRelevanceScorer 추출 후 단언 수정 없이 GREEN**. ★ "테스트 수정 없이"가 아니라 "**랭킹 단언 수정 없이**" — 생성자 배선 1줄(rankingProps→scorer 주입) 기계적 조정은 리팩터 정상이며 행위 변경 아님. **단언을 고쳐야 green이면 행위 변경 신호 → 정직 보고**.
 - [ ] T023 [P] ADR in `.specify/specs/010-insights/adr/ADR-001-aggregation-recommendation.md` — 온디맨드 집계(테이블 0·쿼리 6 상한·FANOUT 회피), behavior-preserving 추출(공유 scorer), RecommendationEngine seam, 콜드스타트 분기, 편향 버킷 006 미러, 표본<5 처리.
 - [ ] T024 [P] CHANGELOG 항목 in `CHANGELOG.html` — 010 insights+추천(온디맨드 6항목·룰베이스 추천·테이블 0) feature 엔트리 + stats 갱신.
 - [ ] T025 quickstart 검증 상태 갱신 in `.specify/specs/010-insights/quickstart.md` — 시나리오↔IT 매핑·full suite 결과.
