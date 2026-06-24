@@ -301,11 +301,11 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">79</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">80</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">26</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">26</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">10</div><div class="stat-label">DB Migration</div></div>
-  <div class="stat"><div class="stat-num">44</div><div class="stat-label">커밋</div></div>
+  <div class="stat"><div class="stat-num">45</div><div class="stat-label">커밋</div></div>
   <div class="stat"><div class="stat-num">2026-06-03 ~ 06-24</div><div class="stat-label">작업 기간</div></div>
 </div>
 
@@ -314,6 +314,7 @@
 <nav class="sidebar">
   <h3>날짜</h3>
   <div class="toc-date">2026-06-24</div>
+  <a class="toc-item" href="#d0624-05">deploy.yml — 배포 중 jar 교체 레이스 제거(무결성검증→정지→원자교체→기동)</a>
   <a class="toc-item" href="#d0624-04">010 인사이트+추천 — 개인 소비 리포트 6항목(온디맨드·테이블 0) + 룰베이스 놓친 기사 추천</a>
   <a class="toc-item" href="#d0624-03">009 읽기 추적 P1 — 기사 조회 BE 단독 기록(best-effort 격리·디바운스) + 읽은수·조회이력</a>
   <a class="toc-item" href="#d0624-02">CI test 잡 1시간+ hang — Testcontainers IT 누적 OOM, forkEvery=1 + heap 캡 근본 차단</a>
@@ -404,6 +405,31 @@
   <div class="date-heading">
     <h2>2026-06-24</h2>
     <div class="date-bar"></div>
+  </div>
+
+  <div class="entry" id="d0624-05" data-tags="config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-config">config</span>
+        <span class="sev sev-medium">medium</span>
+        <strong>deploy.yml — 배포 중 jar 교체 레이스 제거(무결성검증→정지→원자교체→기동)</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>v1.0.0 배포 직후 운영 서버 로그에서 <code>ClassFormatError: Truncated class file</code> 다수 + pm2 재시작 카운트 +6 관측(6/15 동종 사건 재현). 최종적으로는 clean start에 성공(현재 v17·UP·무중단)했으나, 배포 중 재시도 창이 남아있었다.</dd>
+        <dt>근본 원인</dt>
+        <dd>기존 deploy.yml은 <code>mv jar.tmp jar && pm2 reload</code> — 라이브 JVM이 클래스를 lazy-load하는 jar를 <b>구동 중에 교체</b>하고, fork 모드 <code>pm2 reload</code>(=restart)가 ~25초 느린 기동(Flyway 6단계 포함)을 불안정 재시작. 교체 중 jar 읽기 레이스 + 느린 기동 재시도가 truncated 예외·재시작 누적을 유발.</dd>
+        <dt>수정 내용</dt>
+        <dd>업로드를 <code>news-pulse-back.jar.new</code> 스테이징 경로로 분리 후, 원격에서 <b>무결성 검증(<code>unzip -tqq</code>) → <code>pm2 stop</code> → 원자적 <code>mv</code> → <code>pm2 start</code> → <code>pm2 save</code></b> 순서로 변경. <code>set -e</code>로 단계 실패 시 중단하되, <b>무결성 검증을 정지보다 앞에 두어 검증 실패 시 구버전 무중단 유지</b>. 라이브 jar를 교체 중에 읽는 창을 제거.</dd>
+        <dt>결정 이유 (대안 대비 근거)</dt>
+        <dd>대안 A(<code>pm2 reload</code> 유지 + 재시작 임계 상향)는 fork 모드라 reload가 실질 restart이고 교체 레이스가 남아 근본 해결 아님. 대안 B(blue-green/심볼릭 링크 무중단)는 단일 인스턴스 운영에 과한 인프라. 선택안은 <b>최소 변경으로 레이스 자체를 제거</b>(정지 후 교체)하고, 짧은 배포 다운타임(단일 인스턴스라 수용 가능)을 감수하는 대신 truncated 재시도를 없앤다. 무결성 검증 선행으로 truncated 전송 시에도 구버전을 안 깬다. 향후 무중단이 필요해지면 심볼릭 링크 교체로 확장(forward-note). <b>근본 수정</b>: 교체 레이스 제거(증상인 재시작 임계 조정 아님).</dd>
+        <dt>영향 파일</dt>
+        <dd>.github/workflows/deploy.yml. 적용 시점: 다음 <code>v*</code> 태그 배포부터(현재 가동 중인 v1.0.0에는 무영향). 전제: 운영 서버에 <code>unzip</code> 존재(Ubuntu 기본).</dd>
+      </dl>
+    </div>
   </div>
 
   <div class="entry" id="d0624-04" data-tags="feature">
