@@ -10,16 +10,16 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 OpenAPI 선반영 확인 — `.specify/specs/010-insights/contracts/openapi-patch.yaml`(`/me/insights`·`/me/recommendations`)가 구현 대상과 일치 점검(news-pulse-spec 반영은 dev push 시 sync-openapi). **마이그레이션 없음(테이블 0) 확인**.
+- [x] T001 OpenAPI 선반영 확인 — `.specify/specs/010-insights/contracts/openapi-patch.yaml`(`/me/insights`·`/me/recommendations`)가 구현 대상과 일치 점검(news-pulse-spec 반영은 dev push 시 sync-openapi). **마이그레이션 없음(테이블 0) 확인**.
 
 ---
 
 ## Phase 2: Foundational (차단 선행)
 
-- [ ] T002 `InsightsRecommendationProperties` in `src/main/java/com/newscurator/config/InsightsRecommendationProperties.java` — `@ConfigurationProperties(prefix="app.insights.recommendation")`: categoryWeight=0.5·trendWeight=0.3·recencyWeight=0.2·candidateDays=14·minSampleSize=5·recommendLimit. application.yaml 기본값 추가. **하드코딩 0**.
-- [ ] T003 ★ `ArticleRelevanceScorer` 추출 in `src/main/java/com/newscurator/service/ArticleRelevanceScorer.java` — `FeedService.computeScore(Article, List<String> userCategories, List<String> userKeywords, Instant referenceTs)`를 **behavior-preserving 이동**(본문·인자·연산순서·반환 100% 보존), `FeedRankingProperties` 주입. @Component. **DI 이디엄 유지**(scorer를 FeedService·RuleBasedRecommender에 주입; 비주입 내부 인스턴스화 채택 안 함). **★ behavior-preserving 증거 = `FeedServiceTest`의 랭킹 단언(T1 카테고리우위·T3 최신성·T4 개인화없음→publishedAt DESC)이 불변으로 통과**. FeedService 생성자에 scorer 의존성이 추가되므로 `FeedServiceTest` setUp의 **생성자 배선 1줄만 기계적 조정**(rankingProps → `new ArticleRelevanceScorer(RANKING_PROPS)` 주입) — **랭킹 단언은 수정 금지**. 단언을 고쳐야 통과하면 그건 행위 변경 신호 → 정직 보고(추출 재검토).
-- [ ] T004 `FeedService` 위임 변경 in `src/main/java/com/newscurator/service/FeedService.java` — computeScore 제거하고 `ArticleRelevanceScorer` 주입·위임(순수 위임, 상태 구성·호출부 동일). 003 피드 행위 불변.
-- [ ] T005 `InsightAggregationRepository` in `src/main/java/com/newscurator/repository/InsightAggregationRepository.java` — 읽은 기사(article_event VIEW distinct, `JOIN articles ON admin_hidden_at IS NULL`) 기준 6항목 집계 native 쿼리: (1)readCount distinct, (2)카테고리 분포/최다, (3)언론사 top-k(article_sources→sources.name), (4)키워드 분포(article_keyword), (5)편향 분포(bias_analysis DONE, 버킷 진보[-100,-34]·중립[-33,33]·보수[34,100], NULLIF 안전). + 추천 후보 쿼리(최근 candidateDays 비숨김 − article_event NOT EXISTS − saved_articles NOT EXISTS).
+- [x] T002 `InsightsRecommendationProperties` in `src/main/java/com/newscurator/config/InsightsRecommendationProperties.java` — `@ConfigurationProperties(prefix="app.insights.recommendation")`: categoryWeight=0.5·trendWeight=0.3·recencyWeight=0.2·candidateDays=14·minSampleSize=5·recommendLimit. application.yaml 기본값 추가. **하드코딩 0**.
+- [x] T003 ★ `ArticleRelevanceScorer` 추출 in `src/main/java/com/newscurator/service/ArticleRelevanceScorer.java` — `FeedService.computeScore(Article, List<String> userCategories, List<String> userKeywords, Instant referenceTs)`를 **behavior-preserving 이동**(본문·인자·연산순서·반환 100% 보존), `FeedRankingProperties` 주입. @Component. **DI 이디엄 유지**(scorer를 FeedService·RuleBasedRecommender에 주입; 비주입 내부 인스턴스화 채택 안 함). **★ behavior-preserving 증거 = `FeedServiceTest`의 랭킹 단언(T1 카테고리우위·T3 최신성·T4 개인화없음→publishedAt DESC)이 불변으로 통과**. FeedService 생성자에 scorer 의존성이 추가되므로 `FeedServiceTest` setUp의 **생성자 배선 1줄만 기계적 조정**(rankingProps → `new ArticleRelevanceScorer(RANKING_PROPS)` 주입) — **랭킹 단언은 수정 금지**. 단언을 고쳐야 통과하면 그건 행위 변경 신호 → 정직 보고(추출 재검토).
+- [x] T004 `FeedService` 위임 변경 in `src/main/java/com/newscurator/service/FeedService.java` — computeScore 제거하고 `ArticleRelevanceScorer` 주입·위임(순수 위임, 상태 구성·호출부 동일). 003 피드 행위 불변.
+- [x] T005 `InsightAggregationRepository` in `src/main/java/com/newscurator/repository/InsightAggregationRepository.java` — 읽은 기사(article_event VIEW distinct, `JOIN articles ON admin_hidden_at IS NULL`) 기준 6항목 집계 native 쿼리: (1)readCount distinct, (2)카테고리 분포/최다, (3)언론사 top-k(article_sources→sources.name), (4)키워드 분포(article_keyword), (5)편향 분포(bias_analysis DONE, 버킷 진보[-100,-34]·중립[-33,33]·보수[34,100], NULLIF 안전). + 추천 후보 쿼리(최근 candidateDays 비숨김 − article_event NOT EXISTS − saved_articles NOT EXISTS).
 
 **Checkpoint**: config·scorer·집계 리포지토리 준비 → US1/US2 착수.
 
@@ -33,18 +33,18 @@
 
 ### 구현
 
-- [ ] T006 [P] [US1] DTO `InsightResponse` in `src/main/java/com/newscurator/dto/response/InsightResponse.java` — readCount·bookmarkCount(항상) + sampleSufficient + topCategory·categoryDistribution·keywordDistribution·topOutlets·biasDistribution(표본<5면 null). @Schema.
-- [ ] T007 [P] [US1] DTO `BiasDistributionResponse`(liberalPercent·neutralPercent·conservativePercent·total) in `src/main/java/com/newscurator/dto/response/BiasDistributionResponse.java` — 중립 기술(단정 라벨 없음). @Schema.
-- [ ] T008 [US1] `InsightService` in `src/main/java/com/newscurator/service/InsightService.java` — `@Transactional(readOnly=true)` getInsights(accountId): readCount 먼저 → **minSampleSize(5) 미만이면 분포 쿼리 skip + sampleSufficient=false + 분포 null**(카운트만), 이상이면 6항목 집계(쿼리 6 상한). 003 saved count. NPE·분모0 없음.
-- [ ] T009 [US1] `InsightController` in `src/main/java/com/newscurator/controller/InsightController.java` — `GET /api/v1/me/insights`, `@AuthenticationPrincipal`로 본인만, ApiResponse 래퍼, @Tag/@Operation/@ApiResponses.
+- [x] T006 [P] [US1] DTO `InsightResponse` in `src/main/java/com/newscurator/dto/response/InsightResponse.java` — readCount·bookmarkCount(항상) + sampleSufficient + topCategory·categoryDistribution·keywordDistribution·topOutlets·biasDistribution(표본<5면 null). @Schema.
+- [x] T007 [P] [US1] DTO `BiasDistributionResponse`(liberalPercent·neutralPercent·conservativePercent·total) in `src/main/java/com/newscurator/dto/response/BiasDistributionResponse.java` — 중립 기술(단정 라벨 없음). @Schema.
+- [x] T008 [US1] `InsightService` in `src/main/java/com/newscurator/service/InsightService.java` — `@Transactional(readOnly=true)` getInsights(accountId): readCount 먼저 → **minSampleSize(5) 미만이면 분포 쿼리 skip + sampleSufficient=false + 분포 null**(카운트만), 이상이면 6항목 집계(쿼리 6 상한). 003 saved count. NPE·분모0 없음.
+- [x] T009 [US1] `InsightController` in `src/main/java/com/newscurator/controller/InsightController.java` — `GET /api/v1/me/insights`, `@AuthenticationPrincipal`로 본인만, ApiResponse 래퍼, @Tag/@Operation/@ApiResponses.
 
 ### 테스트 (크라운주얼)
 
-- [ ] T010 [P] [US1] ★ `ArticleRelevanceScorerTest`(단위) in `src/test/java/com/newscurator/service/ArticleRelevanceScorerTest.java` — **크라운주얼 #1(추출 동일점수)**: 추출된 scorer가 카테고리 매칭·키워드 상한·최근성 ratio를 기존 computeScore와 동일하게 산출(대표 케이스 점수 단언).
-- [ ] T011 [P] [US1] `InsightServiceTest`(단위, Mockito) in `src/test/java/com/newscurator/service/InsightServiceTest.java` — 표본<5 분기(분포 null·카운트 반환), 표본≥5 6항목 매핑.
-- [ ] T012 [US1] `InsightAggregationRepositoryTest`(Testcontainers) in `src/test/java/com/newscurator/repository/InsightAggregationRepositoryTest.java` — 6항목 쿼리 정확(distinct·숨김 제외·편향 DONE만·버킷 경계).
-- [ ] T013 [US1] ★ `InsightAggregationIT`(@SpringBootTest RANDOM_PORT, 실 PG) in `src/test/java/com/newscurator/integration/InsightAggregationIT.java` — **크라운주얼 #2·#4·#5**: 6항목 본인 스코프(B토큰→A 0) + admin_hidden 기사 집계 제외 + 편향 중립 분포(진보/중립/보수 % 버킷, DONE만).
-- [ ] T014 [US1] ★ `InsightSampleThresholdIT`(실 PG) in `src/test/java/com/newscurator/integration/InsightSampleThresholdIT.java` — **크라운주얼 #3**: 읽은 고유 기사 <5 → sampleSufficient=false·분포 null·readCount/bookmarkCount 정상(NPE·분모0 없음). 읽은 기사 0 사용자 안전.
+- [x] T010 [P] [US1] ★ `ArticleRelevanceScorerTest`(단위) in `src/test/java/com/newscurator/service/ArticleRelevanceScorerTest.java` — **크라운주얼 #1(추출 동일점수)**: 추출된 scorer가 카테고리 매칭·키워드 상한·최근성 ratio를 기존 computeScore와 동일하게 산출(대표 케이스 점수 단언).
+- [x] T011 [P] [US1] `InsightServiceTest`(단위, Mockito) in `src/test/java/com/newscurator/service/InsightServiceTest.java` — 표본<5 분기(분포 null·카운트 반환), 표본≥5 6항목 매핑.
+- [x] T012 [US1] `InsightAggregationRepositoryTest`(Testcontainers) in `src/test/java/com/newscurator/repository/InsightAggregationRepositoryTest.java` — 6항목 쿼리 정확(distinct·숨김 제외·편향 DONE만·버킷 경계).
+- [x] T013 [US1] ★ `InsightAggregationIT`(@SpringBootTest RANDOM_PORT, 실 PG) in `src/test/java/com/newscurator/integration/InsightAggregationIT.java` — **크라운주얼 #2·#4·#5**: 6항목 본인 스코프(B토큰→A 0) + admin_hidden 기사 집계 제외 + 편향 중립 분포(진보/중립/보수 % 버킷, DONE만).
+- [x] T014 [US1] ★ `InsightSampleThresholdIT`(실 PG) in `src/test/java/com/newscurator/integration/InsightSampleThresholdIT.java` — **크라운주얼 #3**: 읽은 고유 기사 <5 → sampleSufficient=false·분포 null·readCount/bookmarkCount 정상(NPE·분모0 없음). 읽은 기사 0 사용자 안전.
 
 **Checkpoint**: 6항목 리포트 + 표본 분기 → US1 독립 배포(MVP).
 

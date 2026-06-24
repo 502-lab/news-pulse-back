@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
     RetentionProperties.class,
     FeedProperties.class,
     FeedRankingProperties.class,
+    InsightsRecommendationProperties.class,
     AiProperties.class,
     BiasProperties.class,
     TrendProperties.class,
