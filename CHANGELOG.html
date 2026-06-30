@@ -301,7 +301,7 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-num">81</div><div class="stat-label">총 변경 항목</div></div>
+  <div class="stat"><div class="stat-num">82</div><div class="stat-label">총 변경 항목</div></div>
   <div class="stat"><div class="stat-num">26</div><div class="stat-label">Bug Fix</div></div>
   <div class="stat"><div class="stat-num">26</div><div class="stat-label">Feature</div></div>
   <div class="stat"><div class="stat-num">10</div><div class="stat-label">DB Migration</div></div>
@@ -313,6 +313,8 @@
 
 <nav class="sidebar">
   <h3>날짜</h3>
+  <div class="toc-date">2026-06-30</div>
+  <a class="toc-item" href="#d0630-01">CORS·OAuth redirect 화이트리스트에 Vercel 프론트(newsift.vercel.app) 추가</a>
   <div class="toc-date">2026-06-24</div>
   <a class="toc-item" href="#d0624-05">deploy.yml — 배포 중 jar 교체 레이스 제거(무결성검증→정지→원자교체→기동)</a>
   <a class="toc-item" href="#d0624-06">v1.0.0 운영 릴리스 — 006~010 dev→prd 통합 + EC2 배포(운영 DB V11→V17 마이그레이션 성공·헬스 검증)</a>
@@ -400,6 +402,38 @@
 </nav>
 
 <div class="content">
+
+<!-- ═══════ 2026-06-30 ═══════ -->
+<div class="date-group" id="date-0630">
+  <div class="date-heading">
+    <h2>2026-06-30</h2>
+    <div class="date-bar"></div>
+  </div>
+
+  <div class="entry" id="d0630-01" data-tags="config">
+    <div class="entry-header" onclick="toggle(this)">
+      <div class="entry-left">
+        <span class="tag tag-config">config</span>
+        <strong>CORS·OAuth redirect 화이트리스트에 Vercel 프론트(newsift.vercel.app) 추가</strong>
+      </div>
+      <span class="toggle-icon">▸</span>
+    </div>
+    <div class="entry-body">
+      <dl>
+        <dt>문제 (발견 경위)</dt>
+        <dd>프론트엔드를 Vercel(<code>https://newsift.vercel.app</code>)로 배포 후, 브라우저가 백엔드 API 호출을 CORS로 차단. 또 소셜 로그인 콜백의 redirectUri 화이트리스트에도 신규 도메인이 없어 거부됨.</dd>
+        <dt>근본 원인</dt>
+        <dd><code>SecurityConfig.corsConfigurationSource</code>가 <code>setAllowCredentials(true)</code> + 정확 origin 목록(<code>cors.allowed-origins</code>)을 사용해 와일드카드 불가 — 등록 안 된 origin은 전부 차단. <code>SocialAuthService.validateRedirectUri</code>는 <code>allowed.contains(redirectUri)</code> 정확 일치라 미등록 redirectUri는 거부.</dd>
+        <dt>수정 내용</dt>
+        <dd>application.yaml의 <code>cors.allowed-origins</code>·<code>oauth.allowed-redirect-uris</code>에 <code>https://newsift.vercel.app</code>(스킴+호스트, 끝 슬래시·경로 없음) 추가. 기존 항목(localhost·dev.newsit.app·newsit.app)은 유지(리스트 추가).</dd>
+        <dt>결정 이유 (대안 대비 근거)</dt>
+        <dd>커밋된 application.yaml에 추가(방법 A)한 것은 프론트 도메인이 비밀이 아니고 기존 운영 도메인도 동일하게 커밋돼 있어 일관적이며, 다음 릴리스 배포 시 자동 반영되기 때문. 와일드카드(<code>allowedOriginPatterns "https://*.vercel.app"</code>)는 Vercel 프리뷰 URL(가변 서브도메인)까지 열어야 할 때만 필요하나, 현재는 운영 고정 도메인만이라 공격면 최소화를 위해 정확 origin만 추가. <code>allowCredentials=true</code> 특성상 와일드카드 origin은 불가하므로 정확 값이 정석.</dd>
+        <dt>영향 파일</dt>
+        <dd>src/main/resources/application.yaml. 적용 시점: 다음 배포부터(<code>v*</code> 태그). 즉시 필요 시 운영 <code>application-prd.yaml</code>의 동일 목록을 전체 교체로 갱신 후 <code>pm2 restart</code>. 민감정보 없음.</dd>
+      </dl>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════ 2026-06-24 ═══════ -->
 <div class="date-group" id="date-0624">
