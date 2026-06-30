@@ -20,12 +20,22 @@ jobs:
         run: |
           echo "$EC2_SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
+          # 스테이징 경로(.new)로 업로드 — 라이브 jar는 건드리지 않음
           scp -i /tmp/deploy_key \
             -o StrictHostKeyChecking=no \
             build/libs/*.jar \
-            ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/news-pulse-back.jar.tmp
+            ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/news-pulse-back.jar.new
+          # 무결성 검증 → 정지 → 원자적 교체 → 기동 (구동 중 JVM이 교체 중 jar를 읽는 레이스 제거)
+          # 무결성 검증을 pm2 stop 이전에 두어, 검증 실패 시 무중단(구버전 유지). set -e로 실패 시 중단.
           ssh -i /tmp/deploy_key \
             -o StrictHostKeyChecking=no \
-            ${EC2_USER}@${EC2_HOST} \
-            "mv /home/ubuntu/app/news-pulse-back.jar.tmp /home/ubuntu/app/news-pulse-back.jar && cd /home/ubuntu/app && pm2 reload newsift-back || pm2 start ecosystem.config.js && pm2 save"
+            ${EC2_USER}@${EC2_HOST} '
+              set -e
+              cd /home/ubuntu/app
+              unzip -tqq news-pulse-back.jar.new
+              pm2 stop newsift-back || true
+              mv -f news-pulse-back.jar.new news-pulse-back.jar
+              pm2 start newsift-back || pm2 start ecosystem.config.js --only newsift-back
+              pm2 save
+            '
           rm -f /tmp/deploy_key

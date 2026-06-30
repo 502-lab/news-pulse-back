@@ -53,6 +53,7 @@ cors:
     - http://localhost:5173
     - https://dev.newsit.app
     - https://newsit.app
+    - https://newsift.vercel.app
 
 oauth:
   allowed-redirect-uris:
@@ -60,6 +61,7 @@ oauth:
     - http://localhost:5173
     - https://dev.newsit.app
     - https://newsit.app
+    - https://newsift.vercel.app
   kakao:
     client-id: ${KAKAO_CLIENT_ID:test-kakao-id}
     client-secret: ${KAKAO_CLIENT_SECRET:test-kakao-secret}
